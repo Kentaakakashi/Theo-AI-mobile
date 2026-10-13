@@ -86,7 +86,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
 
   private val speechManager = TheoSpeechManager(application) { isSpeaking ->
     _uiState.update { current ->
-      if (isSpeaking) {
+      if (isSpeaking && current.assistantState != AssistantState.THINKING) {
         current.copy(assistantState = AssistantState.SPEAKING)
       } else {
         if (current.assistantState == AssistantState.SPEAKING) {

@@ -384,6 +384,7 @@ class TheoAiEngine {
           lastFinishReason = ""
           lastBlockReason = ""
           val request = Request.Builder().url(url).header("x-goog-api-key", key).header("Content-Type", "application/json").post(requestBody).build()
+          onProgress("Waiting for Gemini response headers")
           val response = geminiClient.newCall(request).execute()
           lastHeadersLatencyMs = System.currentTimeMillis() - lastAttemptStartedAt
           response.use { res ->
@@ -474,7 +475,7 @@ class TheoAiEngine {
           500, 502, 503, 504 -> "Google's Gemini service is temporarily overloaded or unavailable. Theo retried this request once; no simulated answer was used. Please try again shortly."
           else -> "Check your internet connection and Gemini API settings."
         }
-        TheoDiagnosticLogger.error("GEMINI", "Generation failed", details = "HTTP " + lastCode + "; configured keys=" + apiKeys.size + "; " + detail)
+        TheoDiagnosticLogger.error("GEMINI", "Generation failed", details = "HTTP " + lastCode + "; totalMs=" + latency + "; headersMs=" + (lastHeadersLatencyMs ?: -1) + "; firstTokenMs=" + (lastFirstTokenLatencyMs ?: -1) + "; chunks=" + lastStreamChunks + "; configured keys=" + apiKeys.size + "; finishReason=" + lastFinishReason + "; blockReason=" + lastBlockReason + "; " + detail)
         val emptyStream = lastCode == 200
         val failureText = if (emptyStream) {
           "Gemini connected (HTTP 200) but completed without usable answer text. Check the model response and see the GEMINI diagnostic log for timing details." + if (detail.isNotBlank()) "\n\nGoogle details: " + detail else ""

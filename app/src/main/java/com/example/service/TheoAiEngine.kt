@@ -110,10 +110,11 @@ class TheoAiEngine {
 
     // Build memory context string
     val memoryContext = if (memories.isNotEmpty()) {
-      "Known Operator Memory Context:\n" + memories.take(8).joinToString("\n") { "- ${it.key}: ${it.value} [${it.category}]" }
+      ("Known Operator Memory Context:\n" + memories.take(8).joinToString("\n") { "- ${it.key.take(120)}: ${it.value.take(300)} [${it.category.take(60)}]" }).take(3000)
     } else {
       "No operator memory stored yet."
     }
+    TheoDiagnosticLogger.info("AI_ENGINE", "Prepared request context", "promptChars=${prompt.length}; memoryContextChars=${memoryContext.length}")
 
     val result = when (activeModel) {
       AiModelType.LOCAL_QWEN -> {

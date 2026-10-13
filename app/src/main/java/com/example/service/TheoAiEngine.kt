@@ -215,8 +215,7 @@ class TheoAiEngine {
       append("Could not reach local server at `127.0.0.1:8080` ($reason).\n\n")
       append("**To activate on-device Qwen in Termux:**\n")
       append("`llama-server -m qwen3-1.7b.gguf --port 8080`\n\n")
-      append("In the meantime, Theo internal reasoning resolved your query:\n\n")
-      append(synthesizeKnowledge(prompt))
+      append("No Qwen-generated answer was produced. Start llama-server in Termux and retry, or switch to Gemini in Theo Settings with a valid API key.")
     }
     return EngineResult(
       responseText = text,

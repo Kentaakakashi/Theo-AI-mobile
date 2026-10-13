@@ -50,7 +50,8 @@ class TheoAiEngine {
     activeModel: AiModelType,
     customApiKey: String,
     termuxHost: String,
-    memories: List<MemoryItem>
+    memories: List<MemoryItem>,
+    onStreamChunk: (String) -> Unit = {}
   ): EngineResult = withContext(Dispatchers.IO) {
     val startTime = System.currentTimeMillis()
 
@@ -102,7 +103,7 @@ class TheoAiEngine {
         if (apiKeys.isEmpty()) {
           EngineResult("No Gemini API key is configured. Add at least one key in Settings. Theo will not generate a simulated answer.", "API KEY REQUIRED", System.currentTimeMillis() - startTime)
         } else {
-          tryCallGemini(prompt, memoryContext, apiKeys, activeModel, startTime)
+          tryCallGemini(prompt, memoryContext, apiKeys, activeModel, startTime, onStreamChunk)
         }
       }
     }
@@ -117,6 +118,82 @@ class TheoAiEngine {
       memoryExtracted = memoryExtraction,
       actionSuggested = actionIntent
     )
+  }
+
+  suspend fun testGeminiConnection(apiKeyInput: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+    val apiKeys = apiKeyInput.split(Regex("[\\r\\n,;]+"))
+      .map { it.trim() }
+      .filter { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }
+      .distinct()
+    if (apiKeys.isEmpty()) return@withContext Pair(false, "No Gemini API key saved. Add a key, then tap Test Gemini API.")
+
+    val testClient = OkHttpClient.Builder()
+      .connectTimeout(8, TimeUnit.SECONDS)
+      .readTimeout(12, TimeUnit.SECONDS)
+      .writeTimeout(8, TimeUnit.SECONDS)
+      .callTimeout(15, TimeUnit.SECONDS)
+      .build()
+    val modelName = "gemini-3.5-flash"
+    val url = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent"
+    val body = JSONObject().apply {
+      put("contents", JSONArray().put(JSONObject().apply {
+        put("role", "user")
+        put("parts", JSONArray().put(JSONObject().put("text", "Reply with exactly OK.")))
+      }))
+      put("generationConfig", JSONObject().apply {
+        put("maxOutputTokens", 8)
+        put("thinkingConfig", JSONObject().put("thinkingLevel", "MINIMAL"))
+      })
+    }.toString().toRequestBody("application/json".toMediaType())
+
+    val start = System.currentTimeMillis()
+    try {
+      var lastStatus = ""
+      for ((index, key) in apiKeys.withIndex()) {
+        val request = Request.Builder()
+          .url(url)
+          .header("x-goog-api-key", key)
+          .header("Content-Type", "application/json")
+          .post(body)
+          .build()
+        try {
+          testClient.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string().orEmpty()
+            val elapsed = System.currentTimeMillis() - start
+            if (response.isSuccessful) {
+              val parsed = JSONObject(responseBody)
+              val text = parsed.optJSONArray("candidates")?.optJSONObject(0)
+                ?.optJSONObject("content")?.optJSONArray("parts")
+                ?.optJSONObject(0)?.optString("text").orEmpty().trim()
+              if (text.isNotBlank()) {
+                TheoDiagnosticLogger.info("GEMINI_TEST", "API test succeeded", "keySlot=" + (index + 1) + ", HTTP " + response.code + ", latencyMs=" + elapsed)
+                return@withContext Pair(true, "Connected · HTTP " + response.code + " · " + elapsed + " ms · key " + (index + 1) + " passed a real generation test.")
+              }
+              lastStatus = "HTTP " + response.code + ", but Gemini returned no text."
+            } else {
+              val detail = try { JSONObject(responseBody).optJSONObject("error")?.optString("message").orEmpty() }
+                catch (_: Exception) { responseBody.take(180).replace(Regex("\\s+"), " ") }
+              lastStatus = "Key " + (index + 1) + ": HTTP " + response.code + if (detail.isNotBlank()) " · " + detail else ""
+              if (response.code !in listOf(401, 403, 429)) break
+            }
+          }
+        } catch (e: Exception) {
+          lastStatus = when (e) {
+            is java.net.SocketTimeoutException -> "Key " + (index + 1) + ": timed out after 15 seconds waiting for Gemini. Check network route or retry later."
+            is java.net.UnknownHostException -> "Gemini host could not be resolved. Check internet or DNS."
+            is javax.net.ssl.SSLException -> "Secure connection failed. Check VPN, filtering, and device date/time."
+            else -> "Connection test failed: " + (e.localizedMessage ?: e.javaClass.simpleName)
+          }
+          TheoDiagnosticLogger.error("GEMINI_TEST", "API test failed", e, "keySlot=" + (index + 1))
+          break
+        }
+      }
+      TheoDiagnosticLogger.warn("GEMINI_TEST", "API test did not pass", lastStatus)
+      Pair(false, lastStatus.ifBlank { "Gemini API test failed. Check the saved key and connection." })
+    } catch (e: Exception) {
+      TheoDiagnosticLogger.error("GEMINI_TEST", "Unexpected API test error", e)
+      Pair(false, "API test error: " + (e.localizedMessage ?: e.javaClass.simpleName))
+    }
   }
 
   suspend fun testQwenConnection(termuxHost: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
@@ -240,11 +317,12 @@ class TheoAiEngine {
     memoryContext: String,
     apiKeys: List<String>,
     modelType: AiModelType,
-    startTime: Long
+    startTime: Long,
+    onStreamChunk: (String) -> Unit
   ): EngineResult {
     return try {
       val modelName = "gemini-3.5-flash"
-      val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent"
+      val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:streamGenerateContent?alt=sse"
 
       val systemInstruction = "You are Theo, a premium cybernetic personal AI assistant and neural OS companion on Android. $memoryContext. Be concise, highly capable, elegant, and futuristic."
 
@@ -280,14 +358,41 @@ class TheoAiEngine {
           val request = Request.Builder().url(url).header("x-goog-api-key", key).header("Content-Type", "application/json").post(requestBody).build()
           val response = geminiClient.newCall(request).execute()
           response.use { res ->
-            val body = res.body?.string().orEmpty()
             if (res.isSuccessful) {
-              val parsed = JSONObject(body)
-              val parts = parsed.optJSONArray("candidates")?.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts")
-              answer = (0 until (parts?.length() ?: 0)).mapNotNull { i -> parts?.optJSONObject(i)?.optString("text")?.takeIf { it.isNotBlank() } }.joinToString("\n").trim()
-              usedKeyIndex = index
-              if (answer.isBlank()) { lastCode = 200; lastErrorBody = "Gemini returned no text content." }
-            } else { lastCode = res.code; lastErrorBody = body }
+              val streamedText = StringBuilder()
+              val source = res.body?.source()
+              if (source == null) {
+                lastCode = res.code
+                lastErrorBody = "Gemini returned an empty streaming response body."
+              } else {
+                while (!source.exhausted()) {
+                  val line = source.readUtf8Line() ?: break
+                  if (!line.startsWith("data:")) continue
+                  val eventData = line.removePrefix("data:").trim()
+                  if (eventData.isBlank() || eventData == "[DONE]") continue
+                  try {
+                    val parsed = JSONObject(eventData)
+                    val parts = parsed.optJSONArray("candidates")
+                      ?.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts")
+                    val delta = (0 until (parts?.length() ?: 0))
+                      .mapNotNull { partIndex -> parts?.optJSONObject(partIndex)?.optString("text")?.takeIf { it.isNotBlank() } }
+                      .joinToString("")
+                    if (delta.isNotEmpty()) {
+                      streamedText.append(delta)
+                      onStreamChunk(delta)
+                    }
+                  } catch (parseError: Exception) {
+                    TheoDiagnosticLogger.warn("GEMINI", "Ignored an unparseable streaming event", parseError.javaClass.simpleName)
+                  }
+                }
+                answer = streamedText.toString().trim()
+                usedKeyIndex = index
+                if (answer.isBlank()) { lastCode = 200; lastErrorBody = "Gemini stream completed without text content." }
+              }
+            } else {
+              lastCode = res.code
+              lastErrorBody = res.body?.string().orEmpty()
+            }
           }
           if (answer.isNotBlank()) break
           val transientServerError = lastCode in listOf(500, 502, 503, 504)

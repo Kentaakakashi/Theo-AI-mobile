@@ -55,15 +55,22 @@ object DeviceActionHandler {
     return try {
       val normalizedAction = actionKey.trim()
       if (normalizedAction.startsWith("music:", ignoreCase = true)) {
-        val query = normalizedAction.substringAfter(':').trim()
+        val payload = normalizedAction.substringAfter(':').trim()
+        val separator = payload.indexOf('|')
+        val provider = if (separator >= 0) payload.substring(0, separator).lowercase() else "youtube"
+        val query = if (separator >= 0) payload.substring(separator + 1).trim() else payload
         if (query.isBlank()) return false
 
-        // Android App Links may route this to YouTube Music when installed; otherwise
-        // the browser opens the real search page. This starts a music search, not
-        // guaranteed playback, because services may require the user to choose a track.
+        // App Links may route into the chosen music app when installed. This opens
+        // a real search; playback can still require track selection or sign-in.
+        val musicUrl = if (provider == "spotify") {
+          "https://open.spotify.com/search/${Uri.encode(query)}"
+        } else {
+          "https://music.youtube.com/search?q=${Uri.encode(query)}"
+        }
         val musicIntent = Intent(
           Intent.ACTION_VIEW,
-          Uri.parse("https://music.youtube.com/search?q=${Uri.encode(query)}")
+          Uri.parse(musicUrl)
         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(musicIntent)
         return true

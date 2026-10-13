@@ -207,8 +207,13 @@ fun ChatMessageBubble(
                   Spacer(modifier = Modifier.width(5.dp))
                   Text(
                     text = when {
-                      actionKey.startsWith("music:", ignoreCase = true) ->
-                        "Find & play ${actionKey.substringAfter(':').take(28)}"
+                      actionKey.startsWith("music:", ignoreCase = true) -> run {
+                        val payload = actionKey.substringAfter(':')
+                        val provider = payload.substringBefore('|')
+                        val query = payload.substringAfter('|', payload).trim()
+                        val service = if (provider.equals("spotify", ignoreCase = true)) "Spotify" else "YouTube Music"
+                        "Find & play ${query.take(20)} on $service"
+                      }
                       actionKey.startsWith("order:", ignoreCase = true) ->
                         "Find order options"
                       actionKey.startsWith("app:", ignoreCase = true) ->

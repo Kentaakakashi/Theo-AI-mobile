@@ -1,0 +1,6 @@
+{
+  "name": "Theo",
+  "description": "Premium native Android AI assistant with glowing neural core, dual Gemini & local Qwen engine, and local memory matrix.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,245 @@
+package com.example
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.ui.screens.ActivityHistoryScreen
+import com.example.ui.screens.CoreAssistantScreen
+import com.example.ui.screens.MemoryMatrixScreen
+import com.example.ui.screens.SettingsScreen
+import com.example.ui.theme.TheoCyan
+import com.example.ui.theme.TheoDarkBackground
+import com.example.ui.theme.TheoSurfaceBorder
+import com.example.ui.theme.TheoSurfaceCard
+import com.example.ui.theme.TheoSurfaceGlass
+import com.example.ui.theme.TheoTextMuted
+import com.example.ui.theme.TheoTextPrimary
+import com.example.ui.theme.TheoTheme
+import com.example.ui.theme.TheoViolet
+import com.example.viewmodel.TheoViewModel
+
+class MainActivity : ComponentActivity() {
+
+  private val viewModel: TheoViewModel by viewModels()
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    enableEdgeToEdge()
+    setContent {
+      TheoTheme {
+        TheoMainContent(viewModel = viewModel)
+      }
+    }
+  }
+}
+
+@Composable
+fun TheoMainContent(viewModel: TheoViewModel) {
+  val uiState by viewModel.uiState.collectAsState()
+  val messages by viewModel.messages.collectAsState()
+  val memories by viewModel.memories.collectAsState()
+  val activities by viewModel.activities.collectAsState()
+
+  // Handle hardware back navigation: return to Core tab if on secondary tab
+  BackHandler(enabled = uiState.currentTab != 0) {
+    viewModel.setTab(0)
+  }
+
+  Scaffold(
+    modifier = Modifier.fillMaxSize(),
+    containerColor = TheoDarkBackground,
+    bottomBar = {
+      TheoBottomNavigation(
+        currentTab = uiState.currentTab,
+        onTabSelected = { viewModel.setTab(it) }
+      )
+    }
+  ) { paddingValues ->
+    Box(
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(bottom = paddingValues.calculateBottomPadding())
+    ) {
+      AnimatedContent(
+        targetState = uiState.currentTab,
+        transitionSpec = { fadeIn() togetherWith fadeOut() },
+        label = "TabContentAnimation"
+      ) { targetTab ->
+        when (targetTab) {
+          0 -> CoreAssistantScreen(
+            uiState = uiState,
+            messages = messages,
+            onSendMessage = { viewModel.sendMessage(it) },
+            onInputChange = { viewModel.setInputText(it) },
+            onOrbClick = { viewModel.onOrbClicked() },
+            onToggleSpeech = { viewModel.toggleSpeech() },
+            onOpenSettings = { viewModel.setTab(3) },
+            onExecuteAction = { viewModel.executeDeviceAction(it) },
+            onDismissAction = { viewModel.dismissPendingAction() }
+          )
+
+          1 -> MemoryMatrixScreen(
+            memories = memories,
+            searchQuery = uiState.memorySearchQuery,
+            selectedCategory = uiState.selectedCategoryFilter,
+            onSearchChange = { viewModel.setMemorySearchQuery(it) },
+            onCategorySelect = { viewModel.setCategoryFilter(it) },
+            onAddMemory = { cat, k, v -> viewModel.addMemory(cat, k, v) },
+            onDeleteMemory = { viewModel.deleteMemory(it) }
+          )
+
+          2 -> ActivityHistoryScreen(
+            activities = activities,
+            onClearHistory = { viewModel.clearActivities() }
+          )
+
+          3 -> SettingsScreen(
+            uiState = uiState,
+            onSaveSettings = { model, anim, key, host ->
+              viewModel.updateSettings(model, anim, key, host)
+            },
+            onTestQwen = { viewModel.testQwenConnection() },
+            onClearChat = { viewModel.clearChatHistory() },
+            onToggleSpeech = { viewModel.toggleSpeech() }
+          )
+        }
+      }
+    }
+  }
+}
+
+data class NavTabItem(
+  val label: String,
+  val icon: ImageVector,
+  val testTag: String
+)
+
+@Composable
+fun TheoBottomNavigation(
+  currentTab: Int,
+  onTabSelected: (Int) -> Unit
+) {
+  val tabs = listOf(
+    NavTabItem("CORE", Icons.Default.AutoAwesome, "nav_core_tab"),
+    NavTabItem("MEMORY", Icons.Default.Storage, "nav_memory_tab"),
+    NavTabItem("ACTIVITY", Icons.Default.Timeline, "nav_activity_tab"),
+    NavTabItem("SETTINGS", Icons.Default.Settings, "nav_settings_tab")
+  )
+
+  Box(
+    modifier = Modifier
+      .fillMaxWidth()
+      .background(
+        Brush.verticalGradient(
+          colors = listOf(
+            Color.Transparent,
+            Color(0xEE090D14),
+            Color(0xFF090D14)
+          )
+        )
+      )
+      .windowInsetsPadding(WindowInsets.navigationBars)
+      .padding(horizontal = 16.dp, vertical = 6.dp)
+  ) {
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .clip(RoundedCornerShape(22.dp))
+        .background(TheoSurfaceGlass)
+        .border(1.dp, TheoSurfaceBorder, RoundedCornerShape(22.dp))
+        .padding(horizontal = 6.dp, vertical = 4.dp),
+      horizontalArrangement = Arrangement.SpaceAround,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      tabs.forEachIndexed { index, tabItem ->
+        val isSelected = currentTab == index
+        Box(
+          modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isSelected) TheoCyan.copy(alpha = 0.15f) else Color.Transparent)
+            .border(
+              1.dp,
+              if (isSelected) TheoCyan.copy(alpha = 0.5f) else Color.Transparent,
+              RoundedCornerShape(16.dp)
+            )
+            .clickable { onTabSelected(index) }
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .testTag(tabItem.testTag),
+          contentAlignment = Alignment.Center
+        ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+          ) {
+            Icon(
+              imageVector = tabItem.icon,
+              contentDescription = tabItem.label,
+              tint = if (isSelected) TheoCyan else TheoTextMuted,
+              modifier = Modifier.size(16.dp)
+            )
+            if (isSelected) {
+              Spacer(modifier = Modifier.width(5.dp))
+              Text(
+                text = tabItem.label,
+                color = TheoCyan,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+}

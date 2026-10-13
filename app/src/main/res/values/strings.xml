@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Theo</string>
+    <string name="app_tagline">Neural Companion OS</string>
+    <string name="status_ready">NEURAL CORE ONLINE</string>
+    <string name="status_thinking">PROCESSING SYNAPSE</string>
+    <string name="status_speaking">TRANSMITTING AUDIO</string>
+    <string name="status_listening">LISTENING SENSORS ACTIVE</string>
+    <string name="status_offline">LOCAL FALLBACK ACTIVE</string>
+</resources>

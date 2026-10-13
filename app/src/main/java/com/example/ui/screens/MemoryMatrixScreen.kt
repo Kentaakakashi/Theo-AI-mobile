@@ -1,0 +1,457 @@
+package com.example.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.data.MemoryEntity
+import com.example.ui.theme.TheoCyan
+import com.example.ui.theme.TheoDarkBackground
+import com.example.ui.theme.TheoErrorRed
+import com.example.ui.theme.TheoSurfaceBorder
+import com.example.ui.theme.TheoSurfaceBorderSubtle
+import com.example.ui.theme.TheoSurfaceCard
+import com.example.ui.theme.TheoSurfaceDeep
+import com.example.ui.theme.TheoSurfaceGlass
+import com.example.ui.theme.TheoTextMuted
+import com.example.ui.theme.TheoTextPrimary
+import com.example.ui.theme.TheoTextSecondary
+import com.example.ui.theme.TheoViolet
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+@Composable
+fun MemoryMatrixScreen(
+  memories: List<MemoryEntity>,
+  searchQuery: String,
+  selectedCategory: String,
+  onSearchChange: (String) -> Unit,
+  onCategorySelect: (String) -> Unit,
+  onAddMemory: (String, String, String) -> Unit,
+  onDeleteMemory: (String) -> Unit,
+  modifier: Modifier = Modifier
+) {
+  var showAddDialog by remember { mutableStateOf(false) }
+  var newCategory by remember { mutableStateOf("Personal") }
+  var newKey by remember { mutableStateOf("") }
+  var newValue by remember { mutableStateOf("") }
+
+  val categories = listOf("All", "Identity", "Preferences", "Architecture", "Hardware", "Personal", "Captured")
+
+  // Filter memories
+  val filteredMemories = memories.filter { item ->
+    val matchesCategory = (selectedCategory == "All" || item.category.equals(selectedCategory, ignoreCase = true))
+    val matchesSearch = searchQuery.isBlank() ||
+      item.memoryKey.contains(searchQuery, ignoreCase = true) ||
+      item.memoryValue.contains(searchQuery, ignoreCase = true)
+    matchesCategory && matchesSearch
+  }
+
+  Box(
+    modifier = modifier
+      .fillMaxSize()
+      .background(TheoDarkBackground)
+      .statusBarsPadding()
+      .navigationBarsPadding()
+  ) {
+    Column(
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(horizontal = 16.dp)
+    ) {
+      // Screen Title & HUD Banner
+      Spacer(modifier = Modifier.height(8.dp))
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Column {
+          Text(
+            text = "MEMORY MATRIX",
+            color = TheoTextPrimary,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 2.sp
+          )
+          Text(
+            text = "// ${memories.size} PERSISTENT REGISTERS ENCODED",
+            color = TheoCyan,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold
+          )
+        }
+
+        IconButton(
+          onClick = { showAddDialog = true },
+          modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(TheoCyan.copy(alpha = 0.2f))
+            .border(1.dp, TheoCyan, CircleShape)
+            .testTag("add_memory_btn")
+        ) {
+          Icon(
+            imageVector = Icons.Default.Add,
+            contentDescription = "Inscribe Memory",
+            tint = TheoCyan,
+            modifier = Modifier.size(18.dp)
+          )
+        }
+      }
+
+      // Memory info card
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(top = 10.dp)
+          .clip(RoundedCornerShape(12.dp))
+          .background(TheoSurfaceGlass)
+          .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+          .padding(10.dp)
+      ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Icon(
+            imageVector = Icons.Default.Storage,
+            contentDescription = null,
+            tint = TheoViolet,
+            modifier = Modifier.size(16.dp)
+          )
+          Spacer(modifier = Modifier.width(8.dp))
+          Text(
+            text = "Zero-cloud local storage. Memory survives app restarts and bridges seamlessly into Gemini & local Qwen prompts.",
+            color = TheoTextSecondary,
+            fontSize = 11.sp,
+            lineHeight = 15.sp
+          )
+        }
+      }
+
+      // Search Bar
+      Spacer(modifier = Modifier.height(10.dp))
+      Row(
+        modifier = Modifier
+          .fillMaxWidth()
+          .clip(RoundedCornerShape(12.dp))
+          .background(TheoSurfaceCard)
+          .border(1.dp, TheoSurfaceBorder, RoundedCornerShape(12.dp))
+          .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Icon(
+          imageVector = Icons.Default.Search,
+          contentDescription = "Search Memories",
+          tint = TheoTextMuted,
+          modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        BasicTextField(
+          value = searchQuery,
+          onValueChange = onSearchChange,
+          modifier = Modifier.weight(1f),
+          textStyle = TextStyle(color = TheoTextPrimary, fontSize = 13.sp),
+          cursorBrush = SolidColor(TheoCyan),
+          decorationBox = { innerTextField ->
+            if (searchQuery.isEmpty()) {
+              Text("Search key or value in matrix...", color = TheoTextMuted, fontSize = 13.sp)
+            }
+            innerTextField()
+          }
+        )
+        if (searchQuery.isNotEmpty()) {
+          Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = "Clear Search",
+            tint = TheoTextMuted,
+            modifier = Modifier
+              .size(16.dp)
+              .clickable { onSearchChange("") }
+          )
+        }
+      }
+
+      // Category Pill Filters
+      Spacer(modifier = Modifier.height(10.dp))
+      Row(
+        modifier = Modifier
+          .fillMaxWidth()
+          .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+      ) {
+        categories.forEach { cat ->
+          val isSelected = selectedCategory == cat
+          Box(
+            modifier = Modifier
+              .clip(RoundedCornerShape(12.dp))
+              .background(if (isSelected) TheoCyan.copy(alpha = 0.2f) else TheoSurfaceCard)
+              .border(1.dp, if (isSelected) TheoCyan else Color.Transparent, RoundedCornerShape(12.dp))
+              .clickable { onCategorySelect(cat) }
+              .padding(horizontal = 12.dp, vertical = 6.dp)
+          ) {
+            Text(
+              text = cat,
+              color = if (isSelected) TheoCyan else TheoTextMuted,
+              fontFamily = FontFamily.Monospace,
+              fontSize = 11.sp,
+              fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
+          }
+        }
+      }
+
+      // Memory Items List
+      Spacer(modifier = Modifier.height(12.dp))
+      if (filteredMemories.isEmpty()) {
+        Box(
+          modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth(),
+          contentAlignment = Alignment.Center
+        ) {
+          Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+              imageVector = Icons.Default.Bookmark,
+              contentDescription = null,
+              tint = TheoTextMuted,
+              modifier = Modifier.size(40.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+              text = "No registers found in this filter.",
+              color = TheoTextMuted,
+              fontSize = 13.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+              text = "Say \"Remember that: [key] is [value]\" or tap + above.",
+              color = TheoCyan,
+              fontFamily = FontFamily.Monospace,
+              fontSize = 11.sp
+            )
+          }
+        }
+      } else {
+        LazyColumn(
+          modifier = Modifier.weight(1f),
+          verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+          items(filteredMemories, key = { it.id }) { memory ->
+            MemoryCardItem(
+              memory = memory,
+              onDelete = { onDeleteMemory(memory.id) }
+            )
+          }
+          item {
+            Spacer(modifier = Modifier.height(80.dp))
+          }
+        }
+      }
+    }
+
+    // Dialog to Inscribe Memory manually
+    if (showAddDialog) {
+      AlertDialog(
+        onDismissRequest = { showAddDialog = false },
+        containerColor = TheoSurfaceCard,
+        title = {
+          Text(
+            text = "Inscribe New Fact",
+            color = TheoTextPrimary,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+          )
+        },
+        text = {
+          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+              value = newKey,
+              onValueChange = { newKey = it },
+              label = { Text("Memory Key (e.g. Preferred Language)") },
+              colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = TheoCyan,
+                unfocusedBorderColor = TheoSurfaceBorder
+              ),
+              modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+              value = newValue,
+              onValueChange = { newValue = it },
+              label = { Text("Value / Content") },
+              colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = TheoCyan,
+                unfocusedBorderColor = TheoSurfaceBorder
+              ),
+              modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+              value = newCategory,
+              onValueChange = { newCategory = it },
+              label = { Text("Category (e.g. Identity, Preference)") },
+              colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = TheoCyan,
+                unfocusedBorderColor = TheoSurfaceBorder
+              ),
+              modifier = Modifier.fillMaxWidth()
+            )
+          }
+        },
+        confirmButton = {
+          Button(
+            onClick = {
+              if (newKey.isNotBlank() && newValue.isNotBlank()) {
+                onAddMemory(newCategory, newKey, newValue)
+                newKey = ""
+                newValue = ""
+                showAddDialog = false
+              }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = TheoCyan)
+          ) {
+            Text("Inscribe", color = TheoDarkBackground, fontWeight = FontWeight.Bold)
+          }
+        },
+        dismissButton = {
+          TextButton(onClick = { showAddDialog = false }) {
+            Text("Cancel", color = TheoTextMuted)
+          }
+        }
+      )
+    }
+  }
+}
+
+@Composable
+private fun MemoryCardItem(
+  memory: MemoryEntity,
+  onDelete: () -> Unit
+) {
+  val dateStr = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(memory.createdAt))
+
+  Box(
+    modifier = Modifier
+      .fillMaxWidth()
+      .clip(RoundedCornerShape(12.dp))
+      .background(TheoSurfaceGlass)
+      .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+      .padding(12.dp)
+      .testTag("memory_item_card")
+  ) {
+    Column {
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        // Category chip
+        Box(
+          modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(TheoViolet.copy(alpha = 0.2f))
+            .border(1.dp, TheoViolet.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+          Text(
+            text = memory.category.uppercase(),
+            color = TheoViolet,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+          )
+        }
+
+        IconButton(
+          onClick = onDelete,
+          modifier = Modifier.size(24.dp)
+        ) {
+          Icon(
+            imageVector = Icons.Default.DeleteOutline,
+            contentDescription = "Delete Memory",
+            tint = TheoTextMuted,
+            modifier = Modifier.size(16.dp)
+          )
+        }
+      }
+
+      Spacer(modifier = Modifier.height(6.dp))
+
+      Text(
+        text = memory.memoryKey,
+        color = TheoCyan,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Bold
+      )
+
+      Spacer(modifier = Modifier.height(2.dp))
+
+      Text(
+        text = memory.memoryValue,
+        color = TheoTextPrimary,
+        fontSize = 13.sp,
+        lineHeight = 18.sp
+      )
+
+      Spacer(modifier = Modifier.height(6.dp))
+
+      Text(
+        text = "ENCODED: $dateStr",
+        color = TheoTextMuted,
+        fontFamily = FontFamily.Monospace,
+        fontSize = 8.sp
+      )
+    }
+  }
+}

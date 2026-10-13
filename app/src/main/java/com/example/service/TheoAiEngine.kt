@@ -49,8 +49,24 @@ class TheoAiEngine {
     TheoDiagnosticLogger.info("AI_ENGINE", "Query started", "model=$activeModel, promptChars=${prompt.length}, memories=${memories.size}")
     val memoryExtraction = detectMemoryRequest(prompt)
 
-    // 2. Detect device intent actions
+    // 2. Detect device intent actions. Native actions are handled by Android,
+    // never by model-generated terminal text or a simulated execution report.
     val actionIntent = detectActionIntent(prompt)
+    if (actionIntent != null) {
+      val actionLabel = if (actionIntent.startsWith("app:")) {
+        actionIntent.substringAfter(':')
+      } else {
+        actionIntent.replaceFirstChar { it.uppercase() }
+      }
+      TheoDiagnosticLogger.info("DEVICE_ACTION", "Action request recognized", "action=$actionIntent")
+      return@withContext EngineResult(
+        responseText = "I understood your request to open $actionLabel. Use the launch control below to ask Android to open it. I'll only report success if Android accepts the launch request.",
+        modelBadge = "ANDROID ACTION",
+        latencyMs = System.currentTimeMillis() - startTime,
+        memoryExtracted = memoryExtraction,
+        actionSuggested = actionIntent
+      )
+    }
 
     // Build memory context string
     val memoryContext = if (memories.isNotEmpty()) {
@@ -359,15 +375,29 @@ class TheoAiEngine {
   }
 
   private fun detectActionIntent(prompt: String): String? {
-    val lower = prompt.lowercase()
-    return when {
-      lower.contains("open settings") || lower.contains("launch settings") -> "settings"
-      lower.contains("open camera") || lower.contains("launch camera") || lower.contains("take photo") -> "camera"
-      lower.contains("set alarm") || lower.contains("open clock") || lower.contains("open alarm") -> "clock"
-      lower.contains("wifi") || lower.contains("wireless") -> "wifi"
-      lower.contains("battery stats") || lower.contains("battery settings") -> "battery"
-      else -> null
+    val trimmed = prompt.trim().trimEnd('.', '!', '?')
+    val lower = trimmed.lowercase()
+    when {
+      lower.matches(Regex("^(please\\s+)?(open|launch)\\s+(the\\s+)?settings$")) -> return "settings"
+      lower.matches(Regex("^(please\\s+)?(open|launch)\\s+(the\\s+)?camera$")) ||
+        lower.matches(Regex("^(please\\s+)?take\\s+(a\\s+)?photo$")) -> return "camera"
+      lower.matches(Regex("^(please\\s+)?(set|open)\\s+(an?\\s+)?alarm$")) ||
+        lower.matches(Regex("^(please\\s+)?open\\s+(the\\s+)?clock$")) -> return "clock"
+      lower.contains("wifi") || lower.contains("wireless") -> return "wifi"
+      lower.contains("battery stats") || lower.contains("battery settings") -> return "battery"
     }
+
+    // Handle direct natural-language app launch requests, e.g. "open Bitchord",
+    // "launch Discord", or "open the app named Spotify".
+    val match = Regex(
+      "^(?:please\\s+)?(?:open|launch|start|run)\\s+(?:(?:the\\s+)?app\\s+(?:named\\s+|called\\s+)?|the\\s+)?(.+?)(?:\\s+app)?$",
+      RegexOption.IGNORE_CASE
+    ).matchEntire(trimmed) ?: return null
+    val appName = match.groupValues[1].trim().replace(Regex("^[\\\"']|[\\\"']$"), "")
+    if (appName.isBlank()) return null
+    val nonAppTargets = setOf("settings", "camera", "clock", "alarm", "wifi", "wireless", "display", "battery")
+    if (appName.lowercase() in nonAppTargets) return null
+    return "app:$appName"
   }
 
   private fun String.capitalizeFirst(): String =

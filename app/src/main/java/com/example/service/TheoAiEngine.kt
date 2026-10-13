@@ -20,6 +20,14 @@ class TheoAiEngine {
     .writeTimeout(8, TimeUnit.SECONDS)
     .build()
 
+  // On-device Qwen inference can be slow on phones; don't treat a slow generation as offline.
+  private val localQwenClient = OkHttpClient.Builder()
+    .connectTimeout(10, TimeUnit.SECONDS)
+    .readTimeout(180, TimeUnit.SECONDS)
+    .writeTimeout(30, TimeUnit.SECONDS)
+    .callTimeout(210, TimeUnit.SECONDS)
+    .build()
+
   data class EngineResult(
     val responseText: String,
     val modelBadge: String,
@@ -116,6 +124,7 @@ class TheoAiEngine {
         put("messages", messages)
         put("temperature", 0.7)
         put("max_tokens", 512)
+        put("chat_template_kwargs", JSONObject().put("enable_thinking", false))
       }
 
       val requestBody = json.toString().toRequestBody("application/json".toMediaType())
@@ -124,25 +133,40 @@ class TheoAiEngine {
         .post(requestBody)
         .build()
 
-      val response = client.newCall(request).execute()
+      val response = localQwenClient.newCall(request).execute()
       val latency = System.currentTimeMillis() - startTime
 
-      if (response.isSuccessful) {
-        val bodyStr = response.body?.string() ?: ""
-        val respJson = JSONObject(bodyStr)
-        val choices = respJson.getJSONArray("choices")
-        val content = choices.getJSONObject(0).getJSONObject("message").getString("content")
-        EngineResult(
-          responseText = content.trim(),
-          modelBadge = "LOCAL QWEN 1.7B",
-          latencyMs = latency
-        )
-      } else {
-        generateLocalFallback(prompt, "HTTP ${response.code}", latency)
+      response.use { result ->
+        if (result.isSuccessful) {
+          val bodyStr = result.body?.string() ?: ""
+          val respJson = JSONObject(bodyStr)
+          val choices = respJson.optJSONArray("choices")
+          val message = choices?.optJSONObject(0)?.optJSONObject("message")
+          val content = message?.optString("content").orEmpty().trim()
+          if (content.isNotBlank()) {
+            EngineResult(
+              responseText = content,
+              modelBadge = "LOCAL QWEN 1.7B",
+              latencyMs = latency
+            )
+          } else {
+            EngineResult(
+              responseText = "Qwen reached the server but returned no final answer. Thinking mode has been disabled in the request; try again, or check that your llama.cpp build supports chat_template_kwargs.",
+              modelBadge = "QWEN EMPTY RESPONSE",
+              latencyMs = latency
+            )
+          }
+        } else {
+          generateLocalFallback(prompt, "HTTP ${result.code}", latency)
+        }
       }
     } catch (e: Exception) {
       val latency = System.currentTimeMillis() - startTime
-      generateLocalFallback(prompt, e.localizedMessage ?: "Port 8080 offline", latency)
+      val reason = when (e) {
+        is java.net.SocketTimeoutException -> "Local Qwen took too long to generate a response (timeout)"
+        else -> e.localizedMessage ?: "Local Qwen request failed"
+      }
+      generateLocalFallback(prompt, reason, latency)
     }
   }
 

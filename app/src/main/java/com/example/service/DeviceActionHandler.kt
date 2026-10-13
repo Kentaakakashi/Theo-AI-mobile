@@ -3,6 +3,7 @@ package com.example.service
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Environment
@@ -53,6 +54,36 @@ object DeviceActionHandler {
   fun executeAction(context: Context, actionKey: String): Boolean {
     return try {
       val normalizedAction = actionKey.trim()
+      if (normalizedAction.startsWith("music:", ignoreCase = true)) {
+        val query = normalizedAction.substringAfter(':').trim()
+        if (query.isBlank()) return false
+
+        // Android App Links may route this to YouTube Music when installed; otherwise
+        // the browser opens the real search page. This starts a music search, not
+        // guaranteed playback, because services may require the user to choose a track.
+        val musicIntent = Intent(
+          Intent.ACTION_VIEW,
+          Uri.parse("https://music.youtube.com/search?q=${Uri.encode(query)}")
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(musicIntent)
+        return true
+      }
+
+      if (normalizedAction.startsWith("order:", ignoreCase = true)) {
+        val query = normalizedAction.substringAfter(':').trim()
+        if (query.isBlank()) return false
+
+        // Never place an order or spend money automatically. Open a real search so
+        // the user can choose a provider, review the basket/address/price, and confirm.
+        val orderQuery = if (query.contains("order", ignoreCase = true)) query else "order $query online"
+        val orderIntent = Intent(
+          Intent.ACTION_VIEW,
+          Uri.parse("https://www.google.com/search?q=${Uri.encode(orderQuery)}")
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(orderIntent)
+        return true
+      }
+
       if (normalizedAction.startsWith("app:", ignoreCase = true)) {
         val requestedName = normalizedAction.substringAfter(':').trim()
         if (requestedName.isBlank()) return false

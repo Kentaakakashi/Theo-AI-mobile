@@ -193,11 +193,19 @@ class TheoAiEngine {
           latencyMs = latency
         )
       } else {
-        generateSmartOfflineResponse(prompt, emptyList(), modelType, startTime)
+        EngineResult(
+          responseText = "Gemini could not answer this request (HTTP ${response.code}). Check your API key, model access, and network connection, then try again.",
+          modelBadge = "GEMINI ERROR",
+          latencyMs = latency
+        )
       }
     } catch (e: Exception) {
       val latency = System.currentTimeMillis() - startTime
-      generateSmartOfflineResponse(prompt, emptyList(), modelType, startTime)
+      EngineResult(
+        responseText = "Gemini is unavailable right now: ${e.localizedMessage ?: "network or response error"}. No AI answer was generated. Check your connection and API settings, then retry.",
+        modelBadge = "GEMINI ERROR",
+        latencyMs = latency
+      )
     }
   }
 
@@ -226,14 +234,14 @@ class TheoAiEngine {
     val latency = System.currentTimeMillis() - startTime
     val base = synthesizeKnowledge(prompt)
     val text = if (memories.isNotEmpty() && prompt.contains("remember", ignoreCase = true)) {
-      "Memory Matrix updated. Synapses synchronized.\n\n$base"
+      "Offline demo response — this is scripted text, not an AI-generated answer.\n\n$base"
     } else {
-      base
+      "Offline demo response — no Gemini API key is configured, so this is scripted text rather than an AI-generated answer. Add your key in Settings to enable Gemini.\n\n$base"
     }
 
     return EngineResult(
       responseText = text,
-      modelBadge = if (modelType == AiModelType.LOCAL_QWEN) "LOCAL COGNITION" else "THEO NEURAL OS",
+      modelBadge = "OFFLINE DEMO",
       latencyMs = latency.coerceAtLeast(180L)
     )
   }

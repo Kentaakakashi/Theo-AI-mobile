@@ -338,6 +338,8 @@ class TheoAiEngine {
     var lastHeadersLatencyMs: Long? = null
     var lastFirstTokenLatencyMs: Long? = null
     var lastStreamChunks = 0
+    var lastFinishReason = ""
+    var lastBlockReason = ""
     return try {
       val modelConfig = geminiModelConfiguration(modelType)
       val modelName = modelConfig.modelId
@@ -378,6 +380,8 @@ class TheoAiEngine {
           lastHeadersLatencyMs = null
           lastFirstTokenLatencyMs = null
           lastStreamChunks = 0
+          lastFinishReason = ""
+          lastBlockReason = ""
           val request = Request.Builder().url(url).header("x-goog-api-key", key).header("Content-Type", "application/json").post(requestBody).build()
           val response = geminiClient.newCall(request).execute()
           lastHeadersLatencyMs = System.currentTimeMillis() - lastAttemptStartedAt
@@ -397,8 +401,12 @@ class TheoAiEngine {
                   if (eventData.isBlank() || eventData == "[DONE]") continue
                   try {
                     val parsed = JSONObject(eventData)
-                    val parts = parsed.optJSONArray("candidates")
-                      ?.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts")
+                    val candidate = parsed.optJSONArray("candidates")?.optJSONObject(0)
+                    val parts = candidate?.optJSONObject("content")?.optJSONArray("parts")
+                    val finishReason = candidate?.optString("finishReason").orEmpty()
+                    if (finishReason.isNotBlank()) lastFinishReason = finishReason
+                    val blockReason = parsed.optJSONObject("promptFeedback")?.optString("blockReason").orEmpty()
+                    if (blockReason.isNotBlank()) lastBlockReason = blockReason
                     val delta = (0 until (parts?.length() ?: 0))
                       .mapNotNull { partIndex ->
                         val part = parts?.optJSONObject(partIndex) ?: return@mapNotNull null
@@ -416,6 +424,8 @@ class TheoAiEngine {
                       streamedText.append(delta)
                       onStreamChunk(delta)
                     }
+                    // Do not wait for the HTTP body to close after Gemini has sent a terminal event.
+                    if (lastFinishReason.isNotBlank() || lastBlockReason.isNotBlank()) break
                   } catch (parseError: Exception) {
                     TheoDiagnosticLogger.warn("GEMINI", "Ignored an unparseable streaming event", parseError.javaClass.simpleName)
                   }
@@ -423,7 +433,10 @@ class TheoAiEngine {
                 answer = streamedText.toString().trim()
                 if (answer.isNotBlank()) onProgress("Finishing response")
                 usedKeyIndex = index
-                if (answer.isBlank()) { lastCode = 200; lastErrorBody = "Gemini stream completed without text content." }
+                if (answer.isBlank()) {
+                  lastCode = 200
+                  lastErrorBody = "Gemini stream completed without visible answer text; finishReason=" + lastFinishReason + "; blockReason=" + lastBlockReason
+                }
               }
             } else {
               lastCode = res.code

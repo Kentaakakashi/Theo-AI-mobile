@@ -334,6 +334,10 @@ class TheoAiEngine {
     onStreamChunk: (String) -> Unit,
     onProgress: (String) -> Unit
   ): EngineResult {
+    var lastAttemptStartedAt = startTime
+    var lastHeadersLatencyMs: Long? = null
+    var lastFirstTokenLatencyMs: Long? = null
+    var lastStreamChunks = 0
     return try {
       val modelConfig = geminiModelConfiguration(modelType)
       val modelName = modelConfig.modelId
@@ -370,11 +374,16 @@ class TheoAiEngine {
         // configured key once after a short pause; never substitute scripted text.
         var attempt = 0
         do {
+          lastAttemptStartedAt = System.currentTimeMillis()
+          lastHeadersLatencyMs = null
+          lastFirstTokenLatencyMs = null
+          lastStreamChunks = 0
           val request = Request.Builder().url(url).header("x-goog-api-key", key).header("Content-Type", "application/json").post(requestBody).build()
           val response = geminiClient.newCall(request).execute()
+          lastHeadersLatencyMs = System.currentTimeMillis() - lastAttemptStartedAt
           response.use { res ->
             if (res.isSuccessful) {
-              onProgress("Connected · waiting for model output")
+              onProgress("Connected · waiting for first token (" + lastHeadersLatencyMs + " ms)")
               val streamedText = StringBuilder()
               val source = res.body?.source()
               if (source == null) {
@@ -391,10 +400,19 @@ class TheoAiEngine {
                     val parts = parsed.optJSONArray("candidates")
                       ?.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts")
                     val delta = (0 until (parts?.length() ?: 0))
-                      .mapNotNull { partIndex -> parts?.optJSONObject(partIndex)?.optString("text")?.takeIf { it.isNotBlank() } }
+                      .mapNotNull { partIndex ->
+                        val part = parts?.optJSONObject(partIndex) ?: return@mapNotNull null
+                        // Never publish response parts explicitly marked as model thoughts.
+                        if (part.optBoolean("thought", false)) return@mapNotNull null
+                        part.optString("text").takeIf { it.isNotBlank() }
+                      }
                       .joinToString("")
                     if (delta.isNotEmpty()) {
-                      if (streamedText.isEmpty()) onProgress("Generating response")
+                      if (streamedText.isEmpty()) {
+                        lastFirstTokenLatencyMs = System.currentTimeMillis() - lastAttemptStartedAt
+                        onProgress("First text token received (" + lastFirstTokenLatencyMs + " ms)")
+                      }
+                      lastStreamChunks++
                       streamedText.append(delta)
                       onStreamChunk(delta)
                     }
@@ -429,7 +447,7 @@ class TheoAiEngine {
       }
       val latency = System.currentTimeMillis() - startTime
       if (answer.isNotBlank()) {
-        TheoDiagnosticLogger.info("GEMINI", "Generation succeeded", "keySlot=" + (usedKeyIndex + 1) + ", latencyMs=" + latency)
+        TheoDiagnosticLogger.info("GEMINI", "Generation succeeded", "model=" + modelName + "; keySlot=" + (usedKeyIndex + 1) + "; totalMs=" + latency + "; headersMs=" + (lastHeadersLatencyMs ?: -1) + "; firstTokenMs=" + (lastFirstTokenLatencyMs ?: -1) + "; chunks=" + lastStreamChunks + "; responseChars=" + answer.length)
         EngineResult(answer, modelType.shortBadge, latency)
       } else {
         val detail = try { JSONObject(lastErrorBody).optJSONObject("error")?.optString("message").orEmpty() } catch (_: Exception) { lastErrorBody.take(300) }

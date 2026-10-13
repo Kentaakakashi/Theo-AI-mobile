@@ -86,7 +86,7 @@ class TheoAiEngine {
   }
 
   suspend fun testQwenConnection(termuxHost: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
-    TheoDiagnosticLogger.info("QWEN_BRIDGE", "Socket ping started", "host=${termuxHost.substringBefore('/v1')}")
+    TheoDiagnosticLogger.info("QWEN_BRIDGE", "Socket ping started", "host=${termuxHost.substringBefore("/v1")}")
     try {
       val url = if (termuxHost.endsWith("/")) "${termuxHost}models" else "$termuxHost/models"
       val request = Request.Builder()
@@ -192,7 +192,7 @@ class TheoAiEngine {
       }
     } catch (e: Exception) {
       val latency = System.currentTimeMillis() - startTime
-      TheoDiagnosticLogger.error("QWEN_BRIDGE", "Local Qwen chat request threw an exception", e, "endpoint=${host.substringBefore('/v1')}")
+      TheoDiagnosticLogger.error("QWEN_BRIDGE", "Local Qwen chat request threw an exception", e, "endpoint=${host.substringBefore("/v1")}")
       val reason = when (e) {
         is java.net.SocketTimeoutException -> "Local Qwen took too long to generate a response (timeout)"
         else -> e.localizedMessage ?: "Local Qwen request failed"

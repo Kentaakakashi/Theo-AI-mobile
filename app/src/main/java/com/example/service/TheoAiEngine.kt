@@ -461,7 +461,13 @@ class TheoAiEngine {
           else -> "Check your internet connection and Gemini API settings."
         }
         TheoDiagnosticLogger.error("GEMINI", "Generation failed", details = "HTTP " + lastCode + "; configured keys=" + apiKeys.size + "; " + detail)
-        EngineResult("Gemini request failed (HTTP " + lastCode + "). " + guidance + if (detail.isNotBlank()) "\n\nGoogle details: " + detail else "", "GEMINI ERROR", latency)
+        val emptyStream = lastCode == 200
+        val failureText = if (emptyStream) {
+          "Gemini connected (HTTP 200) but completed without usable answer text. Check the model response and see the GEMINI diagnostic log for timing details." + if (detail.isNotBlank()) "\n\nGoogle details: " + detail else ""
+        } else {
+          "Gemini request failed (HTTP " + lastCode + "). " + guidance + if (detail.isNotBlank()) "\n\nGoogle details: " + detail else ""
+        }
+        EngineResult(failureText, if (emptyStream) "GEMINI EMPTY RESPONSE" else "GEMINI ERROR", latency)
       }
     } catch (e: Exception) {
       val latency = System.currentTimeMillis() - startTime
@@ -471,7 +477,7 @@ class TheoAiEngine {
         "GEMINI",
         "Gemini request threw $exceptionName",
         e,
-        "latencyMs=$latency; exception=$exceptionName; detail=$detail"
+        "latencyMs=$latency; headersMs=${lastHeadersLatencyMs ?: -1}; firstTokenMs=${lastFirstTokenLatencyMs ?: -1}; chunks=$lastStreamChunks; exception=$exceptionName; detail=$detail"
       )
       val timeoutPhase = when {
         lastHeadersLatencyMs == null -> "before HTTP response headers arrived"

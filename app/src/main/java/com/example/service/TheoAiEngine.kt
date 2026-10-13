@@ -64,12 +64,11 @@ class TheoAiEngine {
         tryCallLocalQwen(prompt, memoryContext, termuxHost, startTime)
       }
       AiModelType.GEMINI_FLASH, AiModelType.GEMINI_PRO -> {
-        val apiKey = customApiKey.ifBlank { getBuildConfigApiKey() }
-        if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
-          tryCallGemini(prompt, memoryContext, apiKey, activeModel, startTime)
+        val apiKeys = customApiKey.split(Regex("[\\r\\n,;]+")).map { it.trim() }.filter { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }.distinct()
+        if (apiKeys.isEmpty()) {
+          EngineResult("No Gemini API key is configured. Add at least one key in Settings. Theo will not generate a simulated answer.", "API KEY REQUIRED", System.currentTimeMillis() - startTime)
         } else {
-          // Autonomous fallback with simulated neural reasoning if API key not entered
-          generateSmartOfflineResponse(prompt, memories, activeModel, startTime)
+          tryCallGemini(prompt, memoryContext, apiKeys, activeModel, startTime)
         }
       }
     }
@@ -205,13 +204,13 @@ class TheoAiEngine {
   private fun tryCallGemini(
     prompt: String,
     memoryContext: String,
-    apiKey: String,
+    apiKeys: List<String>,
     modelType: AiModelType,
     startTime: Long
   ): EngineResult {
     return try {
-      val modelName = "gemini-3.8-flash"
-      val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$apiKey"
+      val modelName = "gemini-3.5-flash"
+      val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent"
 
       val systemInstruction = "You are Theo, a premium cybernetic personal AI assistant and neural OS companion on Android. $memoryContext. Be concise, highly capable, elegant, and futuristic."
 
@@ -230,56 +229,35 @@ class TheoAiEngine {
       }
 
       val requestBody = json.toString().toRequestBody("application/json".toMediaType())
-      val request = Request.Builder()
-        .url(url)
-        .post(requestBody)
-        .build()
-
-      // Retry temporary Gemini capacity/rate-limit failures with exponential backoff.
-      var response: okhttp3.Response? = null
       var lastCode = 0
       var lastErrorBody = ""
-      for (attempt in 0..3) {
-        response = client.newCall(request).execute()
-        if (response.isSuccessful) break
-        lastCode = response.code
-        lastErrorBody = response.body?.string().orEmpty()
-        response.close()
-        val retryable = lastCode == 429 || lastCode == 500 || lastCode == 502 || lastCode == 503 || lastCode == 504
-        if (!retryable || attempt == 3) break
-        Thread.sleep(1000L shl attempt)
+      var answer = ""
+      var usedKeyIndex = -1
+      for ((index, key) in apiKeys.withIndex()) {
+        val request = Request.Builder().url(url).header("x-goog-api-key", key).header("Content-Type", "application/json").post(requestBody).build()
+        val response = client.newCall(request).execute()
+        response.use { res ->
+          val body = res.body?.string().orEmpty()
+          if (res.isSuccessful) {
+            val parsed = JSONObject(body)
+            val parts = parsed.optJSONArray("candidates")?.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts")
+            answer = (0 until (parts?.length() ?: 0)).mapNotNull { i -> parts?.optJSONObject(i)?.optString("text")?.takeIf { it.isNotBlank() } }.joinToString("\n").trim()
+            usedKeyIndex = index
+            if (answer.isBlank()) { lastCode = 200; lastErrorBody = "Gemini returned no text content." }
+          } else { lastCode = res.code; lastErrorBody = body }
+        }
+        if (answer.isNotBlank()) break
+        if (lastCode !in listOf(401, 403, 429)) break
       }
       val latency = System.currentTimeMillis() - startTime
-      val finalResponse = response
-      if (finalResponse != null && finalResponse.isSuccessful) {
-        finalResponse.use { successfulResponse ->
-          val bodyStr = successfulResponse.body?.string() ?: ""
-          val respJson = JSONObject(bodyStr)
-          val candidates = respJson.getJSONArray("candidates")
-          val content = candidates.getJSONObject(0).getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text")
-          EngineResult(
-            responseText = content.trim(),
-            modelBadge = modelType.shortBadge,
-            latencyMs = latency
-          )
-        }
+      if (answer.isNotBlank()) {
+        TheoDiagnosticLogger.info("GEMINI", "Generation succeeded", "keySlot=" + (usedKeyIndex + 1) + ", latencyMs=" + latency)
+        EngineResult(answer, modelType.shortBadge, latency)
       } else {
-        val detail = try {
-          JSONObject(lastErrorBody).optJSONObject("error")?.optString("message").orEmpty()
-        } catch (_: Exception) { "" }
-        val guidance = when (lastCode) {
-          503, 502, 504 -> "Google's Gemini service is temporarily unavailable or overloaded. Wait a little and retry."
-          429 -> "Gemini rate limit or quota reached. Wait for the limit to reset or check your AI Studio quota."
-          400, 401, 403 -> "Check the API key, project access, and request settings."
-          404 -> "The selected Gemini model or endpoint was not found. Check the model name and API access."
-          else -> "Check your network connection and Gemini API settings."
-        }
-        EngineResult(
-          responseText = "Gemini request failed (HTTP $lastCode). $guidance" +
-            if (detail.isNotBlank()) "\\n\\nGoogle details: $detail" else "",
-          modelBadge = "GEMINI ERROR",
-          latencyMs = latency
-        )
+        val detail = try { JSONObject(lastErrorBody).optJSONObject("error")?.optString("message").orEmpty() } catch (_: Exception) { lastErrorBody.take(300) }
+        val guidance = when (lastCode) { 429 -> "Gemini quota or rate limit reached for configured keys."; 401, 403 -> "Gemini rejected all available keys. Check key validity and API access."; 404 -> "Gemini model not found or unavailable to this key."; 400 -> "Gemini rejected the request format."; 500, 502, 503, 504 -> "Gemini service is temporarily unavailable."; else -> "Check your internet connection and Gemini API settings." }
+        TheoDiagnosticLogger.error("GEMINI", "Generation failed", details = "HTTP " + lastCode + "; configured keys=" + apiKeys.size + "; " + detail)
+        EngineResult("Gemini request failed (HTTP " + lastCode + "). " + guidance + if (detail.isNotBlank()) "\n\nGoogle details: " + detail else "", "GEMINI ERROR", latency)
       }
     } catch (e: Exception) {
       val latency = System.currentTimeMillis() - startTime

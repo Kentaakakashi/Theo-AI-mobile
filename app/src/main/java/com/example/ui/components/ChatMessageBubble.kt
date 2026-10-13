@@ -206,7 +206,15 @@ fun ChatMessageBubble(
                   )
                   Spacer(modifier = Modifier.width(5.dp))
                   Text(
-                    text = "Launch ${actionKey.replaceFirstChar { it.uppercase() }}",
+                    text = when {
+                      actionKey.startsWith("music:", ignoreCase = true) ->
+                        "Find & play ${actionKey.substringAfter(':').take(28)}"
+                      actionKey.startsWith("order:", ignoreCase = true) ->
+                        "Find order options"
+                      actionKey.startsWith("app:", ignoreCase = true) ->
+                        "Open ${actionKey.substringAfter(':').take(28)}"
+                      else -> "Run ${actionKey.replaceFirstChar { it.uppercase() }}"
+                    },
                     color = TheoCyan,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 10.sp,

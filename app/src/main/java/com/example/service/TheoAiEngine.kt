@@ -154,7 +154,7 @@ class TheoAiEngine {
     startTime: Long
   ): EngineResult {
     return try {
-      val modelName = if (modelType == AiModelType.GEMINI_PRO) "gemini-2.5-pro" else "gemini-2.5-flash"
+      val modelName = "gemini-3.5-flash" // Current model for new API projects; Gemini 2.5 access is restricted for many new projects.
       val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$apiKey"
 
       val systemInstruction = "You are Theo, a premium cybernetic personal AI assistant and neural OS companion on Android. $memoryContext. Be concise, highly capable, elegant, and futuristic."

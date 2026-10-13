@@ -158,6 +158,74 @@ fun CoreAssistantScreen(
           )
         }
 
+        if (uiState.assistantState == com.example.model.AssistantState.THINKING) {
+          item(key = "thinking_process_viewer") {
+            Column(
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp, horizontal = 12.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(TheoSurfaceGlass)
+                .border(1.dp, TheoViolet.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                .padding(12.dp),
+              horizontalAlignment = Alignment.Start
+            ) {
+              Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                  imageVector = Icons.Default.AutoAwesome,
+                  contentDescription = null,
+                  tint = TheoViolet,
+                  modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(7.dp))
+                Text(
+                  text = "THINKING PROCESS",
+                  color = TheoViolet,
+                  fontFamily = FontFamily.Monospace,
+                  fontSize = 10.sp,
+                  fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                  text = "LIVE",
+                  color = TheoCyan,
+                  fontFamily = FontFamily.Monospace,
+                  fontSize = 9.sp,
+                  fontWeight = FontWeight.Bold
+                )
+              }
+              Spacer(modifier = Modifier.height(8.dp))
+              uiState.thinkingSteps.forEachIndexed { index, step ->
+                Row(
+                  modifier = Modifier.padding(vertical = 3.dp),
+                  verticalAlignment = Alignment.Top
+                ) {
+                  Icon(
+                    imageVector = if (index < uiState.thinkingSteps.lastIndex) Icons.Default.CheckCircle else Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = if (index < uiState.thinkingSteps.lastIndex) TheoCyan else TheoViolet,
+                    modifier = Modifier.padding(top = 1.dp).size(13.dp)
+                  )
+                  Spacer(modifier = Modifier.width(8.dp))
+                  Text(
+                    text = step,
+                    color = if (index == uiState.thinkingSteps.lastIndex) TheoTextPrimary else TheoTextSecondary,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    fontWeight = if (index == uiState.thinkingSteps.lastIndex) FontWeight.SemiBold else FontWeight.Normal
+                  )
+                }
+              }
+              Text(
+                text = "Live app progress, not a verbatim private chain-of-thought.",
+                color = TheoTextMuted,
+                fontSize = 9.sp,
+                modifier = Modifier.padding(top = 6.dp)
+              )
+            }
+          }
+        }
+
         if (uiState.streamingText.isNotBlank()) {
           item(key = "live_gemini_stream") {
             Column(

@@ -77,10 +77,9 @@ fun CoreAssistantScreen(
   val listState = rememberLazyListState()
 
   // Auto-scroll to latest message on receive
-  LaunchedEffect(messages.size) {
-    if (messages.isNotEmpty()) {
-      listState.animateScrollToItem(messages.size - 1)
-    }
+  LaunchedEffect(messages.size, uiState.streamingText) {
+    val lastIndex = messages.size + if (uiState.streamingText.isNotBlank()) 1 else 0
+    if (lastIndex > 0) listState.animateScrollToItem(lastIndex)
   }
 
   Box(
@@ -157,6 +156,40 @@ fun CoreAssistantScreen(
             message = message,
             onExecuteAction = onExecuteAction
           )
+        }
+
+        if (uiState.streamingText.isNotBlank()) {
+          item(key = "live_gemini_stream") {
+            Column(
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp, horizontal = 12.dp),
+              horizontalAlignment = Alignment.Start
+            ) {
+              Text(
+                text = "GEMINI · LIVE RESPONSE",
+                color = TheoCyan,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+              )
+              Box(
+                modifier = Modifier
+                  .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
+                  .background(TheoSurfaceGlass)
+                  .border(1.dp, TheoCyan.copy(alpha = 0.45f), RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
+                  .padding(horizontal = 14.dp, vertical = 12.dp)
+              ) {
+                Text(
+                  text = uiState.streamingText,
+                  color = TheoTextPrimary,
+                  fontSize = 14.sp,
+                  lineHeight = 21.sp
+                )
+              }
+            }
+          }
         }
 
         item {

@@ -77,6 +77,7 @@ fun SettingsScreen(
   uiState: TheoUiState,
   onSaveSettings: (AiModelType, AnimationIntensity, String, String) -> Unit,
   onTestQwen: () -> Unit,
+  onTestGemini: () -> Unit,
   onClearChat: () -> Unit,
   onToggleSpeech: () -> Unit,
   modifier: Modifier = Modifier
@@ -301,6 +302,35 @@ fun SettingsScreen(
             color = TheoTextSecondary,
             fontSize = 12.sp,
             lineHeight = 16.sp
+          )
+
+          Button(
+            onClick = onTestGemini,
+            enabled = !uiState.isTestingGemini && configuredApiKeys.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceCard)
+          ) {
+            if (uiState.isTestingGemini) {
+              CircularProgressIndicator(modifier = Modifier.size(15.dp), strokeWidth = 2.dp, color = TheoCyan)
+              Spacer(modifier = Modifier.width(7.dp))
+            } else {
+              Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(15.dp))
+              Spacer(modifier = Modifier.width(7.dp))
+            }
+            Text("Test Gemini API", color = TheoCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+          }
+
+          Text(
+            text = uiState.geminiStatusMessage,
+            color = when {
+              uiState.geminiStatusMessage.startsWith("Connected") -> TheoOnlineGreen
+              uiState.isTestingGemini -> TheoCyan
+              uiState.geminiStatusMessage == "Not tested yet" -> TheoTextMuted
+              else -> TheoWarningAmber
+            },
+            fontFamily = FontFamily.Monospace,
+            fontSize = 10.sp,
+            lineHeight = 14.sp
           )
 
           if (configuredApiKeys.isEmpty()) {

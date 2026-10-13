@@ -56,8 +56,13 @@ class TheoAiEngine {
       val actionDescription = when {
         actionIntent.startsWith("app:", ignoreCase = true) ->
           "open the app \"${actionIntent.substringAfter(':').trim()}\""
-        actionIntent.startsWith("music:", ignoreCase = true) ->
-          "find \"${actionIntent.substringAfter(':').trim()}\" in YouTube Music"
+        actionIntent.startsWith("music:", ignoreCase = true) -> {
+          val payload = actionIntent.substringAfter(':').trim()
+          val provider = payload.substringBefore('|')
+          val query = payload.substringAfter('|', payload).trim()
+          val service = if (provider.equals("spotify", ignoreCase = true)) "Spotify" else "YouTube Music"
+          "find \"$query\" in $service"
+        }
         actionIntent.startsWith("order:", ignoreCase = true) ->
           "find ordering options for \"${actionIntent.substringAfter(':').trim()}\""
         else -> "open ${actionIntent.replaceFirstChar { it.uppercase() }}"

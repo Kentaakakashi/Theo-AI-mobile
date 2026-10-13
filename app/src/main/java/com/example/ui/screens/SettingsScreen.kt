@@ -277,8 +277,16 @@ fun SettingsScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
-      // Section 3: Gemini Cloud API Key
+      // Section 3: Gemini Cloud API Keys
       SettingsSectionHeader(icon = Icons.Default.Key, title = "Gemini Cloud Credentials")
+      val configuredApiKeys = apiKeyInput
+        .split(Regex("[\\r\\n,;]+"))
+        .map { it.trim() }
+        .filter { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }
+        .distinct()
+      var apiKeyDraft by remember { mutableStateOf("") }
+      var editingApiKeyIndex by remember { mutableStateOf<Int?>(null) }
+
       Box(
         modifier = Modifier
           .fillMaxWidth()
@@ -287,25 +295,81 @@ fun SettingsScreen(
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
           Text(
-            text = "Paste a Gemini API key created in Google AI Studio—not an OAuth token, Google password, or service-account JSON. If you have multiple keys, enter one per line. Theo sends requests to Google Gemini using these keys only; it does not simulate AI answers. Keys are saved on this device. For HTTP 401, verify the key is valid; for HTTP 403, check project access and key restrictions.",
+            text = "Add each Gemini API key separately. Paste a key below, then tap Add API. You can edit or remove any saved key. Use a key created in Google AI Studio—not an OAuth token, Google password, or service-account JSON. Keys stay on this device, and Theo uses only your configured keys (no simulated AI answers).",
             color = TheoTextSecondary,
             fontSize = 12.sp,
             lineHeight = 16.sp
           )
-          Spacer(modifier = Modifier.height(8.dp))
+
+          if (configuredApiKeys.isEmpty()) {
+            Text(
+              text = "NO API KEYS CONFIGURED",
+              color = TheoWarningAmber,
+              fontFamily = FontFamily.Monospace,
+              fontSize = 11.sp,
+              fontWeight = FontWeight.Bold
+            )
+          } else {
+            configuredApiKeys.forEachIndexed { index, key ->
+              Row(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .clip(RoundedCornerShape(8.dp))
+                  .background(TheoSurfaceDeep)
+                  .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(8.dp))
+                  .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+              ) {
+                Column(modifier = Modifier.weight(1f)) {
+                  Text(
+                    text = "API ${index + 1}",
+                    color = TheoTextPrimary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                  )
+                  Text(
+                    text = "••••••••" + key.takeLast(4),
+                    color = TheoTextSecondary,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 11.sp
+                  )
+                }
+                Button(
+                  onClick = {
+                    apiKeyDraft = key
+                    editingApiKeyIndex = index
+                  },
+                  contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                  colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceCard)
+                ) {
+                  Text("Edit", color = TheoCyan, fontSize = 11.sp)
+                }
+                Button(
+                  onClick = {
+                    val updatedKeys = configuredApiKeys.toMutableList().also { it.removeAt(index) }
+                    apiKeyInput = updatedKeys.joinToString("\\n")
+                    editingApiKeyIndex = null
+                    apiKeyDraft = ""
+                    onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput)
+                  },
+                  contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                  colors = ButtonDefaults.buttonColors(containerColor = TheoErrorRed.copy(alpha = 0.16f))
+                ) {
+                  Text("Delete", color = TheoErrorRed, fontSize = 11.sp)
+                }
+              }
+            }
+          }
 
           OutlinedTextField(
-            value = apiKeyInput,
-            onValueChange = {
-              apiKeyInput = it
-              onSaveSettings(selectedModel, selectedIntensity, it, termuxHostInput)
-            },
-            placeholder = { Text("Paste API key 1\\nPaste API key 2\\nPaste API key 3") },
-            label = { Text("Gemini API keys (one per line)") },
-            minLines = 2,
-            maxLines = 4,
+            value = apiKeyDraft,
+            onValueChange = { apiKeyDraft = it },
+            placeholder = { Text("Paste Gemini API key here") },
+            label = { Text(if (editingApiKeyIndex == null) "New API key" else "Edit API key ${editingApiKeyIndex!! + 1}") },
+            singleLine = true,
             textStyle = androidx.compose.ui.text.TextStyle(
               fontFamily = FontFamily.Monospace,
               fontSize = 12.sp,
@@ -316,6 +380,55 @@ fun SettingsScreen(
               unfocusedBorderColor = TheoSurfaceBorder
             ),
             modifier = Modifier.fillMaxWidth()
+          )
+
+          if (apiKeyDraft.isNotBlank()) {
+            Button(
+              onClick = {
+                val cleanKey = apiKeyDraft.trim()
+                val updatedKeys = configuredApiKeys.toMutableList()
+                val editIndex = editingApiKeyIndex
+                if (editIndex != null && editIndex in updatedKeys.indices) {
+                  updatedKeys[editIndex] = cleanKey
+                } else if (cleanKey !in updatedKeys) {
+                  updatedKeys.add(cleanKey)
+                }
+                apiKeyInput = updatedKeys.distinct().joinToString("\\n")
+                onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput)
+                apiKeyDraft = ""
+                editingApiKeyIndex = null
+              },
+              modifier = Modifier.fillMaxWidth(),
+              colors = ButtonDefaults.buttonColors(containerColor = TheoCyan)
+            ) {
+              Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(if (editingApiKeyIndex == null) "Add API" else "Save API", color = TheoDarkBackground, fontWeight = FontWeight.Bold)
+            }
+          }
+
+          if (editingApiKeyIndex != null) {
+            Button(
+              onClick = {
+                apiKeyDraft = ""
+                editingApiKeyIndex = null
+              },
+              modifier = Modifier.fillMaxWidth(),
+              colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceCard)
+            ) {
+              Text("Cancel edit", color = TheoTextSecondary)
+            }
+          }
+
+          Text(
+            text = "HTTP 401 usually means a key is invalid. HTTP 403 can indicate project/API access or key restrictions.",
+            color = TheoTextMuted,
+            fontSize = 10.sp,
+            lineHeight = 14.sp
           )
         }
       }

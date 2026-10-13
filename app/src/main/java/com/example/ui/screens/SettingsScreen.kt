@@ -289,7 +289,7 @@ fun SettingsScreen(
       ) {
         Column {
           Text(
-            text = "Supplied directly by Operator. Stored encrypted on-device. Never committed to GitHub or external servers.",
+            text = "Add your own Gemini API keys. Theo sends requests only to Google Gemini using these keys; no built-in or simulated AI fallback is used. Enter one key per line. Keys are saved on this device.",
             color = TheoTextSecondary,
             fontSize = 12.sp,
             lineHeight = 16.sp
@@ -302,8 +302,10 @@ fun SettingsScreen(
               apiKeyInput = it
               onSaveSettings(selectedModel, selectedIntensity, it, termuxHostInput)
             },
-            placeholder = { Text("AIzaSy...") },
-            label = { Text("Gemini API Key (Optional)") },
+            placeholder = { Text("Paste API key 1\\nPaste API key 2\\nPaste API key 3") },
+            label = { Text("Gemini API keys (one per line)") },
+            minLines = 2,
+            maxLines = 4,
             textStyle = androidx.compose.ui.text.TextStyle(
               fontFamily = FontFamily.Monospace,
               fontSize = 12.sp,

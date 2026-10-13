@@ -77,8 +77,11 @@ fun CoreAssistantScreen(
   val listState = rememberLazyListState()
 
   // Auto-scroll to latest message on receive
-  LaunchedEffect(messages.size, uiState.streamingText) {
-    val lastIndex = messages.size + if (uiState.streamingText.isNotBlank()) 1 else 0
+  LaunchedEffect(messages.size, uiState.streamingText, uiState.assistantState) {
+    val thinkingItemCount = if (uiState.assistantState == com.example.model.AssistantState.THINKING) 1 else 0
+    val streamingItemCount = if (uiState.streamingText.isNotBlank()) 1 else 0
+    // Index 0 is the orb; these counts select the latest visible list item.
+    val lastIndex = messages.size + thinkingItemCount + streamingItemCount
     if (lastIndex > 0) listState.animateScrollToItem(lastIndex)
   }
 

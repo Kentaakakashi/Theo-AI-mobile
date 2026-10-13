@@ -150,6 +150,7 @@ class TheoAiEngine {
     try {
       var lastStatus = ""
       for ((index, key) in apiKeys.withIndex()) {
+        var tryNextKey = true
         val request = Request.Builder()
           .url(url)
           .header("x-goog-api-key", key)
@@ -170,13 +171,15 @@ class TheoAiEngine {
                 return@withContext Pair(true, "Connected · HTTP " + response.code + " · " + elapsed + " ms · key " + (index + 1) + " passed a real generation test.")
               }
               lastStatus = "HTTP " + response.code + ", but Gemini returned no text."
+              tryNextKey = false
             } else {
               val detail = try { JSONObject(responseBody).optJSONObject("error")?.optString("message").orEmpty() }
                 catch (_: Exception) { responseBody.take(180).replace(Regex("\\s+"), " ") }
               lastStatus = "Key " + (index + 1) + ": HTTP " + response.code + if (detail.isNotBlank()) " · " + detail else ""
-              if (response.code !in listOf(401, 403, 429)) break
+              tryNextKey = response.code in listOf(401, 403, 429)
             }
           }
+          if (!tryNextKey) break
         } catch (e: Exception) {
           lastStatus = when (e) {
             is java.net.SocketTimeoutException -> "Key " + (index + 1) + ": timed out after 15 seconds waiting for Gemini. Check network route or retry later."

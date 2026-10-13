@@ -307,7 +307,8 @@ class TheoAiEngine {
         val detail = try { JSONObject(lastErrorBody).optJSONObject("error")?.optString("message").orEmpty() } catch (_: Exception) { lastErrorBody.take(300) }
         val guidance = when (lastCode) {
           429 -> "Gemini quota or rate limit reached for configured keys. Wait for the quota window to reset or check usage limits."
-          401, 403 -> "Gemini rejected all available keys. Check key validity and API access."
+          401 -> "Gemini returned HTTP 401: the configured credential is not accepted. Paste a Gemini API key created in Google AI Studio (not an OAuth access token, Google login cookie, or service-account JSON). Check that the key belongs to the intended Google Cloud project and has not been deleted or restricted incorrectly."
+          403 -> "Gemini returned HTTP 403: the credential may be recognized, but the project, API access, or key restrictions may block this request. Check Gemini API access and the key's API/application restrictions."
           404 -> "Gemini model not found or unavailable to this key. Check the selected model ID."
           400 -> "Gemini rejected the request format."
           500, 502, 503, 504 -> "Google's Gemini service is temporarily overloaded or unavailable. Theo retried this request once; no simulated answer was used. Please try again shortly."

@@ -53,14 +53,18 @@ class TheoAiEngine {
     // never by model-generated terminal text or a simulated execution report.
     val actionIntent = detectActionIntent(prompt)
     if (actionIntent != null) {
-      val actionLabel = if (actionIntent.startsWith("app:")) {
-        actionIntent.substringAfter(':')
-      } else {
-        actionIntent.replaceFirstChar { it.uppercase() }
+      val actionDescription = when {
+        actionIntent.startsWith("app:", ignoreCase = true) ->
+          "open the app \"${actionIntent.substringAfter(':').trim()}\""
+        actionIntent.startsWith("music:", ignoreCase = true) ->
+          "find \"${actionIntent.substringAfter(':').trim()}\" in YouTube Music"
+        actionIntent.startsWith("order:", ignoreCase = true) ->
+          "find ordering options for \"${actionIntent.substringAfter(':').trim()}\""
+        else -> "open ${actionIntent.replaceFirstChar { it.uppercase() }}"
       }
       TheoDiagnosticLogger.info("DEVICE_ACTION", "Action request recognized", "action=$actionIntent")
       return@withContext EngineResult(
-        responseText = "I understood your request to open $actionLabel. Use the launch control below to ask Android to open it. I'll only report success if Android accepts the launch request.",
+        responseText = "I can ${actionDescription}. Tap the action below to continue. For music, the service may ask you to choose a track before playback. For orders, I'll open real ordering/search options, but you must review the item, address, price, and confirm payment yourself.",
         modelBadge = "ANDROID ACTION",
         latencyMs = System.currentTimeMillis() - startTime,
         memoryExtracted = memoryExtraction,
@@ -385,6 +389,33 @@ class TheoAiEngine {
         lower.matches(Regex("^(please\\s+)?open\\s+(the\\s+)?clock$")) -> return "clock"
       lower.contains("wifi") || lower.contains("wireless") -> return "wifi"
       lower.contains("battery stats") || lower.contains("battery settings") -> return "battery"
+    }
+
+    // Music requests open a real music search. This avoids claiming that a track
+    // started playing when a provider may require track selection or sign-in.
+    val musicMatch = Regex(
+      "^(?:please\\s+)?(?:play|put\\s+on|listen\\s+to)\\s+(.+)$",
+      RegexOption.IGNORE_CASE
+    ).matchEntire(trimmed)
+    if (musicMatch != null) {
+      val query = musicMatch.groupValues[1].trim()
+        .replace(Regex("^(?:the\\s+)?song\\s+", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("\\s+(?:please|now)$", RegexOption.IGNORE_CASE), "")
+      if (query.isNotBlank() && query.lowercase() !in setOf("something", "a song", "some music")) {
+        return "music:$query"
+      }
+      if (query.lowercase() == "some music" || query.lowercase() == "music") return "music:popular music"
+    }
+
+    // Food/product ordering is a handoff, not an automatic purchase. The user
+    // must still select a provider and explicitly confirm the final order.
+    val orderMatch = Regex(
+      "^(?:please\\s+)?(?:order|buy|get\\s+me|place\\s+an\\s+order\\s+for|make\\s+(?:me\\s+)?an\\s+order\\s+for)\\s+(.+)$",
+      RegexOption.IGNORE_CASE
+    ).matchEntire(trimmed)
+    if (orderMatch != null) {
+      val query = orderMatch.groupValues[1].trim().removePrefix("me ").trim()
+      if (query.isNotBlank()) return "order:$query"
     }
 
     // Handle direct natural-language app launch requests, e.g. "open Bitchord",

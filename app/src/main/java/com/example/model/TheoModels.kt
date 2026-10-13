@@ -9,8 +9,8 @@ enum class AssistantState(val label: String) {
 }
 
 enum class AiModelType(val displayName: String, val shortBadge: String, val description: String) {
-  GEMINI_FLASH("Gemini 2.5 Flash", "GEMINI CLOUD", "High-speed cloud neural network with advanced reasoning"),
-  GEMINI_PRO("Gemini 2.5 Pro", "GEMINI PRO", "Deep cognitive analysis and complex orchestration"),
+  GEMINI_FLASH("Gemini 3.5 Flash-Lite", "GEMINI FAST", "Low-latency cloud responses optimized for everyday chat"),
+  GEMINI_PRO("Gemini 3.1 Pro (Preview)", "GEMINI PRO", "Advanced reasoning for complex analysis and coding"),
   LOCAL_QWEN("Qwen3-1.7B Local", "TERMUX LOCAL", "On-device private inference via localhost:8080 (Termux)")
 }
 

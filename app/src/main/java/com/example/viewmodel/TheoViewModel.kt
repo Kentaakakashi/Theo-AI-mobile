@@ -38,6 +38,8 @@ data class TheoUiState(
   val isTestingQwen: Boolean = false,
   val isTestingGemini: Boolean = false,
   val geminiStatusMessage: String = "Not tested yet",
+  val thinkingSteps: List<String> = emptyList(),
+  val currentThinkingStep: String = "",
   val streamingText: String = "",
   val inputText: String = "",
   val selectedCategoryFilter: String = "All",
@@ -188,6 +190,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       it.copy(
         inputText = "",
         assistantState = AssistantState.THINKING,
+        thinkingSteps = listOf("Message received"),
+        currentThinkingStep = "Message received",
         streamingText = ""
       )
     }
@@ -224,6 +228,15 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           memories = currentMemories,
           onStreamChunk = { chunk ->
             _uiState.update { current -> current.copy(streamingText = current.streamingText + chunk) }
+          },
+          onProgress = { step ->
+            _uiState.update { current ->
+              current.copy(
+                currentThinkingStep = step,
+                thinkingSteps = if (current.thinkingSteps.lastOrNull() == step) current.thinkingSteps
+                  else current.thinkingSteps + step
+              )
+            }
           }
         )
       } catch (e: Exception) {
@@ -272,6 +285,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         it.copy(
           assistantState = AssistantState.IDLE,
           pendingActionTag = result.actionSuggested,
+          thinkingSteps = emptyList(),
+          currentThinkingStep = "",
           streamingText = ""
         )
       }

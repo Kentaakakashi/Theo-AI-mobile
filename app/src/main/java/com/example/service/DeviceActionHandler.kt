@@ -52,7 +52,33 @@ object DeviceActionHandler {
 
   fun executeAction(context: Context, actionKey: String): Boolean {
     return try {
-      val intent = when (actionKey.lowercase()) {
+      val normalizedAction = actionKey.trim()
+      if (normalizedAction.startsWith("app:", ignoreCase = true)) {
+        val requestedName = normalizedAction.substringAfter(':').trim()
+        if (requestedName.isBlank()) return false
+
+        val packageManager = context.packageManager
+        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val launchables = packageManager.queryIntentActivities(launcherIntent, 0)
+        val matchingActivity = launchables.firstOrNull { info ->
+          info.loadLabel(packageManager).toString().equals(requestedName, ignoreCase = true)
+        } ?: launchables.firstOrNull { info ->
+          info.loadLabel(packageManager).toString().contains(requestedName, ignoreCase = true)
+        }
+
+        val launchIntent = matchingActivity?.activityInfo?.let { activityInfo ->
+          packageManager.getLaunchIntentForPackage(activityInfo.packageName)
+        }
+        if (launchIntent == null) {
+          Toast.makeText(context, "Couldn't find an installed app named \"$requestedName\".", Toast.LENGTH_LONG).show()
+          return false
+        }
+        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(launchIntent)
+        return true
+      }
+
+      val intent = when (normalizedAction.lowercase()) {
         "settings" -> Intent(Settings.ACTION_SETTINGS)
         "camera" -> Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
         "clock", "alarm" -> Intent(AlarmClock.ACTION_SHOW_ALARMS)

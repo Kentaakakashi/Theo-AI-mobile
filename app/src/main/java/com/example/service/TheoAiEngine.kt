@@ -137,27 +137,44 @@ class TheoAiEngine {
       val latency = System.currentTimeMillis() - startTime
 
       response.use { result ->
-        if (result.isSuccessful) {
-          val bodyStr = result.body?.string() ?: ""
-          val respJson = JSONObject(bodyStr)
-          val choices = respJson.optJSONArray("choices")
-          val message = choices?.optJSONObject(0)?.optJSONObject("message")
-          val content = message?.optString("content").orEmpty().trim()
-          if (content.isNotBlank()) {
-            EngineResult(
-              responseText = content,
-              modelBadge = "LOCAL QWEN 1.7B",
-              latencyMs = latency
-            )
-          } else {
-            EngineResult(
-              responseText = "Qwen reached the server but returned no final answer. Thinking mode has been disabled in the request; try again, or check that your llama.cpp build supports chat_template_kwargs.",
-              modelBadge = "QWEN EMPTY RESPONSE",
-              latencyMs = latency
-            )
-          }
+        val bodyStr = result.body?.string().orEmpty()
+        if (!result.isSuccessful) {
+          val detail = try {
+            JSONObject(bodyStr).optJSONObject("error")?.optString("message").orEmpty()
+          } catch (_: Exception) { bodyStr.take(240).replace(Regex("\\s+"), " ") }
+          val suffix = if (detail.isBlank()) "" else ": $detail"
+          return@use EngineResult(
+            responseText = "Local Qwen API rejected the chat request (HTTP ${result.code})$suffix. The server is reachable, but generation failed. Check the model/server response and try again.",
+            modelBadge = "QWEN HTTP ERROR",
+            latencyMs = latency
+          )
+        }
+        val respJson = try {
+          JSONObject(bodyStr)
+        } catch (e: Exception) {
+          return@use EngineResult(
+            responseText = "Local Qwen returned HTTP ${result.code}, but its response was not valid JSON. Details: ${e.localizedMessage ?: "JSON parse error"}.",
+            modelBadge = "QWEN PARSE ERROR",
+            latencyMs = latency
+          )
+        }
+        val choices = respJson.optJSONArray("choices")
+        val choice = choices?.optJSONObject(0)
+        val message = choice?.optJSONObject("message")
+        val content = message?.optString("content").orEmpty().trim()
+        if (content.isNotBlank()) {
+          EngineResult(content, "LOCAL QWEN 1.7B", latency)
         } else {
-          generateLocalFallback(prompt, "HTTP ${result.code}", latency)
+          val finishReason = choice?.optString("finish_reason").orEmpty().ifBlank { "not provided" }
+          val usage = respJson.optJSONObject("usage")
+          val completionTokens = usage?.optInt("completion_tokens", -1) ?: -1
+          val tokenNote = if (completionTokens >= 0) " Completion tokens: $completionTokens." else ""
+          val explanation = if (finishReason == "length") "Generation hit its token limit before producing final text." else "The server response contained no final text."
+          EngineResult(
+            "Qwen server responded successfully, but Theo received an empty final answer. Finish reason: $finishReason. $explanation$tokenNote Thinking/reasoning text is intentionally not shown as the answer. Try the direct chat-completion test or check llama.cpp chat-template support.",
+            "QWEN EMPTY RESPONSE",
+            latency
+          )
         }
       }
     } catch (e: Exception) {
@@ -260,16 +277,18 @@ class TheoAiEngine {
   }
 
   private fun generateLocalFallback(prompt: String, reason: String, latency: Long): EngineResult {
-    val text = buildString {
-      append("⚡ **Termux Qwen Bridge Notice**\n")
-      append("Could not reach local server at `127.0.0.1:8080` ($reason).\n\n")
-      append("**To activate on-device Qwen in Termux:**\n")
-      append("`llama-server -m qwen3-1.7b.gguf --port 8080`\n\n")
-      append("No Qwen-generated answer was produced. Start llama-server in Termux and retry, or switch to Gemini in Theo Settings with a valid API key.")
+    val lowerReason = reason.lowercase()
+    val message = when {
+      lowerReason.contains("timeout") ->
+        "The local Qwen chat request timed out while waiting for generation. The server may still be reachable; try a shorter prompt and retry."
+      lowerReason.contains("failed to connect") || lowerReason.contains("connection refused") || lowerReason.contains("unable to resolve") ->
+        "Theo could not open a connection to the configured local Qwen endpoint. Confirm the server is running at the configured URL."
+      else ->
+        "Theo's local Qwen request failed: $reason. This does not necessarily mean the server is offline; Ping Socket checks only the models endpoint."
     }
     return EngineResult(
-      responseText = text,
-      modelBadge = "THEO FALLBACK",
+      responseText = "$message No Qwen-generated answer was produced.",
+      modelBadge = "QWEN REQUEST ERROR",
       latencyMs = latency
     )
   }

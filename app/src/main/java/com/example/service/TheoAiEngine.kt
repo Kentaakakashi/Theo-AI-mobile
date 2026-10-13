@@ -391,6 +391,18 @@ class TheoAiEngine {
       lower.contains("battery stats") || lower.contains("battery settings") -> return "battery"
     }
 
+    // Multi-step request: "open Spotify and play <song>".
+    // Keep the requested provider alongside the track title for Android.
+    val appAndMusicMatch = Regex(
+      "^(?:please\\s+)?(?:open|launch|start)\\s+(?:the\\s+)?(spotify|youtube\\s+music)\\s+and\\s+(?:play|put\\s+on|listen\\s+to)\\s+(.+)$",
+      RegexOption.IGNORE_CASE
+    ).matchEntire(trimmed)
+    if (appAndMusicMatch != null) {
+      val provider = appAndMusicMatch.groupValues[1].lowercase().replace(Regex("\\s+"), "")
+      val query = appAndMusicMatch.groupValues[2].trim()
+      if (query.isNotBlank()) return "music:$provider|$query"
+    }
+
     // Music requests open a real music search. This avoids claiming that a track
     // started playing when a provider may require track selection or sign-in.
     val musicMatch = Regex(

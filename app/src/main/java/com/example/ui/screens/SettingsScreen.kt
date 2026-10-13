@@ -295,7 +295,7 @@ fun SettingsScreen(
       ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
           Text(
-            text = "Add each Gemini API key separately. Paste a key below, then tap Add API. You can edit or remove any saved key. Use a key created in Google AI Studio—not an OAuth token, Google password, or service-account JSON. Keys stay on this device, and Theo uses only your configured keys (no simulated AI answers).",
+            text = "Add each Gemini API key separately. Paste a key below, then tap Add API. You can edit or remove any saved key. Use a key created in Google AI Studio—not an OAuth token, Google password, or service-account JSON. Keys are stored privately on this device and excluded from Android backup. Theo uses only your configured keys (no simulated AI answers).",
             color = TheoTextSecondary,
             fontSize = 12.sp,
             lineHeight = 16.sp

@@ -127,24 +127,15 @@ class TheoAiEngine {
       .distinct()
     if (apiKeys.isEmpty()) return@withContext Pair(false, "No Gemini API key saved. Add a key, then tap Test Gemini API.")
 
+    // Keep this diagnostic separate from generation: list models to test DNS,
+    // TLS, routing, and API-key recognition without waiting for model inference.
     val testClient = OkHttpClient.Builder()
       .connectTimeout(8, TimeUnit.SECONDS)
-      .readTimeout(12, TimeUnit.SECONDS)
+      .readTimeout(10, TimeUnit.SECONDS)
       .writeTimeout(8, TimeUnit.SECONDS)
-      .callTimeout(15, TimeUnit.SECONDS)
+      .callTimeout(12, TimeUnit.SECONDS)
       .build()
-    val modelName = "gemini-3.5-flash"
-    val url = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent"
-    val body = JSONObject().apply {
-      put("contents", JSONArray().put(JSONObject().apply {
-        put("role", "user")
-        put("parts", JSONArray().put(JSONObject().put("text", "Reply with exactly OK.")))
-      }))
-      put("generationConfig", JSONObject().apply {
-        put("maxOutputTokens", 8)
-        put("thinkingConfig", JSONObject().put("thinkingLevel", "MINIMAL"))
-      })
-    }.toString().toRequestBody("application/json".toMediaType())
+    val url = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1"
 
     val start = System.currentTimeMillis()
     try {
@@ -154,8 +145,7 @@ class TheoAiEngine {
         val request = Request.Builder()
           .url(url)
           .header("x-goog-api-key", key)
-          .header("Content-Type", "application/json")
-          .post(body)
+          .get()
           .build()
         try {
           testClient.newCall(request).execute().use { response ->
@@ -163,14 +153,12 @@ class TheoAiEngine {
             val elapsed = System.currentTimeMillis() - start
             if (response.isSuccessful) {
               val parsed = JSONObject(responseBody)
-              val text = parsed.optJSONArray("candidates")?.optJSONObject(0)
-                ?.optJSONObject("content")?.optJSONArray("parts")
-                ?.optJSONObject(0)?.optString("text").orEmpty().trim()
-              if (text.isNotBlank()) {
-                TheoDiagnosticLogger.info("GEMINI_TEST", "API test succeeded", "keySlot=" + (index + 1) + ", HTTP " + response.code + ", latencyMs=" + elapsed)
-                return@withContext Pair(true, "Connected · HTTP " + response.code + " · " + elapsed + " ms · key " + (index + 1) + " passed a real generation test.")
+              val models = parsed.optJSONArray("models")
+              if (models != null) {
+                TheoDiagnosticLogger.info("GEMINI_TEST", "API route test succeeded", "keySlot=" + (index + 1) + ", HTTP " + response.code + ", latencyMs=" + elapsed)
+                return@withContext Pair(true, "Google API reachable · HTTP " + response.code + " · " + elapsed + " ms. The key can list models. This does not yet prove text generation works.")
               }
-              lastStatus = "HTTP " + response.code + ", but Gemini returned no text."
+              lastStatus = "HTTP " + response.code + ", but Google returned an unexpected models response."
               tryNextKey = false
             } else {
               val detail = try { JSONObject(responseBody).optJSONObject("error")?.optString("message").orEmpty() }
@@ -182,7 +170,7 @@ class TheoAiEngine {
           if (!tryNextKey) break
         } catch (e: Exception) {
           lastStatus = when (e) {
-            is java.net.SocketTimeoutException -> "Key " + (index + 1) + ": timed out after 15 seconds waiting for Gemini. Check network route or retry later."
+            is java.net.SocketTimeoutException -> "Key " + (index + 1) + ": the lightweight Google API check timed out after 12 seconds before a response completed. Since this check does not run generation, test on mobile data vs Wi-Fi and disable VPN/private DNS/ad-blocking temporarily."
             is java.net.UnknownHostException -> "Gemini host could not be resolved. Check internet or DNS."
             is javax.net.ssl.SSLException -> "Secure connection failed. Check VPN, filtering, and device date/time."
             else -> "Connection test failed: " + (e.localizedMessage ?: e.javaClass.simpleName)

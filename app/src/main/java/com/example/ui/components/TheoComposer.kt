@@ -112,7 +112,7 @@ fun TheoComposer(
             .clip(RoundedCornerShape(16.dp))
             .background(TheoSurfaceCard.copy(alpha = 0.8f))
             .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(16.dp))
-            .clickable {
+            .clickable(enabled = assistantState != AssistantState.THINKING) {
               if (action.startsWith("🧠")) {
                 onInputChange(promptText)
               } else {
@@ -176,7 +176,7 @@ fun TheoComposer(
         ),
         cursorBrush = SolidColor(TheoCyan),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-        keyboardActions = KeyboardActions(onSend = { onSend(inputText) }),
+        keyboardActions = KeyboardActions(onSend = { if (assistantState != AssistantState.THINKING) onSend(inputText) }),
         decorationBox = { innerTextField ->
           if (inputText.isEmpty()) {
             Text(
@@ -192,7 +192,7 @@ fun TheoComposer(
       Spacer(modifier = Modifier.width(4.dp))
 
       // Send Button
-      val canSend = inputText.isNotBlank()
+      val canSend = inputText.isNotBlank() && assistantState != AssistantState.THINKING
       IconButton(
         onClick = { if (canSend) onSend(inputText) },
         enabled = canSend,

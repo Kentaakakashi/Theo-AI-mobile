@@ -289,7 +289,7 @@ fun SettingsScreen(
       ) {
         Column {
           Text(
-            text = "Add your own Gemini API keys. Theo sends requests only to Google Gemini using these keys; no built-in or simulated AI fallback is used. Enter one key per line. Keys are saved on this device.",
+            text = "Paste a Gemini API key created in Google AI Studio—not an OAuth token, Google password, or service-account JSON. If you have multiple keys, enter one per line. Theo sends requests to Google Gemini using these keys only; it does not simulate AI answers. Keys are saved on this device. For HTTP 401, verify the key is valid; for HTTP 403, check project access and key restrictions.",
             color = TheoTextSecondary,
             fontSize = 12.sp,
             lineHeight = 16.sp

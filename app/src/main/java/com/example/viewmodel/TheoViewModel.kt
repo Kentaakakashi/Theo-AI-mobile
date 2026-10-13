@@ -15,6 +15,7 @@ import com.example.model.ChatMessage
 import com.example.model.MemoryItem
 import com.example.service.DeviceActionHandler
 import com.example.service.TheoAiEngine
+import com.example.service.TheoDiagnosticLogger
 import com.example.service.TheoSpeechManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -90,6 +91,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   init {
+    TheoDiagnosticLogger.info("VIEW_MODEL", "TheoViewModel initialized", "model=${_uiState.value.activeModel}")
     refreshTelemetry()
     seedWelcomeIfEmpty()
   }
@@ -119,6 +121,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   fun setTab(index: Int) {
+    TheoDiagnosticLogger.debug("NAVIGATION", "Tab selected", "index=$index")
     _uiState.update { it.copy(currentTab = index) }
   }
 
@@ -177,6 +180,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       actionTag = null
     )
 
+    TheoDiagnosticLogger.info("CHAT", "User submitted message", "characters=${text.length}, model=${_uiState.value.activeModel}")
     _uiState.update {
       it.copy(
         inputText = "",
@@ -207,13 +211,22 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         )
       }
 
-      val result = aiEngine.processQuery(
-        prompt = text,
-        activeModel = _uiState.value.activeModel,
-        customApiKey = _uiState.value.customApiKey,
-        termuxHost = _uiState.value.termuxHost,
-        memories = currentMemories
-      )
+      val result = try {
+        aiEngine.processQuery(
+          prompt = text,
+          activeModel = _uiState.value.activeModel,
+          customApiKey = _uiState.value.customApiKey,
+          termuxHost = _uiState.value.termuxHost,
+          memories = currentMemories
+        )
+      } catch (e: Exception) {
+        TheoDiagnosticLogger.error("CHAT", "Unhandled AI processing exception", e)
+        TheoAiEngine.EngineResult(
+          responseText = "Theo hit an unexpected error while processing this request. Open the LOGS tab and copy the ERROR entry to diagnose it.",
+          modelBadge = "ENGINE ERROR",
+          latencyMs = 0L
+        )
+      }
 
       // If a memory extraction occurred, insert it
       result.memoryExtracted?.let { (key, value) ->
@@ -246,6 +259,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         actionTag = result.actionSuggested
       )
       dao.insertMessage(assistantMsg)
+      TheoDiagnosticLogger.info("CHAT", "Assistant response stored", "badge=${result.modelBadge}, chars=${result.responseText.length}, latencyMs=${result.latencyMs}")
 
       _uiState.update {
         it.copy(
@@ -326,9 +340,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   fun testQwenConnection() {
+    TheoDiagnosticLogger.info("QWEN_BRIDGE", "Ping requested from Settings")
     _uiState.update { it.copy(isTestingQwen = true, qwenStatusMessage = "Pinging socket...") }
     viewModelScope.launch {
       val (success, message) = aiEngine.testQwenConnection(_uiState.value.termuxHost)
+      TheoDiagnosticLogger.info("QWEN_BRIDGE", "Ping result displayed", "success=$success, result=$message")
       _uiState.update {
         it.copy(
           isTestingQwen = false,
@@ -362,6 +378,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   override fun onCleared() {
+    TheoDiagnosticLogger.info("VIEW_MODEL", "TheoViewModel cleared")
     super.onCleared()
     speechManager.shutdown()
   }

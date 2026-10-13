@@ -165,6 +165,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
               viewModel.updateSettings(model, anim, key, host)
             },
             onTestQwen = { viewModel.testQwenConnection() },
+            onTestGemini = { viewModel.testGeminiConnection() },
             onClearChat = { viewModel.clearChatHistory() },
             onToggleSpeech = { viewModel.toggleSpeech() }
           )

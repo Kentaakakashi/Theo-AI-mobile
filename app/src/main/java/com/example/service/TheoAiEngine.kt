@@ -405,9 +405,9 @@ class TheoAiEngine {
                     val parsed = JSONObject(eventData)
                     val candidate = parsed.optJSONArray("candidates")?.optJSONObject(0)
                     val parts = candidate?.optJSONObject("content")?.optJSONArray("parts")
-                    val finishReason = candidate?.optString("finishReason").orEmpty()
+                    val finishReason = candidate?.optString("finishReason").orEmpty().takeUnless { it == "null" }.orEmpty()
                     if (finishReason.isNotBlank()) lastFinishReason = finishReason
-                    val blockReason = parsed.optJSONObject("promptFeedback")?.optString("blockReason").orEmpty()
+                    val blockReason = parsed.optJSONObject("promptFeedback")?.optString("blockReason").orEmpty().takeUnless { it == "null" }.orEmpty()
                     if (blockReason.isNotBlank()) lastBlockReason = blockReason
                     val delta = (0 until (parts?.length() ?: 0))
                       .mapNotNull { partIndex ->

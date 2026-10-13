@@ -36,6 +36,9 @@ data class TheoUiState(
   val customApiKey: String = "",
   val qwenStatusMessage: String = "Idle (Tap to ping 127.0.0.1:8080)",
   val isTestingQwen: Boolean = false,
+  val isTestingGemini: Boolean = false,
+  val geminiStatusMessage: String = "Not tested yet",
+  val streamingText: String = "",
   val inputText: String = "",
   val selectedCategoryFilter: String = "All",
   val memorySearchQuery: String = "",
@@ -184,7 +187,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     _uiState.update {
       it.copy(
         inputText = "",
-        assistantState = AssistantState.THINKING
+        assistantState = AssistantState.THINKING,
+        streamingText = ""
       )
     }
 
@@ -217,7 +221,10 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           activeModel = _uiState.value.activeModel,
           customApiKey = _uiState.value.customApiKey,
           termuxHost = _uiState.value.termuxHost,
-          memories = currentMemories
+          memories = currentMemories,
+          onStreamChunk = { chunk ->
+            _uiState.update { current -> current.copy(streamingText = current.streamingText + chunk) }
+          }
         )
       } catch (e: Exception) {
         TheoDiagnosticLogger.error("CHAT", "Unhandled AI processing exception", e)
@@ -264,7 +271,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       _uiState.update {
         it.copy(
           assistantState = AssistantState.IDLE,
-          pendingActionTag = result.actionSuggested
+          pendingActionTag = result.actionSuggested,
+          streamingText = ""
         )
       }
 
@@ -336,6 +344,21 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   fun clearActivities() {
     viewModelScope.launch {
       dao.clearActivities()
+    }
+  }
+
+  fun testGeminiConnection() {
+    TheoDiagnosticLogger.info("GEMINI_TEST", "Test requested from Settings")
+    _uiState.update { it.copy(isTestingGemini = true, geminiStatusMessage = "Testing saved Gemini key…") }
+    viewModelScope.launch {
+      val (success, message) = aiEngine.testGeminiConnection(_uiState.value.customApiKey)
+      TheoDiagnosticLogger.info("GEMINI_TEST", "Test result displayed", "success=" + success + ", result=" + message)
+      _uiState.update {
+        it.copy(
+          isTestingGemini = false,
+          geminiStatusMessage = message
+        )
+      }
     }
   }
 

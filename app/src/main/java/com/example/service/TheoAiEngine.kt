@@ -2,6 +2,7 @@ package com.example.service
 
 import com.example.model.AiModelType
 import com.example.model.MemoryItem
+import com.example.service.TheoDiagnosticLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -46,6 +47,7 @@ class TheoAiEngine {
     val startTime = System.currentTimeMillis()
 
     // 1. Detect if the user is asking Theo to remember something
+    TheoDiagnosticLogger.info("AI_ENGINE", "Query started", "model=$activeModel, promptChars=${prompt.length}, memories=${memories.size}")
     val memoryExtraction = detectMemoryRequest(prompt)
 
     // 2. Detect device intent actions
@@ -73,6 +75,11 @@ class TheoAiEngine {
       }
     }
 
+    TheoDiagnosticLogger.info("AI_ENGINE", "Query finished", "modelBadge=${result.modelBadge}, latencyMs=${result.latencyMs}, responseChars=${result.responseText.length}")
+    if (result.modelBadge.contains("ERROR") || result.modelBadge.contains("FALLBACK") || result.modelBadge.contains("EMPTY")) {
+      TheoDiagnosticLogger.warn("AI_ENGINE", "Query returned a diagnostic/fallback result", "modelBadge=${result.modelBadge}")
+    }
+
     // Attach memory and action metadata
     result.copy(
       memoryExtracted = memoryExtraction,
@@ -81,6 +88,7 @@ class TheoAiEngine {
   }
 
   suspend fun testQwenConnection(termuxHost: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+    TheoDiagnosticLogger.info("QWEN_BRIDGE", "Socket ping started", "host=${termuxHost.substringBefore('/v1')}")
     try {
       val url = if (termuxHost.endsWith("/")) "${termuxHost}models" else "$termuxHost/models"
       val request = Request.Builder()
@@ -89,12 +97,17 @@ class TheoAiEngine {
         .build()
 
       val response = client.newCall(request).execute()
-      if (response.isSuccessful) {
-        Pair(true, "Connected to Local Qwen server (HTTP 200 OK)")
-      } else {
-        Pair(false, "Server responded with code: ${response.code}")
+      response.use {
+        if (it.isSuccessful) {
+          TheoDiagnosticLogger.info("QWEN_BRIDGE", "Socket ping successful", "HTTP ${it.code}")
+          Pair(true, "Connected to Local Qwen server (HTTP ${it.code})")
+        } else {
+          TheoDiagnosticLogger.warn("QWEN_BRIDGE", "Socket ping failed", "HTTP ${it.code}")
+          Pair(false, "Server responded with code: ${it.code}")
+        }
       }
     } catch (e: Exception) {
+      TheoDiagnosticLogger.error("QWEN_BRIDGE", "Socket ping threw an exception", e)
       Pair(false, "Connection refused: ${e.localizedMessage ?: "Endpoint unreachable"}")
     }
   }
@@ -143,6 +156,7 @@ class TheoAiEngine {
             JSONObject(bodyStr).optJSONObject("error")?.optString("message").orEmpty()
           } catch (_: Exception) { bodyStr.take(240).replace(Regex("\\s+"), " ") }
           val suffix = if (detail.isBlank()) "" else ": $detail"
+          TheoDiagnosticLogger.error("QWEN_BRIDGE", "Chat completion returned HTTP ${result.code}", details = detail)
           return@use EngineResult(
             responseText = "Local Qwen API rejected the chat request (HTTP ${result.code})$suffix. The server is reachable, but generation failed. Check the model/server response and try again.",
             modelBadge = "QWEN HTTP ERROR",
@@ -152,6 +166,7 @@ class TheoAiEngine {
         val respJson = try {
           JSONObject(bodyStr)
         } catch (e: Exception) {
+          TheoDiagnosticLogger.error("QWEN_BRIDGE", "Could not parse chat completion JSON", e)
           return@use EngineResult(
             responseText = "Local Qwen returned HTTP ${result.code}, but its response was not valid JSON. Details: ${e.localizedMessage ?: "JSON parse error"}.",
             modelBadge = "QWEN PARSE ERROR",
@@ -179,6 +194,7 @@ class TheoAiEngine {
       }
     } catch (e: Exception) {
       val latency = System.currentTimeMillis() - startTime
+      TheoDiagnosticLogger.error("QWEN_BRIDGE", "Local Qwen chat request threw an exception", e, "endpoint=${host.substringBefore('/v1')}")
       val reason = when (e) {
         is java.net.SocketTimeoutException -> "Local Qwen took too long to generate a response (timeout)"
         else -> e.localizedMessage ?: "Local Qwen request failed"

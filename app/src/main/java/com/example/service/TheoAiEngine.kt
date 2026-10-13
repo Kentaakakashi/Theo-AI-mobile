@@ -51,9 +51,11 @@ class TheoAiEngine {
     customApiKey: String,
     termuxHost: String,
     memories: List<MemoryItem>,
-    onStreamChunk: (String) -> Unit = {}
+    onStreamChunk: (String) -> Unit = {},
+    onProgress: (String) -> Unit = {}
   ): EngineResult = withContext(Dispatchers.IO) {
     val startTime = System.currentTimeMillis()
+    onProgress("Analyzing your request")
 
     // 1. Detect if the user is asking Theo to remember something
     TheoDiagnosticLogger.info("AI_ENGINE", "Query started", "model=$activeModel, promptChars=${prompt.length}, memories=${memories.size}")
@@ -87,6 +89,8 @@ class TheoAiEngine {
       )
     }
 
+    onProgress("Preparing context")
+
     // Build memory context string
     val memoryContext = if (memories.isNotEmpty()) {
       "Known Operator Memory Context:\n" + memories.take(8).joinToString("\n") { "- ${it.key}: ${it.value} [${it.category}]" }
@@ -96,18 +100,21 @@ class TheoAiEngine {
 
     val result = when (activeModel) {
       AiModelType.LOCAL_QWEN -> {
+        onProgress("Connecting to local Qwen server")
         tryCallLocalQwen(prompt, memoryContext, termuxHost, startTime)
       }
       AiModelType.GEMINI_FLASH, AiModelType.GEMINI_PRO -> {
+        onProgress("Connecting to Gemini API")
         val apiKeys = customApiKey.split(Regex("[\\r\\n,;]+")).map { it.trim() }.filter { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }.distinct()
         if (apiKeys.isEmpty()) {
           EngineResult("No Gemini API key is configured. Add at least one key in Settings. Theo will not generate a simulated answer.", "API KEY REQUIRED", System.currentTimeMillis() - startTime)
         } else {
-          tryCallGemini(prompt, memoryContext, apiKeys, activeModel, startTime, onStreamChunk)
+          tryCallGemini(prompt, memoryContext, apiKeys, activeModel, startTime, onStreamChunk, onProgress)
         }
       }
     }
 
+    onProgress(if (result.modelBadge.contains("ERROR") || result.modelBadge.contains("EMPTY")) "Request failed" else "Response received")
     TheoDiagnosticLogger.info("AI_ENGINE", "Query finished", "modelBadge=${result.modelBadge}, latencyMs=${result.latencyMs}, responseChars=${result.responseText.length}")
     if (result.modelBadge.contains("ERROR") || result.modelBadge.contains("FALLBACK") || result.modelBadge.contains("EMPTY")) {
       TheoDiagnosticLogger.warn("AI_ENGINE", "Query returned a diagnostic/fallback result", "modelBadge=${result.modelBadge}")
@@ -309,7 +316,8 @@ class TheoAiEngine {
     apiKeys: List<String>,
     modelType: AiModelType,
     startTime: Long,
-    onStreamChunk: (String) -> Unit
+    onStreamChunk: (String) -> Unit,
+    onProgress: (String) -> Unit
   ): EngineResult {
     return try {
       val modelName = "gemini-3.5-flash"
@@ -350,6 +358,7 @@ class TheoAiEngine {
           val response = geminiClient.newCall(request).execute()
           response.use { res ->
             if (res.isSuccessful) {
+              onProgress("Connected · waiting for model output")
               val streamedText = StringBuilder()
               val source = res.body?.source()
               if (source == null) {
@@ -369,6 +378,7 @@ class TheoAiEngine {
                       .mapNotNull { partIndex -> parts?.optJSONObject(partIndex)?.optString("text")?.takeIf { it.isNotBlank() } }
                       .joinToString("")
                     if (delta.isNotEmpty()) {
+                      if (streamedText.isEmpty()) onProgress("Generating response")
                       streamedText.append(delta)
                       onStreamChunk(delta)
                     }
@@ -377,6 +387,7 @@ class TheoAiEngine {
                   }
                 }
                 answer = streamedText.toString().trim()
+                if (answer.isNotBlank()) onProgress("Finishing response")
                 usedKeyIndex = index
                 if (answer.isBlank()) { lastCode = 200; lastErrorBody = "Gemini stream completed without text content." }
               }

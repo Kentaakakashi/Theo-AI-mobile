@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.example.model.AiModelType
 import com.example.model.AnimationIntensity
 import com.example.service.DeviceActionHandler
+import com.example.service.parseGeminiApiKeys
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoErrorRed
@@ -280,11 +281,7 @@ fun SettingsScreen(
 
       // Section 3: Gemini Cloud API Keys
       SettingsSectionHeader(icon = Icons.Default.Key, title = "Gemini Cloud Credentials")
-      val configuredApiKeys = apiKeyInput
-        .split(Regex("[\\r\\n,;]+"))
-        .map { it.trim() }
-        .filter { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }
-        .distinct()
+      val configuredApiKeys = parseGeminiApiKeys(apiKeyInput)
       var apiKeyDraft by remember { mutableStateOf("") }
       var editingApiKeyIndex by remember { mutableStateOf<Int?>(null) }
 
@@ -380,7 +377,7 @@ fun SettingsScreen(
                 Button(
                   onClick = {
                     val updatedKeys = configuredApiKeys.toMutableList().also { it.removeAt(index) }
-                    apiKeyInput = updatedKeys.joinToString("\\n")
+                    apiKeyInput = updatedKeys.joinToString("\n")
                     editingApiKeyIndex = null
                     apiKeyDraft = ""
                     onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput)
@@ -423,7 +420,7 @@ fun SettingsScreen(
                 } else if (cleanKey !in updatedKeys) {
                   updatedKeys.add(cleanKey)
                 }
-                apiKeyInput = updatedKeys.distinct().joinToString("\\n")
+                apiKeyInput = updatedKeys.distinct().joinToString("\n")
                 onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput)
                 apiKeyDraft = ""
                 editingApiKeyIndex = null

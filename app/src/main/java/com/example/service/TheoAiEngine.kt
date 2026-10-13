@@ -2,7 +2,6 @@ package com.example.service
 
 import com.example.model.AiModelType
 import com.example.model.MemoryItem
-import com.example.service.TheoDiagnosticLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType

@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -109,7 +110,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   private fun seedWelcomeIfEmpty() {
     viewModelScope.launch {
       // If messages are empty, seed initial welcome greeting from Theo
-      if (messages.value.isEmpty()) {
+      // StateFlow's initial empty value is not authoritative while its Room flow is unsubscribed.
+      if (dao.getAllMessages().first().isEmpty()) {
         dao.insertMessage(
           MessageEntity(
             id = "welcome-msg",
@@ -172,7 +174,12 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   fun sendMessage(promptText: String? = null) {
-    val text = (promptText ?: _uiState.value.inputText).trim()
+    val stateAtSubmission = _uiState.value
+    if (stateAtSubmission.assistantState == AssistantState.THINKING) {
+      TheoDiagnosticLogger.warn("CHAT", "Ignored a second send while an AI request is active")
+      return
+    }
+    val text = (promptText ?: stateAtSubmission.inputText).trim()
     if (text.isBlank()) return
 
     val userMsg = MessageEntity(
@@ -185,7 +192,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       actionTag = null
     )
 
-    TheoDiagnosticLogger.info("CHAT", "User submitted message", "characters=${text.length}, model=${_uiState.value.activeModel}")
+    TheoDiagnosticLogger.info("CHAT", "User submitted message", "characters=${text.length}, model=${stateAtSubmission.activeModel}")
     _uiState.update {
       it.copy(
         inputText = "",
@@ -222,9 +229,9 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       val result = try {
         aiEngine.processQuery(
           prompt = text,
-          activeModel = _uiState.value.activeModel,
-          customApiKey = _uiState.value.customApiKey,
-          termuxHost = _uiState.value.termuxHost,
+          activeModel = stateAtSubmission.activeModel,
+          customApiKey = stateAtSubmission.customApiKey,
+          termuxHost = stateAtSubmission.termuxHost,
           memories = currentMemories,
           onStreamChunk = { chunk ->
             _uiState.update { current -> current.copy(streamingText = current.streamingText + chunk) }

@@ -12,6 +12,23 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
+internal data class GeminiModelConfiguration(val modelId: String, val thinkingLevel: String)
+
+internal fun geminiModelConfiguration(modelType: AiModelType): GeminiModelConfiguration = when (modelType) {
+  AiModelType.GEMINI_FLASH -> GeminiModelConfiguration("gemini-3.5-flash-lite", "MINIMAL")
+  AiModelType.GEMINI_PRO -> GeminiModelConfiguration("gemini-3.1-pro-preview", "LOW")
+  AiModelType.LOCAL_QWEN -> error("Local Qwen does not use a Gemini configuration")
+}
+
+internal fun parseGeminiApiKeys(input: String): List<String> {
+  // Normalize legacy values saved with the two-character sequence "\\n".
+  val normalized = input.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n")
+  return normalized.split(Regex("[\\r\\n,;]+"))
+    .map { it.trim() }
+    .filter { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }
+    .distinct()
+}
+
 class TheoAiEngine {
 
   private val client = OkHttpClient.Builder()
@@ -105,7 +122,7 @@ class TheoAiEngine {
       }
       AiModelType.GEMINI_FLASH, AiModelType.GEMINI_PRO -> {
         onProgress("Connecting to Gemini API")
-        val apiKeys = customApiKey.split(Regex("[\\r\\n,;]+")).map { it.trim() }.filter { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }.distinct()
+        val apiKeys = parseGeminiApiKeys(customApiKey)
         if (apiKeys.isEmpty()) {
           EngineResult("No Gemini API key is configured. Add at least one key in Settings. Theo will not generate a simulated answer.", "API KEY REQUIRED", System.currentTimeMillis() - startTime)
         } else {
@@ -114,9 +131,10 @@ class TheoAiEngine {
       }
     }
 
-    onProgress(if (result.modelBadge.contains("ERROR") || result.modelBadge.contains("EMPTY")) "Request failed" else "Response received")
+    val isFailure = result.modelBadge.contains("ERROR") || result.modelBadge.contains("EMPTY") || result.modelBadge.contains("REQUIRED")
+    onProgress(if (isFailure) "Request failed" else "Response received")
     TheoDiagnosticLogger.info("AI_ENGINE", "Query finished", "modelBadge=${result.modelBadge}, latencyMs=${result.latencyMs}, responseChars=${result.responseText.length}")
-    if (result.modelBadge.contains("ERROR") || result.modelBadge.contains("FALLBACK") || result.modelBadge.contains("EMPTY")) {
+    if (result.modelBadge.contains("ERROR") || result.modelBadge.contains("FALLBACK") || result.modelBadge.contains("EMPTY") || result.modelBadge.contains("REQUIRED")) {
       TheoDiagnosticLogger.warn("AI_ENGINE", "Query returned a diagnostic/fallback result", "modelBadge=${result.modelBadge}")
     }
 
@@ -128,10 +146,7 @@ class TheoAiEngine {
   }
 
   suspend fun testGeminiConnection(apiKeyInput: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
-    val apiKeys = apiKeyInput.split(Regex("[\\r\\n,;]+"))
-      .map { it.trim() }
-      .filter { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }
-      .distinct()
+    val apiKeys = parseGeminiApiKeys(apiKeyInput)
     if (apiKeys.isEmpty()) return@withContext Pair(false, "No Gemini API key saved. Add a key, then tap Test Gemini API.")
 
     // Keep this diagnostic separate from generation: list models to test DNS,
@@ -254,10 +269,10 @@ class TheoAiEngine {
         .build()
 
       val response = localQwenClient.newCall(request).execute()
-      val latency = System.currentTimeMillis() - startTime
 
       response.use { result ->
         val bodyStr = result.body?.string().orEmpty()
+        val latency = System.currentTimeMillis() - startTime
         if (!result.isSuccessful) {
           val detail = try {
             JSONObject(bodyStr).optJSONObject("error")?.optString("message").orEmpty()
@@ -320,7 +335,8 @@ class TheoAiEngine {
     onProgress: (String) -> Unit
   ): EngineResult {
     return try {
-      val modelName = "gemini-3.5-flash"
+      val modelConfig = geminiModelConfiguration(modelType)
+      val modelName = modelConfig.modelId
       val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:streamGenerateContent?alt=sse"
 
       val systemInstruction = "You are Theo, a premium cybernetic personal AI assistant and neural OS companion on Android. $memoryContext. Be concise, highly capable, elegant, and futuristic."
@@ -340,7 +356,7 @@ class TheoAiEngine {
         ))
         put("generationConfig", JSONObject().apply {
           put("maxOutputTokens", 1024)
-          put("thinkingConfig", JSONObject().put("thinkingLevel", "MINIMAL"))
+          put("thinkingConfig", JSONObject().put("thinkingLevel", modelConfig.thinkingLevel))
         })
       }
 
@@ -439,9 +455,14 @@ class TheoAiEngine {
         e,
         "latencyMs=$latency; exception=$exceptionName; detail=$detail"
       )
+      val timeoutPhase = when {
+        lastHeadersLatencyMs == null -> "before HTTP response headers arrived"
+        lastFirstTokenLatencyMs == null -> "after headers arrived but before the first text token"
+        else -> "while receiving the streamed answer"
+      }
       val guidance = when (e) {
         is java.net.SocketTimeoutException ->
-          "Gemini did not send response headers before the 45-second read timeout, even with low-latency generation settings. This is usually a slow/unreachable Google API route, transient service delay, or network filtering—not an answer generated by Theo. Try switching Wi-Fi/mobile data or retry later."
+          "Gemini timed out " + timeoutPhase + ". The connection allows 45 seconds without incoming bytes and 60 seconds total per request. Check the GEMINI log entry for headers/first-token timings; switching Wi-Fi/mobile data can help distinguish network routing from model-side delay."
         is java.net.UnknownHostException ->
           "The Gemini host could not be resolved. Check your internet connection or DNS."
         is javax.net.ssl.SSLException ->
@@ -500,8 +521,9 @@ class TheoAiEngine {
         lower.matches(Regex("^(please\\s+)?take\\s+(a\\s+)?photo$")) -> return "camera"
       lower.matches(Regex("^(please\\s+)?(set|open)\\s+(an?\\s+)?alarm$")) ||
         lower.matches(Regex("^(please\\s+)?open\\s+(the\\s+)?clock$")) -> return "clock"
-      lower.contains("wifi") || lower.contains("wireless") -> return "wifi"
-      lower.contains("battery stats") || lower.contains("battery settings") -> return "battery"
+      lower.matches(Regex("^(please\\s+)?(?:(?:open|launch)\\s+(?:the\\s+)?)?(?:wi-?fi|wireless)(?:\\s+(?:settings|settings page))?$")) -> return "wifi"
+      lower.matches(Regex("^(please\\s+)?(?:(?:open|launch|show|check|get)\\s+(?:the\\s+|my\\s+)?)?(?:battery\\s+(?:stats|statistics|settings)|battery and system diagnostics)$")) -> return "battery"
+      lower.matches(Regex("^(please\\s+)?(?:open|launch|show)\\s+(?:the\\s+)?display(?:\\s+settings)?$")) -> return "display"
     }
 
     // Multi-step request: "open Spotify and play <song>".

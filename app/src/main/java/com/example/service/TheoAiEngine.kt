@@ -154,7 +154,7 @@ class TheoAiEngine {
     startTime: Long
   ): EngineResult {
     return try {
-      val modelName = "gemini-3.5-flash" // Current model for new API projects; Gemini 2.5 access is restricted for many new projects.
+      val modelName = "gemini-3.8-flash"
       val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$apiKey"
 
       val systemInstruction = "You are Theo, a premium cybernetic personal AI assistant and neural OS companion on Android. $memoryContext. Be concise, highly capable, elegant, and futuristic."
@@ -179,22 +179,48 @@ class TheoAiEngine {
         .post(requestBody)
         .build()
 
-      val response = client.newCall(request).execute()
+      // Retry temporary Gemini capacity/rate-limit failures with exponential backoff.
+      var response: okhttp3.Response? = null
+      var lastCode = 0
+      var lastErrorBody = ""
+      for (attempt in 0..3) {
+        response = client.newCall(request).execute()
+        if (response.isSuccessful) break
+        lastCode = response.code
+        lastErrorBody = response.body?.string().orEmpty()
+        response.close()
+        val retryable = lastCode == 429 || lastCode == 500 || lastCode == 502 || lastCode == 503 || lastCode == 504
+        if (!retryable || attempt == 3) break
+        Thread.sleep(1000L shl attempt)
+      }
       val latency = System.currentTimeMillis() - startTime
-
-      if (response.isSuccessful) {
-        val bodyStr = response.body?.string() ?: ""
-        val respJson = JSONObject(bodyStr)
-        val candidates = respJson.getJSONArray("candidates")
-        val content = candidates.getJSONObject(0).getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text")
-        EngineResult(
-          responseText = content.trim(),
-          modelBadge = modelType.shortBadge,
-          latencyMs = latency
-        )
+      val finalResponse = response
+      if (finalResponse != null && finalResponse.isSuccessful) {
+        finalResponse.use { successfulResponse ->
+          val bodyStr = successfulResponse.body?.string() ?: ""
+          val respJson = JSONObject(bodyStr)
+          val candidates = respJson.getJSONArray("candidates")
+          val content = candidates.getJSONObject(0).getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text")
+          EngineResult(
+            responseText = content.trim(),
+            modelBadge = modelType.shortBadge,
+            latencyMs = latency
+          )
+        }
       } else {
+        val detail = try {
+          JSONObject(lastErrorBody).optJSONObject("error")?.optString("message").orEmpty()
+        } catch (_: Exception) { "" }
+        val guidance = when (lastCode) {
+          503, 502, 504 -> "Google's Gemini service is temporarily unavailable or overloaded. Wait a little and retry."
+          429 -> "Gemini rate limit or quota reached. Wait for the limit to reset or check your AI Studio quota."
+          400, 401, 403 -> "Check the API key, project access, and request settings."
+          404 -> "The selected Gemini model or endpoint was not found. Check the model name and API access."
+          else -> "Check your network connection and Gemini API settings."
+        }
         EngineResult(
-          responseText = "Gemini could not answer this request (HTTP ${response.code}). Check your API key, model access, and network connection, then try again.",
+          responseText = "Gemini request failed (HTTP $lastCode). $guidance" +
+            if (detail.isNotBlank()) "\\n\\nGoogle details: $detail" else "",
           modelBadge = "GEMINI ERROR",
           latencyMs = latency
         )

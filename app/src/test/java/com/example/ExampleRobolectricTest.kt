@@ -46,7 +46,8 @@ class ExampleRobolectricTest {
 
   @Test
   fun `verify assistant model types and states`() {
-    assertEquals("Gemini 2.5 Flash", AiModelType.GEMINI_FLASH.displayName)
+    assertEquals("Gemini 3.5 Flash-Lite", AiModelType.GEMINI_FLASH.displayName)
+    assertEquals("Gemini 3.1 Pro (Preview)", AiModelType.GEMINI_PRO.displayName)
     assertEquals("Qwen3-1.7B Local", AiModelType.LOCAL_QWEN.displayName)
     assertEquals("ONLINE — STANDBY", AssistantState.IDLE.label)
   }

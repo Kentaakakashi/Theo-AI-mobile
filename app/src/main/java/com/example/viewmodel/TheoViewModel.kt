@@ -395,7 +395,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         activeModel = model,
         animationIntensity = intensity,
         customApiKey = apiKey,
-        termuxHost = termuxHost
+        termuxHost = termuxHost,
+        geminiStatusMessage = if (apiKey != it.customApiKey) "Not tested yet" else it.geminiStatusMessage
       )
     }
   }

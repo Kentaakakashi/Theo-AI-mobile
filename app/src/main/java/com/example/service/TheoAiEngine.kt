@@ -20,6 +20,15 @@ class TheoAiEngine {
     .writeTimeout(8, TimeUnit.SECONDS)
     .build()
 
+  // Cloud generation can take longer than local requests, especially during
+  // Gemini service load. Keep its timeout separate from the local bridge.
+  private val geminiClient = OkHttpClient.Builder()
+    .connectTimeout(15, TimeUnit.SECONDS)
+    .readTimeout(45, TimeUnit.SECONDS)
+    .writeTimeout(15, TimeUnit.SECONDS)
+    .callTimeout(60, TimeUnit.SECONDS)
+    .build()
+
   // On-device Qwen inference can be slow on phones; don't treat a slow generation as offline.
   private val localQwenClient = OkHttpClient.Builder()
     .connectTimeout(10, TimeUnit.SECONDS)
@@ -264,7 +273,7 @@ class TheoAiEngine {
         var attempt = 0
         do {
           val request = Request.Builder().url(url).header("x-goog-api-key", key).header("Content-Type", "application/json").post(requestBody).build()
-          val response = client.newCall(request).execute()
+          val response = geminiClient.newCall(request).execute()
           response.use { res ->
             val body = res.body?.string().orEmpty()
             if (res.isSuccessful) {
@@ -309,8 +318,26 @@ class TheoAiEngine {
       }
     } catch (e: Exception) {
       val latency = System.currentTimeMillis() - startTime
+      val exceptionName = e.javaClass.simpleName.ifBlank { "Exception" }
+      val detail = e.localizedMessage ?: e.message ?: "No additional details"
+      TheoDiagnosticLogger.error(
+        "GEMINI",
+        "Gemini request threw $exceptionName",
+        e,
+        "latencyMs=$latency; exception=$exceptionName; detail=$detail"
+      )
+      val guidance = when (e) {
+        is java.net.SocketTimeoutException ->
+          "The request timed out while waiting for Gemini. The cloud request timeout is now 45 seconds; check connectivity and try again."
+        is java.net.UnknownHostException ->
+          "The Gemini host could not be resolved. Check your internet connection or DNS."
+        is javax.net.ssl.SSLException ->
+          "The secure connection to Gemini failed. Check device date/time, network filtering, or VPN settings."
+        else ->
+          "Check your internet connection and Gemini API settings."
+      }
       EngineResult(
-        responseText = "Gemini is unavailable right now: ${e.localizedMessage ?: "network or response error"}. No AI answer was generated. Check your connection and API settings, then retry.",
+        responseText = "Gemini request failed ($exceptionName). $guidance No AI answer was generated.\n\nDetails: $detail",
         modelBadge = "GEMINI ERROR",
         latencyMs = latency
       )
@@ -332,61 +359,6 @@ class TheoAiEngine {
       modelBadge = "QWEN REQUEST ERROR",
       latencyMs = latency
     )
-  }
-
-  private fun generateSmartOfflineResponse(
-    prompt: String,
-    memories: List<MemoryItem>,
-    modelType: AiModelType,
-    startTime: Long
-  ): EngineResult {
-    val latency = System.currentTimeMillis() - startTime
-    val base = synthesizeKnowledge(prompt)
-    val text = if (memories.isNotEmpty() && prompt.contains("remember", ignoreCase = true)) {
-      "Offline demo response — this is scripted text, not an AI-generated answer.\n\n$base"
-    } else {
-      "Offline demo response — no Gemini API key is configured, so this is scripted text rather than an AI-generated answer. Add your key in Settings to enable Gemini.\n\n$base"
-    }
-
-    return EngineResult(
-      responseText = text,
-      modelBadge = "OFFLINE DEMO",
-      latencyMs = latency.coerceAtLeast(180L)
-    )
-  }
-
-  private fun synthesizeKnowledge(prompt: String): String {
-    val lower = prompt.lowercase().trim()
-    return when {
-      lower.contains("who are you") || lower.contains("what are you") -> {
-        "I am **Theo** — your cybernetic personal AI companion and neural operating interface. I run natively with dual-engine architecture: Gemini Cloud for high-reasoning tasks and local Qwen for private on-device edge execution."
-      }
-      lower.contains("plan my day") || lower.contains("schedule") -> {
-        "📋 **Neural Schedule Matrix**\n\n" +
-          "• **09:00** — System sync & telemetry verification\n" +
-          "• **10:30** — Deep focus block: Kotlin & native architecture refinement\n" +
-          "• **13:00** — Energy recharge cycle\n" +
-          "• **14:30** — Core intelligence review & Termux model benchmarking\n" +
-          "• **17:00** — Daily reflection & Memory Matrix indexing\n\n" +
-          "Would you like me to log any priority reminders for today?"
-      }
-      lower.contains("remember") -> {
-        "Synthesizing memory pattern into local encrypted storage. Your preference has been locked into the Memory Matrix."
-      }
-      lower.contains("battery") || lower.contains("storage") || lower.contains("ram") || lower.contains("status") -> {
-        "Telemetry scan complete. System diagnostics are operational. You can view real-time battery and memory stats in the HUD above."
-      }
-      lower.contains("settings") || lower.contains("camera") || lower.contains("alarm") || lower.contains("clock") -> {
-        "Detected device orchestration command. Native intent ready for execution."
-      }
-      lower.contains("qwen") || lower.contains("termux") -> {
-        "Qwen3-1.7B integration is designed for zero-cloud latency and full privacy. Run the server on `127.0.0.1:8080/v1` in Termux, and Theo communicates seamlessly over local socket."
-      }
-      else -> {
-        "Affirmative. Neural query received: *\"$prompt\"*.\n\n" +
-          "Synaptic processing complete. All local memory registers are aligned. How would you like to proceed with this task, Commander?"
-      }
-    }
   }
 
   private fun detectMemoryRequest(prompt: String): Pair<String, String>? {

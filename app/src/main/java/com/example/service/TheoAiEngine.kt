@@ -259,19 +259,35 @@ class TheoAiEngine {
       var answer = ""
       var usedKeyIndex = -1
       for ((index, key) in apiKeys.withIndex()) {
-        val request = Request.Builder().url(url).header("x-goog-api-key", key).header("Content-Type", "application/json").post(requestBody).build()
-        val response = client.newCall(request).execute()
-        response.use { res ->
-          val body = res.body?.string().orEmpty()
-          if (res.isSuccessful) {
-            val parsed = JSONObject(body)
-            val parts = parsed.optJSONArray("candidates")?.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts")
-            answer = (0 until (parts?.length() ?: 0)).mapNotNull { i -> parts?.optJSONObject(i)?.optString("text")?.takeIf { it.isNotBlank() } }.joinToString("\n").trim()
-            usedKeyIndex = index
-            if (answer.isBlank()) { lastCode = 200; lastErrorBody = "Gemini returned no text content." }
-          } else { lastCode = res.code; lastErrorBody = body }
-        }
+        // Gemini can briefly return 5xx during service overload. Retry that same
+        // configured key once after a short pause; never substitute scripted text.
+        var attempt = 0
+        do {
+          val request = Request.Builder().url(url).header("x-goog-api-key", key).header("Content-Type", "application/json").post(requestBody).build()
+          val response = client.newCall(request).execute()
+          response.use { res ->
+            val body = res.body?.string().orEmpty()
+            if (res.isSuccessful) {
+              val parsed = JSONObject(body)
+              val parts = parsed.optJSONArray("candidates")?.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts")
+              answer = (0 until (parts?.length() ?: 0)).mapNotNull { i -> parts?.optJSONObject(i)?.optString("text")?.takeIf { it.isNotBlank() } }.joinToString("\n").trim()
+              usedKeyIndex = index
+              if (answer.isBlank()) { lastCode = 200; lastErrorBody = "Gemini returned no text content." }
+            } else { lastCode = res.code; lastErrorBody = body }
+          }
+          if (answer.isNotBlank()) break
+          val transientServerError = lastCode in listOf(500, 502, 503, 504)
+          if (attempt == 0 && transientServerError) {
+            attempt++
+            TheoDiagnosticLogger.warn("GEMINI", "Transient server error; retrying once", "HTTP $lastCode, keySlot=${index + 1}")
+            Thread.sleep(600L)
+          } else {
+            break
+          }
+        } while (attempt <= 1)
         if (answer.isNotBlank()) break
+        // Try another configured key for authentication or rate-limit failures.
+        // A server overload is not treated as an invalid key.
         if (lastCode !in listOf(401, 403, 429)) break
       }
       val latency = System.currentTimeMillis() - startTime
@@ -280,7 +296,14 @@ class TheoAiEngine {
         EngineResult(answer, modelType.shortBadge, latency)
       } else {
         val detail = try { JSONObject(lastErrorBody).optJSONObject("error")?.optString("message").orEmpty() } catch (_: Exception) { lastErrorBody.take(300) }
-        val guidance = when (lastCode) { 429 -> "Gemini quota or rate limit reached for configured keys."; 401, 403 -> "Gemini rejected all available keys. Check key validity and API access."; 404 -> "Gemini model not found or unavailable to this key."; 400 -> "Gemini rejected the request format."; 500, 502, 503, 504 -> "Gemini service is temporarily unavailable."; else -> "Check your internet connection and Gemini API settings." }
+        val guidance = when (lastCode) {
+          429 -> "Gemini quota or rate limit reached for configured keys. Wait for the quota window to reset or check usage limits."
+          401, 403 -> "Gemini rejected all available keys. Check key validity and API access."
+          404 -> "Gemini model not found or unavailable to this key. Check the selected model ID."
+          400 -> "Gemini rejected the request format."
+          500, 502, 503, 504 -> "Google's Gemini service is temporarily overloaded or unavailable. Theo retried this request once; no simulated answer was used. Please try again shortly."
+          else -> "Check your internet connection and Gemini API settings."
+        }
         TheoDiagnosticLogger.error("GEMINI", "Generation failed", details = "HTTP " + lastCode + "; configured keys=" + apiKeys.size + "; " + detail)
         EngineResult("Gemini request failed (HTTP " + lastCode + "). " + guidance + if (detail.isNotBlank()) "\n\nGoogle details: " + detail else "", "GEMINI ERROR", latency)
       }

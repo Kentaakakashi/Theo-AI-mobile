@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -54,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.screens.ActivityHistoryScreen
 import com.example.ui.screens.CoreAssistantScreen
+import com.example.ui.screens.DiagnosticConsoleScreen
+import com.example.service.TheoDiagnosticLogger
 import com.example.ui.screens.MemoryMatrixScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.TheoCyan
@@ -74,12 +77,24 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
+    TheoDiagnosticLogger.initialize(applicationContext)
+    TheoDiagnosticLogger.info("LIFECYCLE", "MainActivity onCreate", "savedInstanceState=${savedInstanceState != null}")
+    val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+    Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+      TheoDiagnosticLogger.error("CRASH", "Uncaught exception on thread ${thread.name}", throwable)
+      previousHandler?.uncaughtException(thread, throwable)
+    }
     setContent {
       TheoTheme {
         TheoMainContent(viewModel = viewModel)
       }
     }
   }
+
+  override fun onStart() { super.onStart(); TheoDiagnosticLogger.info("LIFECYCLE", "MainActivity onStart") }
+  override fun onResume() { super.onResume(); TheoDiagnosticLogger.info("LIFECYCLE", "MainActivity onResume") }
+  override fun onPause() { TheoDiagnosticLogger.info("LIFECYCLE", "MainActivity onPause"); super.onPause() }
+  override fun onDestroy() { TheoDiagnosticLogger.info("LIFECYCLE", "MainActivity onDestroy", "changingConfigurations=$isChangingConfigurations"); super.onDestroy() }
 }
 
 @Composable
@@ -122,7 +137,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
             onInputChange = { viewModel.setInputText(it) },
             onOrbClick = { viewModel.onOrbClicked() },
             onToggleSpeech = { viewModel.toggleSpeech() },
-            onOpenSettings = { viewModel.setTab(3) },
+            onOpenSettings = { viewModel.setTab(4) },
             onExecuteAction = { viewModel.executeDeviceAction(it) },
             onDismissAction = { viewModel.dismissPendingAction() }
           )
@@ -142,7 +157,9 @@ fun TheoMainContent(viewModel: TheoViewModel) {
             onClearHistory = { viewModel.clearActivities() }
           )
 
-          3 -> SettingsScreen(
+          3 -> DiagnosticConsoleScreen()
+
+          4 -> SettingsScreen(
             uiState = uiState,
             onSaveSettings = { model, anim, key, host ->
               viewModel.updateSettings(model, anim, key, host)
@@ -172,6 +189,7 @@ fun TheoBottomNavigation(
     NavTabItem("CORE", Icons.Default.AutoAwesome, "nav_core_tab"),
     NavTabItem("MEMORY", Icons.Default.Storage, "nav_memory_tab"),
     NavTabItem("ACTIVITY", Icons.Default.Timeline, "nav_activity_tab"),
+    NavTabItem("LOGS", Icons.Default.Terminal, "nav_logs_tab"),
     NavTabItem("SETTINGS", Icons.Default.Settings, "nav_settings_tab")
   )
 

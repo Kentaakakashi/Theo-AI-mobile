@@ -212,10 +212,14 @@ fun ChatMessageBubble(
                         val provider = payload.substringBefore('|')
                         val query = payload.substringAfter('|', payload).trim()
                         val service = if (provider.equals("spotify", ignoreCase = true)) "Spotify" else "YouTube Music"
-                        "Find & play ${query.take(20)} on $service"
+                        "Search ${query.take(20)} on $service"
                       }
                       actionKey.startsWith("order:", ignoreCase = true) ->
-                        "Find order options"
+                        "Find order options (no purchase)"
+                      actionKey.startsWith("setup:accessibility", ignoreCase = true) ->
+                        "Enable Screen Automation"
+                      actionKey.startsWith("screen:", ignoreCase = true) ->
+                        "Run screen task"
                       actionKey.startsWith("app:", ignoreCase = true) ->
                         "Open ${actionKey.substringAfter(':').take(28)}"
                       else -> "Run ${actionKey.replaceFirstChar { it.uppercase() }}"

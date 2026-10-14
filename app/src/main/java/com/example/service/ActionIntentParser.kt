@@ -50,7 +50,7 @@ internal object ActionIntentParser {
     }
 
     // Requests against the already-open app use runtime UI discovery, not fixed buttons.
-    val onScreen = match("^(?:please\\s+)?(?:tap|click|press|scroll|swipe|type|enter|search|find|look for|navigate|send|message|post|publish|reply|compose|select|choose|delete|remove|share|upload|follow|unfollow)\\b.*$")
+    val onScreen = match("^(?:please\\s+)?(?:tap|click|press|scroll|swipe|type|enter|search|find|look for|check|view|show|read|navigate|send|message|post|publish|reply|compose|select|choose|delete|remove|share|upload|follow|unfollow)\\b.*$")
     if (onScreen != null) return "screen:current|task:$trimmed"
 
     val app = match("^(?:please\\s+)?(?:open|launch|start|run)\\s+(?:(?:the\\s+)?app\\s+(?:named\\s+|called\\s+)?|the\\s+)?(.+?)(?:\\s+app)?$")
@@ -62,7 +62,7 @@ internal object ActionIntentParser {
 
   private fun isAutomationGoal(value: String): Boolean =
     Regex(
-      "^(?:play|put\\s+on|listen\\s+to|search|find|look\\s+for|tap|click|press|scroll|swipe|type|enter|send|message|post|publish|reply|compose|select|choose|navigate|go\\s+to|open|launch|delete|remove|share|upload|follow|unfollow)\\b",
+      "^(?:play|put\\s+on|listen\\s+to|search|find|look\\s+for|check|view|show|read|tap|click|press|scroll|swipe|type|enter|send|message|post|publish|reply|compose|select|choose|navigate|go\\s+to|open|launch|delete|remove|share|upload|follow|unfollow)\\b",
       RegexOption.IGNORE_CASE
     ).containsMatchIn(value.trim())
 

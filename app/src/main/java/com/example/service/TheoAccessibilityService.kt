@@ -106,20 +106,11 @@ class TheoAccessibilityService : AccessibilityService() {
     // Editable widget values and descriptions can contain the user's current input; only use its hint.
     if (node.isEditable) {
       val hint = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) node.hintText?.toString().orEmpty() else ""
-      return sanitizeScreenText(hint)
+      return ScreenTextSanitizer.sanitize(hint)
     }
     val description = node.contentDescription?.toString()?.trim().orEmpty()
-    if (description.isNotBlank()) return sanitizeScreenText(description)
-    return sanitizeScreenText(node.text?.toString().orEmpty())
-  }
-
-  private fun sanitizeScreenText(value: String): String {
-    val trimmed = value.trim()
-    // Redact standalone short numeric tokens commonly used as one-time verification codes.
-    if (Regex("^\\d{4,8}$").matches(trimmed)) return "[possible verification code redacted]"
-    return Regex(
-      "(?i)\\b(verification|authentication|security|one[- ]time)?\\s*(code|otp|passcode|password)\\b\\s*[:\\-]?\\s*[A-Za-z0-9!@#$%^&*_-]{4,24}\\b"
-    ).replace(trimmed, "$2 [redacted]")
+    if (description.isNotBlank()) return ScreenTextSanitizer.sanitize(description)
+    return ScreenTextSanitizer.sanitize(node.text?.toString().orEmpty())
   }
 
   internal fun performScreenAction(action: ScreenAction, expectedPackageName: String): Boolean {

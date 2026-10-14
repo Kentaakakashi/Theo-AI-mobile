@@ -3,7 +3,7 @@ package com.example.service
 import org.json.JSONObject
 import java.util.Locale
 
-internal data class ScreenElement(
+data class ScreenElement(
   val id: String,
   val label: String,
   val role: String,
@@ -14,7 +14,7 @@ internal data class ScreenElement(
   val enabled: Boolean
 )
 
-internal data class ScreenSnapshot(val packageName: String, val elements: List<ScreenElement>) {
+data class ScreenSnapshot(val packageName: String, val elements: List<ScreenElement>) {
   fun toModelText(maxChars: Int = 12000): String = buildString {
     append("package=").append(packageName).append('\n')
     elements.take(120).forEach { element ->
@@ -32,7 +32,7 @@ internal data class ScreenSnapshot(val packageName: String, val elements: List<S
   }.take(maxChars)
 }
 
-internal data class ScreenAction(
+data class ScreenAction(
   val kind: String,
   val nodePath: String? = null,
   val text: String? = null,

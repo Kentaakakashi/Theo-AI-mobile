@@ -65,6 +65,7 @@ data class TheoUiState(
   val telemetry: DeviceActionHandler.TelemetryInfo? = null,
   val pendingActionTag: String? = null,
   val pendingScreenTargetLabel: String? = null,
+  val pendingScreenPackageName: String? = null,
   val pendingAppSelection: PendingAppSelection? = null,
   val isScreenAutomationEnabled: Boolean = false,
   val isScreenAutomationRunning: Boolean = false
@@ -361,10 +362,15 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     // task from the target app's current screen with the additional authorization.
     if (actionKey.startsWith("screen:", ignoreCase = true)) {
       val authorizeTask = explicitlyConfirmed || state.pendingScreenTargetLabel != null
+      val expectedPackageName = state.pendingScreenPackageName
       _uiState.update {
-        it.copy(pendingActionTag = null, pendingScreenTargetLabel = null)
+        it.copy(
+          pendingActionTag = null,
+          pendingScreenTargetLabel = null,
+          pendingScreenPackageName = null
+        )
       }
-      startScreenAction(actionKey, sensitiveAuthorized = authorizeTask)
+      startScreenAction(actionKey, sensitiveAuthorized = authorizeTask, expectedPackageName = expectedPackageName)
       return
     }
 
@@ -412,7 +418,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     }
   }
 
-  private fun startScreenAction(actionKey: String, sensitiveAuthorized: Boolean) {
+  private fun startScreenAction(
+    actionKey: String,
+    sensitiveAuthorized: Boolean,
+    expectedPackageName: String? = null
+  ) {
     val request = ScreenAutomationRequest.parse(actionKey)
     if (request == null) {
       appendMessageAsync("Theo couldn't safely parse the screen task, so no app action was taken.")
@@ -426,7 +436,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       return
     }
     if (request.appName == null) {
-      runScreenAutomation(request.task, sensitiveAuthorized)
+      runScreenAutomation(request.task, sensitiveAuthorized, expectedPackageName)
       return
     }
 
@@ -479,12 +489,16 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         appendAssistantMessage("Android accepted the launch intent for ${app.label}. Theo cannot infer from that alone that a screen or action inside the app succeeded.")
       } else {
         delay(900)
-        runScreenAutomation(task, sensitiveAuthorized)
+        runScreenAutomation(task, sensitiveAuthorized, app.packageName)
       }
     }
   }
 
-  private fun runScreenAutomation(task: String, sensitiveAuthorized: Boolean) {
+  private fun runScreenAutomation(
+    task: String,
+    sensitiveAuthorized: Boolean,
+    expectedPackageName: String? = null
+  ) {
     if (screenAutomationJob?.isActive == true) {
       appendMessageAsync("A screen automation task is already running. Stop it from Settings before starting another.")
       return
@@ -510,9 +524,21 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             finalMessage = "Theo's Accessibility Service is enabled in Android Settings but is not connected yet. Return to Theo and retry."
             break
           }
-          val snapshot = service.captureActiveScreen()
+          var snapshot: com.example.service.ScreenSnapshot? = null
+          var snapshotAttempts = 0
+          do {
+            snapshot = service.captureActiveScreen()
+            if (expectedPackageName == null || snapshot?.packageName == expectedPackageName) break
+            snapshotAttempts++
+            if (snapshotAttempts < 5) delay(400)
+          } while (snapshotAttempts < 5)
+
           if (snapshot == null || snapshot.elements.isEmpty()) {
             finalMessage = "Theo couldn't read an accessible UI tree from the current app. No guessed taps were made. This app may not expose accessible controls; screenshot fallback is not enabled in this build."
+            break
+          }
+          if (expectedPackageName != null && snapshot.packageName != expectedPackageName) {
+            finalMessage = "Theo expected the target app package $expectedPackageName but the active screen belongs to ${snapshot.packageName}. Theo stopped rather than operating in another app."
             break
           }
           _uiState.update { state ->
@@ -558,7 +584,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             pausedForReview = true
             _uiState.update { it.copy(
               pendingActionTag = "screen:current|task:$task",
-              pendingScreenTargetLabel = targetLabel.ifBlank { action.kind }
+              pendingScreenTargetLabel = targetLabel.ifBlank { action.kind },
+              pendingScreenPackageName = snapshot.packageName
             ) }
             break
           }
@@ -607,7 +634,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             currentThinkingStep = "",
             thinkingSteps = emptyList(),
             pendingActionTag = if (pausedForReview) state.pendingActionTag else null,
-            pendingScreenTargetLabel = if (pausedForReview) state.pendingScreenTargetLabel else null
+            pendingScreenTargetLabel = if (pausedForReview) state.pendingScreenTargetLabel else null,
+            pendingScreenPackageName = if (pausedForReview) state.pendingScreenPackageName else null
           )
         }
       }
@@ -642,7 +670,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
 
   fun dismissPendingAction() {
     _uiState.update {
-      it.copy(pendingActionTag = null, pendingScreenTargetLabel = null)
+      it.copy(pendingActionTag = null, pendingScreenTargetLabel = null, pendingScreenPackageName = null)
     }
   }
 

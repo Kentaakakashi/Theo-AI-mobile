@@ -1,8 +1,8 @@
 package com.example.service
 
 /**
- * Deterministic parser for actions Theo can execute natively.
- * This parser only identifies intent; it never claims an action succeeded.
+ * Recognizes Android handoff intent only. It never maps app names to hardcoded packages,
+ * guesses UI controls, or claims an action succeeded.
  */
 internal object ActionIntentParser {
   fun parse(input: String): String? {
@@ -23,13 +23,19 @@ internal object ActionIntentParser {
       match("^(please\\s+)?(?:open|launch|show)\\s+(?:the\\s+)?display(?:\\s+settings)?$") != null -> return "display"
     }
 
-    // Preserve a requested app separately from the song title. The action executor
-    // decides whether the app can be opened and whether its playback integration exists.
-    val compound = match("^(?:please\\s+)?(?:open|launch|start)\\s+(?:the\\s+)?(.+?)\\s+and\\s+(?:play|put\\s+on|listen\\s+to)\\s+(.+)$")
-    if (compound != null) {
+    val order = match("^(?:please\\s+)?(?:order|buy|get\\s+me|place\\s+an\\s+order\\s+for|make\\s+(?:me\\s+)?an\\s+order\\s+for)\\s+(.+)$")
+    if (order != null) {
+      val query = cleanTarget(order.groupValues[1]).removePrefix("me ").trim()
+      if (query.isNotBlank()) return "order:$query"
+    }
+
+    // Parse the app separately from the user's follow-up task. The live AI planner resolves
+    // how to interact with each app from its current accessibility tree.
+    val compound = match("^(?:please\\s+)?(?:open|launch|start)\\s+(?:the\\s+)?(.+?)\\s+and\\s+(.+)$")
+    if (compound != null && isAutomationGoal(compound.groupValues[2])) {
       val app = cleanTarget(compound.groupValues[1])
-      val song = cleanTarget(compound.groupValues[2]).replace(Regex("^(?:the\\\\s+)?song\\\\s+", flags), "").let(::cleanTarget)
-      if (app.isNotBlank() && song.isNotBlank()) return "sequence:app:$app|music:$song"
+      val task = compound.groupValues[2].trim()
+      if (app.isNotBlank() && task.isNotBlank()) return "screen:app:$app|task:$task"
     }
 
     val music = match("^(?:please\\s+)?(?:play|put\\s+on|listen\\s+to)\\s+(.+)$")
@@ -43,11 +49,9 @@ internal object ActionIntentParser {
       if (query.lowercase() in setOf("some music", "music")) return "music:popular music"
     }
 
-    val order = match("^(?:please\\s+)?(?:order|buy|get\\s+me|place\\s+an\\s+order\\s+for|make\\s+(?:me\\s+)?an\\s+order\\s+for)\\s+(.+)$")
-    if (order != null) {
-      val query = cleanTarget(order.groupValues[1]).removePrefix("me ").trim()
-      if (query.isNotBlank()) return "order:$query"
-    }
+    // Requests against the already-open app use runtime UI discovery, not fixed buttons.
+    val onScreen = match("^(?:please\\s+)?(?:tap|click|press|scroll|swipe|type|enter|search|find|look for|navigate|send|message|post|publish|reply|compose|select|choose|delete|remove|share|upload|follow|unfollow)\\b.*$")
+    if (onScreen != null) return "screen:current|task:$trimmed"
 
     val app = match("^(?:please\\s+)?(?:open|launch|start|run)\\s+(?:(?:the\\s+)?app\\s+(?:named\\s+|called\\s+)?|the\\s+)?(.+?)(?:\\s+app)?$")
       ?: return null
@@ -55,6 +59,12 @@ internal object ActionIntentParser {
     if (appName.isBlank() || appName.lowercase() in setOf("settings", "camera", "clock", "alarm", "wifi", "wireless", "display", "battery")) return null
     return "app:$appName"
   }
+
+  private fun isAutomationGoal(value: String): Boolean =
+    Regex(
+      "^(?:play|put\\s+on|listen\\s+to|search|find|look\\s+for|tap|click|press|scroll|swipe|type|enter|send|message|post|publish|reply|compose|select|choose|navigate|go\\s+to|open|launch|delete|remove|share|upload|follow|unfollow)\\b",
+      RegexOption.IGNORE_CASE
+    ).containsMatchIn(value.trim())
 
   private fun cleanTarget(value: String): String =
     value.trim().replace(Regex("^[\\\"']|[\\\"']$"), "").trim()

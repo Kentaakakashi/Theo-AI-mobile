@@ -28,7 +28,7 @@ internal object ActionIntentParser {
     val compound = match("^(?:please\\s+)?(?:open|launch|start)\\s+(?:the\\s+)?(.+?)\\s+and\\s+(?:play|put\\s+on|listen\\s+to)\\s+(.+)$")
     if (compound != null) {
       val app = cleanTarget(compound.groupValues[1])
-      val song = cleanTarget(compound.groupValues[2])
+      val song = cleanTarget(compound.groupValues[2]).replace(Regex("^(?:the\\\\s+)?song\\\\s+", flags), "").let(::cleanTarget)
       if (app.isNotBlank() && song.isNotBlank()) return "sequence:app:$app|music:$song"
     }
 

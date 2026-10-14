@@ -3,6 +3,7 @@ package com.example
 import com.example.service.ActionSafetyPolicy
 import com.example.service.ScreenActionParser
 import com.example.service.ScreenAutomationRequest
+import com.example.service.ScreenTextSanitizer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -55,6 +56,14 @@ class ScreenAutomationTest {
     val request = ScreenAutomationRequest.parse("screen:current|task:scroll down")
     assertEquals(null, request?.appName)
     assertEquals("scroll down", request?.task)
+  }
+
+  @Test
+  fun redactsLikelyVerificationCodesWithoutRemovingOrdinaryText() {
+    assertEquals("[possible verification code redacted]", ScreenTextSanitizer.sanitize("123456"))
+    assertEquals("Verification code [redacted]", ScreenTextSanitizer.sanitize("Verification code: 123456"))
+    assertEquals("OTP [redacted]", ScreenTextSanitizer.sanitize("OTP: AB12CD34"))
+    assertEquals("Account balance 1200 rupees", ScreenTextSanitizer.sanitize("Account balance 1200 rupees"))
   }
 
   @Test

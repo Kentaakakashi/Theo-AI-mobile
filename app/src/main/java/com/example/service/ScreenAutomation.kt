@@ -90,6 +90,22 @@ internal object ScreenActionParser {
   }
 }
 
+internal object ScreenTextSanitizer {
+  private val contextualCode = Regex(
+    "(?i)\\\\b((?:verification|authentication|security|one[- ]time)\\\\s+)?(code|otp|passcode|password)\\\\b\\\\s*[:\\\\-]?\\\\s*[A-Za-z0-9!@#\\$%^&*_-]{4,24}\\\\b"
+  )
+
+  fun sanitize(value: String): String {
+    val trimmed = value.trim()
+    if (Regex("^\\\\d{4,8}$").matches(trimmed)) {
+      return "[possible verification code redacted]"
+    }
+    return contextualCode.replace(trimmed) { match ->
+      (match.groupValues[1] + match.groupValues[2]).trim() + " [redacted]"
+    }
+  }
+}
+
 internal object ActionSafetyPolicy {
   private val sensitiveIntent = Regex(
     "\\b(send|message|dm|email|reply|comment|submit|post|publish|delete|remove|clear|buy|purchase|pay|checkout|order|transfer|share|upload|install|uninstall|password|passcode|one[- ]time code|otp|bank|payment|grant permission)\\b",

@@ -276,6 +276,14 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         )
       }
 
+      val actionKey = result.actionSuggested
+      val isSensitiveHandoff = actionKey?.startsWith("order:", ignoreCase = true) == true
+      val needsMultiStepReview = actionKey?.startsWith("sequence:", ignoreCase = true) == true
+      // Safe, single-step app/system/music intents execute immediately. Orders stay
+      // behind confirmation; compound app+media requests stay user-triggered until
+      // the requested app's playback capability can be verified.
+      val executeAutomatically = actionKey != null && !isSensitiveHandoff && !needsMultiStepReview
+
       val assistantMsg = MessageEntity(
         id = UUID.randomUUID().toString(),
         text = result.responseText,
@@ -283,7 +291,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         timestamp = System.currentTimeMillis(),
         modelBadge = result.modelBadge,
         latencyMs = result.latencyMs,
-        actionTag = result.actionSuggested
+        actionTag = if (executeAutomatically) null else actionKey
       )
       dao.insertMessage(assistantMsg)
       TheoDiagnosticLogger.info("CHAT", "Assistant response stored", "badge=${result.modelBadge}, chars=${result.responseText.length}, latencyMs=${result.latencyMs}")
@@ -291,11 +299,15 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       _uiState.update {
         it.copy(
           assistantState = AssistantState.IDLE,
-          pendingActionTag = result.actionSuggested,
+          pendingActionTag = if (isSensitiveHandoff || needsMultiStepReview) actionKey else null,
           thinkingSteps = emptyList(),
           currentThinkingStep = "",
           streamingText = ""
         )
+      }
+
+      if (executeAutomatically && actionKey != null) {
+        executeDeviceAction(actionKey)
       }
 
       // Voice read-out if speech enabled

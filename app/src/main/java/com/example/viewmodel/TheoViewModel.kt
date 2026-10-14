@@ -576,9 +576,31 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             }
           }
 
-          val targetLabel = action.nodePath?.let { nodeId ->
-            snapshot.elements.firstOrNull { it.id == nodeId }?.label.orEmpty()
+          val targetPath = action.nodePath
+          val pathElements = targetPath?.let { nodeId ->
+            snapshot.elements
+              .filter { it.id == nodeId || nodeId.startsWith("${it.id}.") }
+              .sortedByDescending { it.id.length }
           }.orEmpty()
+          if (action.kind in setOf("click", "type", "scroll")) {
+            if (targetPath == null || snapshot.elements.none { it.id == targetPath }) {
+              finalMessage = "Theo's configured AI provider selected a node that was not present in the current accessibility tree. No action was taken."
+              break
+            }
+            val hasSupportedTarget = when (action.kind) {
+              "click" -> pathElements.any { it.enabled && it.clickable }
+              "type" -> pathElements.any { it.enabled && it.editable }
+              "scroll" -> pathElements.any { it.enabled && it.scrollable }
+              else -> false
+            }
+            if (!hasSupportedTarget) {
+              finalMessage = "Theo's proposed action does not match the current accessible control capabilities. No action was taken."
+              break
+            }
+          }
+          // Include the node and nearby actionable ancestors so a labelled parent button
+          // (for example, Send) cannot be hidden behind an unlabeled child icon.
+          val targetLabel = pathElements.take(4).map { it.label }.filter { it.isNotBlank() }.joinToString(" ")
           if (!sensitiveAuthorized && ActionSafetyPolicy.targetRequiresConfirmation(action, targetLabel)) {
             finalMessage = "Theo stopped before activating the potentially sensitive control \"$targetLabel\". Nothing was submitted, deleted, shared, or paid for. Review and confirm before retrying."
             pausedForReview = true
@@ -590,7 +612,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             break
           }
 
-          val success = service.performScreenAction(action)
+          val success = service.performScreenAction(action, snapshot.packageName)
           if (success) {
             consecutiveFailures = 0
             history.add("Step $stepNumber: ${action.kind} on ${action.nodePath ?: "(system)"} dispatched. Reason: ${action.reason.take(120)}")

@@ -1,0 +1,43 @@
+package com.example
+
+import com.example.service.ActionIntentParser
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+class ActionIntentParserTest {
+  @Test
+  fun separatesArbitraryAppNameFromQuotedSongTitle() {
+    assertEquals(
+      "sequence:app:Bitchord|music:My House Is Not a Home",
+      ActionIntentParser.parse("open Bitchord and play the song \"My House Is Not a Home\"")
+    )
+  }
+
+  @Test
+  fun parsesStandaloneMusicQueryAndPreservesQuotedTitle() {
+    assertEquals("music:My House Is Not a Home", ActionIntentParser.parse("play \"My House Is Not a Home\""))
+  }
+
+  @Test
+  fun parsesAppLaunchWithoutAddingActionWordsToName() {
+    assertEquals("app:Bitchord", ActionIntentParser.parse("open Bitchord"))
+  }
+
+  @Test
+  fun recognizesNativeSettingsCommands() {
+    assertEquals("wifi", ActionIntentParser.parse("open Wi-Fi settings"))
+    assertEquals("settings", ActionIntentParser.parse("please open settings"))
+  }
+
+  @Test
+  fun ordinaryQuestionsAreNotNativeActions() {
+    assertNull(ActionIntentParser.parse("what is the best music app?"))
+    assertNull(ActionIntentParser.parse("explain how Wi-Fi works"))
+  }
+
+  @Test
+  fun shoppingCommandsRemainExplicitHandoffs() {
+    assertEquals("order:one large pizza", ActionIntentParser.parse("order one large pizza"))
+  }
+}

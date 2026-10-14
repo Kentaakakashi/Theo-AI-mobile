@@ -51,6 +51,50 @@ object DeviceActionHandler {
     )
   }
 
+  data class InstalledAppMatch(val label: String, val packageName: String)
+
+  fun findInstalledApps(context: Context, requestedName: String): List<InstalledAppMatch> {
+    val query = requestedName.trim()
+    if (query.isBlank()) return emptyList()
+    val pm = context.packageManager
+    val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+    val candidates = pm.queryIntentActivities(launcherIntent, 0)
+      .map { info ->
+        InstalledAppMatch(info.loadLabel(pm).toString(), info.activityInfo.packageName)
+      }
+      .distinctBy { it.packageName }
+    val exact = candidates.filter { it.label.equals(query, ignoreCase = true) }
+    if (exact.isNotEmpty()) return exact
+    val normalizedQuery = query.lowercase().filter(Char::isLetterOrDigit)
+    val normalized = candidates.filter { it.label.lowercase().filter(Char::isLetterOrDigit) == normalizedQuery }
+    if (normalized.isNotEmpty()) return normalized
+    val partial = candidates.filter {
+      it.label.contains(query, ignoreCase = true) || query.contains(it.label, ignoreCase = true)
+    }
+    return partial.take(6)
+  }
+
+  private fun launchInstalledApp(context: Context, requestedName: String): Boolean {
+    val matches = findInstalledApps(context, requestedName)
+    if (matches.size != 1) {
+      val message = if (matches.isEmpty()) {
+        "Couldn't find an installed app named \"$requestedName\"."
+      } else {
+        "Several apps match \"$requestedName\": ${matches.joinToString { it.label }}. Use a more exact app name."
+      }
+      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+      return false
+    }
+    val app = matches.single()
+    val intent = context.packageManager.getLaunchIntentForPackage(app.packageName) ?: run {
+      Toast.makeText(context, "${app.label} is installed but Android did not provide a launch intent.", Toast.LENGTH_LONG).show()
+      return false
+    }
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(intent)
+    return true
+  }
+
   fun executeAction(context: Context, actionKey: String): Boolean {
     return try {
       val normalizedAction = actionKey.trim()
@@ -94,26 +138,31 @@ object DeviceActionHandler {
       if (normalizedAction.startsWith("app:", ignoreCase = true)) {
         val requestedName = normalizedAction.substringAfter(':').trim()
         if (requestedName.isBlank()) return false
+        return launchInstalledApp(context, requestedName)
+      }
 
-        val packageManager = context.packageManager
-        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val launchables = packageManager.queryIntentActivities(launcherIntent, 0)
-        val matchingActivity = launchables.firstOrNull { info ->
-          info.loadLabel(packageManager).toString().equals(requestedName, ignoreCase = true)
-        } ?: launchables.firstOrNull { info ->
-          info.loadLabel(packageManager).toString().contains(requestedName, ignoreCase = true)
+      if (normalizedAction.startsWith("sequence:", ignoreCase = true)) {
+        // Do not silently ignore the requested app or claim the song is playing.
+        // Until the target app's supported playback API is known, open the requested
+        // app when uniquely resolved; the result remains "app opened", not "playing".
+        val payload = normalizedAction.substringAfter(':')
+        val appPart = payload.substringBefore("|music:", missingDelimiterValue = "")
+        val song = payload.substringAfter("|music:", missingDelimiterValue = "").trim()
+        if (!appPart.startsWith("app:", ignoreCase = true) || song.isBlank()) return false
+        val requestedName = appPart.substringAfter(':').trim()
+        val matches = findInstalledApps(context, requestedName)
+        if (matches.size == 1) {
+          val launched = launchInstalledApp(context, matches.first().label)
+          if (launched) Toast.makeText(context, "Opened ${matches.first().label}. This app's playback wasn't confirmed; use its search/play controls.", Toast.LENGTH_LONG).show()
+          return launched
         }
-
-        val launchIntent = matchingActivity?.activityInfo?.let { activityInfo ->
-          packageManager.getLaunchIntentForPackage(activityInfo.packageName)
+        val message = if (matches.isEmpty()) {
+          "Couldn't find an installed app named \"$requestedName\". Choose a music provider from the chat to search for \"$song\"."
+        } else {
+          "More than one app matches \"$requestedName\": ${matches.joinToString { it.label }}. Please choose the exact app."
         }
-        if (launchIntent == null) {
-          Toast.makeText(context, "Couldn't find an installed app named \"$requestedName\".", Toast.LENGTH_LONG).show()
-          return false
-        }
-        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(launchIntent)
-        return true
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        return false
       }
 
       val intent = when (normalizedAction.lowercase()) {

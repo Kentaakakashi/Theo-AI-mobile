@@ -80,7 +80,7 @@ class TheoAiEngine {
 
     // 2. Detect device intent actions. Native actions are handled by Android,
     // never by model-generated terminal text or a simulated execution report.
-    val actionIntent = detectActionIntent(prompt)
+    val actionIntent = ActionIntentParser.parse(prompt)
     if (actionIntent != null) {
       val actionDescription = when {
         actionIntent.startsWith("app:", ignoreCase = true) ->
@@ -549,72 +549,6 @@ class TheoAiEngine {
       }
     }
     return null
-  }
-
-  private fun detectActionIntent(prompt: String): String? {
-    val trimmed = prompt.trim().trimEnd('.', '!', '?')
-    val lower = trimmed.lowercase()
-    when {
-      lower.matches(Regex("^(please\\s+)?(open|launch)\\s+(the\\s+)?settings$")) -> return "settings"
-      lower.matches(Regex("^(please\\s+)?(open|launch)\\s+(the\\s+)?camera$")) ||
-        lower.matches(Regex("^(please\\s+)?take\\s+(a\\s+)?photo$")) -> return "camera"
-      lower.matches(Regex("^(please\\s+)?(set|open)\\s+(an?\\s+)?alarm$")) ||
-        lower.matches(Regex("^(please\\s+)?open\\s+(the\\s+)?clock$")) -> return "clock"
-      lower.matches(Regex("^(please\\s+)?(?:(?:open|launch)\\s+(?:the\\s+)?)?(?:wi-?fi|wireless)(?:\\s+(?:settings|settings page))?$")) -> return "wifi"
-      lower.matches(Regex("^(please\\s+)?(?:(?:open|launch|show|check|get)\\s+(?:the\\s+|my\\s+)?)?(?:battery\\s+(?:stats|statistics|settings)|battery and system diagnostics)$")) -> return "battery"
-      lower.matches(Regex("^(please\\s+)?(?:open|launch|show)\\s+(?:the\\s+)?display(?:\\s+settings)?$")) -> return "display"
-    }
-
-    // Multi-step request: "open Spotify and play <song>".
-    // Keep the requested provider alongside the track title for Android.
-    val appAndMusicMatch = Regex(
-      "^(?:please\\s+)?(?:open|launch|start)\\s+(?:the\\s+)?(spotify|youtube\\s+music)\\s+and\\s+(?:play|put\\s+on|listen\\s+to)\\s+(.+)$",
-      RegexOption.IGNORE_CASE
-    ).matchEntire(trimmed)
-    if (appAndMusicMatch != null) {
-      val provider = appAndMusicMatch.groupValues[1].lowercase().replace(Regex("\\s+"), "")
-      val query = appAndMusicMatch.groupValues[2].trim()
-      if (query.isNotBlank()) return "music:$provider|$query"
-    }
-
-    // Music requests open a real music search. This avoids claiming that a track
-    // started playing when a provider may require track selection or sign-in.
-    val musicMatch = Regex(
-      "^(?:please\\s+)?(?:play|put\\s+on|listen\\s+to)\\s+(.+)$",
-      RegexOption.IGNORE_CASE
-    ).matchEntire(trimmed)
-    if (musicMatch != null) {
-      val query = musicMatch.groupValues[1].trim()
-        .replace(Regex("^(?:the\\s+)?song\\s+", RegexOption.IGNORE_CASE), "")
-        .replace(Regex("\\s+(?:please|now)$", RegexOption.IGNORE_CASE), "")
-      if (query.isNotBlank() && query.lowercase() !in setOf("something", "a song", "some music")) {
-        return "music:$query"
-      }
-      if (query.lowercase() == "some music" || query.lowercase() == "music") return "music:popular music"
-    }
-
-    // Food/product ordering is a handoff, not an automatic purchase. The user
-    // must still select a provider and explicitly confirm the final order.
-    val orderMatch = Regex(
-      "^(?:please\\s+)?(?:order|buy|get\\s+me|place\\s+an\\s+order\\s+for|make\\s+(?:me\\s+)?an\\s+order\\s+for)\\s+(.+)$",
-      RegexOption.IGNORE_CASE
-    ).matchEntire(trimmed)
-    if (orderMatch != null) {
-      val query = orderMatch.groupValues[1].trim().removePrefix("me ").trim()
-      if (query.isNotBlank()) return "order:$query"
-    }
-
-    // Handle direct natural-language app launch requests, e.g. "open Bitchord",
-    // "launch Discord", or "open the app named Spotify".
-    val match = Regex(
-      "^(?:please\\s+)?(?:open|launch|start|run)\\s+(?:(?:the\\s+)?app\\s+(?:named\\s+|called\\s+)?|the\\s+)?(.+?)(?:\\s+app)?$",
-      RegexOption.IGNORE_CASE
-    ).matchEntire(trimmed) ?: return null
-    val appName = match.groupValues[1].trim().replace(Regex("^[\\\"']|[\\\"']$"), "")
-    if (appName.isBlank()) return null
-    val nonAppTargets = setOf("settings", "camera", "clock", "alarm", "wifi", "wireless", "display", "battery")
-    if (appName.lowercase() in nonAppTargets) return null
-    return "app:$appName"
   }
 
   private fun String.capitalizeFirst(): String =

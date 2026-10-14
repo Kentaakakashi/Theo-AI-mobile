@@ -92,11 +92,11 @@ internal object ScreenActionParser {
 
 internal object ActionSafetyPolicy {
   private val sensitiveIntent = Regex(
-    "\\b(send|message|dm|email|post|publish|delete|remove|clear|buy|purchase|pay|checkout|order|transfer|share|upload|install|uninstall|password|passcode|one[- ]time code|otp|bank|payment)\\b",
+    "\\b(send|message|dm|email|reply|comment|submit|post|publish|delete|remove|clear|buy|purchase|pay|checkout|order|transfer|share|upload|install|uninstall|password|passcode|one[- ]time code|otp|bank|payment|grant permission)\\b",
     RegexOption.IGNORE_CASE
   )
   private val sensitiveTarget = Regex(
-    "\\b(send|submit|post|publish|delete|remove|clear|buy|purchase|pay|checkout|place order|transfer|share|upload|confirm payment|confirm purchase|install|uninstall|allow access|grant permission|password|passcode|one[- ]time code|otp|card number|bank)\\b",
+    "\\b(send|submit|reply|comment|post|publish|delete|remove|clear|buy|purchase|pay|checkout|place order|transfer|share|upload|confirm payment|confirm purchase|install|uninstall|allow access|grant permission|password|passcode|one[- ]time code|otp|card number|bank)\\b",
     RegexOption.IGNORE_CASE
   )
 

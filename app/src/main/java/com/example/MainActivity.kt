@@ -92,7 +92,11 @@ class MainActivity : ComponentActivity() {
   }
 
   override fun onStart() { super.onStart(); TheoDiagnosticLogger.info("LIFECYCLE", "MainActivity onStart") }
-  override fun onResume() { super.onResume(); TheoDiagnosticLogger.info("LIFECYCLE", "MainActivity onResume") }
+  override fun onResume() {
+    super.onResume()
+    TheoDiagnosticLogger.info("LIFECYCLE", "MainActivity onResume")
+    viewModel.refreshScreenAutomationStatus()
+  }
   override fun onPause() { TheoDiagnosticLogger.info("LIFECYCLE", "MainActivity onPause"); super.onPause() }
   override fun onDestroy() { TheoDiagnosticLogger.info("LIFECYCLE", "MainActivity onDestroy", "changingConfigurations=$isChangingConfigurations"); super.onDestroy() }
 }
@@ -139,7 +143,9 @@ fun TheoMainContent(viewModel: TheoViewModel) {
             onToggleSpeech = { viewModel.toggleSpeech() },
             onOpenSettings = { viewModel.setTab(4) },
             onExecuteAction = { viewModel.executeDeviceAction(it) },
-            onDismissAction = { viewModel.dismissPendingAction() }
+            onDismissAction = { viewModel.dismissPendingAction() },
+            onSelectApp = { viewModel.selectAppForPendingRequest(it) },
+            onCancelAppSelection = { viewModel.dismissAppSelection() }
           )
 
           1 -> MemoryMatrixScreen(
@@ -167,7 +173,11 @@ fun TheoMainContent(viewModel: TheoViewModel) {
             onTestQwen = { viewModel.testQwenConnection() },
             onTestGemini = { viewModel.testGeminiConnection() },
             onClearChat = { viewModel.clearChatHistory() },
-            onToggleSpeech = { viewModel.toggleSpeech() }
+            onToggleSpeech = { viewModel.toggleSpeech() },
+            isScreenAutomationEnabled = uiState.isScreenAutomationEnabled,
+            isScreenAutomationRunning = uiState.isScreenAutomationRunning,
+            onConfigureScreenAutomation = { viewModel.openAccessibilitySettings() },
+            onStopScreenAutomation = { viewModel.stopScreenAutomation() }
           )
         }
       }

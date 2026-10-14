@@ -85,12 +85,19 @@ class TheoAiEngine {
       val actionDescription = when {
         actionIntent.startsWith("app:", ignoreCase = true) ->
           "open the app \"${actionIntent.substringAfter(':').trim()}\""
+        actionIntent.startsWith("sequence:", ignoreCase = true) -> {
+          val payload = actionIntent.substringAfter(':')
+          val appName = payload.substringAfter("app:", "").substringBefore("|music:").trim()
+          val song = payload.substringAfter("|music:", "").trim()
+          "open \"$appName\" and attempt to continue with the song \"$song\". Playback will not be claimed unless it can be verified"
+        }
         actionIntent.startsWith("music:", ignoreCase = true) -> {
           val payload = actionIntent.substringAfter(':').trim()
-          val provider = payload.substringBefore('|')
-          val query = payload.substringAfter('|', payload).trim()
+          val separator = payload.indexOf('|')
+          val provider = if (separator >= 0) payload.substring(0, separator) else "youtube"
+          val query = if (separator >= 0) payload.substring(separator + 1).trim() else payload
           val service = if (provider.equals("spotify", ignoreCase = true)) "Spotify" else "YouTube Music"
-          "find \"$query\" in $service"
+          "open a search for \"$query\" in $service (playback may need your selection)"
         }
         actionIntent.startsWith("order:", ignoreCase = true) ->
           "find ordering options for \"${actionIntent.substringAfter(':').trim()}\""
@@ -98,7 +105,7 @@ class TheoAiEngine {
       }
       TheoDiagnosticLogger.info("DEVICE_ACTION", "Action request recognized", "action=$actionIntent")
       return@withContext EngineResult(
-        responseText = "I can ${actionDescription}. Tap the action below to continue. For music, the service may ask you to choose a track before playback. For orders, I'll open real ordering/search options, but you must review the item, address, price, and confirm payment yourself.",
+        responseText = if (actionIntent.startsWith("order:", ignoreCase = true)) "I can ${actionDescription}. Review the item, address, and price yourself; Theo will not place an order or confirm payment automatically." else if (actionIntent.startsWith("sequence:", ignoreCase = true)) "I understood this as a multi-step request: ${actionDescription}. Tap to continue. Opening an app does not guarantee its playback controls can be automated." else "I can ${actionDescription}. Safe single-step actions run automatically. Music searches may require you to select a track; Theo will not claim playback started unless it can verify that.",
         modelBadge = "ANDROID ACTION",
         latencyMs = System.currentTimeMillis() - startTime,
         memoryExtracted = memoryExtraction,

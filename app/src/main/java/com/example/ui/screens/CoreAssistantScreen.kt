@@ -293,7 +293,7 @@ fun CoreAssistantScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-              text = "Confirm Safe Android Action",
+              text = if (actionTag.startsWith("order:", ignoreCase = true)) "Review Before Continuing" else "Review Multi-Step Action",
               color = TheoTextPrimary,
               fontSize = 16.sp,
               fontWeight = FontWeight.Bold
@@ -303,7 +303,7 @@ fun CoreAssistantScreen(
         text = {
           Column {
             Text(
-              text = "Theo requested to launch native system intent:",
+              text = if (actionTag.startsWith("order:", ignoreCase = true)) "Theo will open real search options only. Review the item, address and price yourself; no purchase will be made." else "Review this multi-step request. Theo will attempt only supported actions and will not claim playback unless it can be verified.",
               color = TheoTextSecondary,
               fontSize = 13.sp
             )
@@ -331,7 +331,7 @@ fun CoreAssistantScreen(
             colors = ButtonDefaults.buttonColors(containerColor = TheoCyan),
             modifier = Modifier.testTag("confirm_action_btn")
           ) {
-            Text("Launch Intent", color = TheoDarkBackground, fontWeight = FontWeight.Bold)
+            Text("Continue", color = TheoDarkBackground, fontWeight = FontWeight.Bold)
           }
         },
         dismissButton = {

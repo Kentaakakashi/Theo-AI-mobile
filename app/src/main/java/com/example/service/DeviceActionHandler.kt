@@ -74,6 +74,21 @@ object DeviceActionHandler {
     return partial.take(6)
   }
 
+  fun isExactAppNameMatch(label: String, requestedName: String): Boolean {
+    fun normalize(value: String) = value.lowercase().filter(Char::isLetterOrDigit)
+    return label.equals(requestedName.trim(), ignoreCase = true) ||
+      normalize(label) == normalize(requestedName.trim())
+  }
+
+  fun launchInstalledAppByPackage(context: Context, packageName: String): Boolean = try {
+    val intent = context.packageManager.getLaunchIntentForPackage(packageName) ?: return false
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(intent)
+    true
+  } catch (e: Exception) {
+    false
+  }
+
   private fun launchInstalledApp(context: Context, requestedName: String): Boolean {
     val matches = findInstalledApps(context, requestedName)
     if (matches.size != 1) {
@@ -86,18 +101,22 @@ object DeviceActionHandler {
       return false
     }
     val app = matches.single()
-    val intent = context.packageManager.getLaunchIntentForPackage(app.packageName) ?: run {
+    val launched = launchInstalledAppByPackage(context, app.packageName)
+    if (!launched) {
       Toast.makeText(context, "${app.label} is installed but Android did not provide a launch intent.", Toast.LENGTH_LONG).show()
-      return false
     }
-    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    context.startActivity(intent)
-    return true
+    return launched
   }
 
   fun executeAction(context: Context, actionKey: String): Boolean {
     return try {
       val normalizedAction = actionKey.trim()
+      if (normalizedAction.equals("setup:accessibility", ignoreCase = true)) {
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+          .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+        return true
+      }
       if (normalizedAction.startsWith("music:", ignoreCase = true)) {
         val payload = normalizedAction.substringAfter(':').trim()
         val separator = payload.indexOf('|')

@@ -114,28 +114,35 @@ class TheoAccessibilityService : AccessibilityService() {
   fun performScreenAction(action: ScreenAction): Boolean = when (action.kind) {
     "back" -> performGlobalAction(GLOBAL_ACTION_BACK)
     "wait" -> true
-    "click", "type", "scroll" -> performOnPath(action.nodePath ?: return false) { chain ->
-      val target = chain.lastOrNull() ?: return@performOnPath false
-      when (action.kind) {
-        "click" -> {
-          val button = chain.asReversed().firstOrNull { it.isEnabled && it.isClickable } ?: target
-          button.isEnabled && button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        }
-        "type" -> {
-          val field = chain.asReversed().firstOrNull { it.isEnabled && it.isEditable } ?: return@performOnPath false
-          val value = action.text ?: return@performOnPath false
-          field.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
-          val args = Bundle().apply {
-            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, value)
+    "click", "type", "scroll" -> {
+      val path = action.nodePath
+      if (path == null) {
+        false
+      } else {
+        performOnPath(path) { chain ->
+          val target = chain.lastOrNull() ?: return@performOnPath false
+          when (action.kind) {
+            "click" -> {
+              val button = chain.asReversed().firstOrNull { it.isEnabled && it.isClickable } ?: target
+              button.isEnabled && button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            }
+            "type" -> {
+              val field = chain.asReversed().firstOrNull { it.isEnabled && it.isEditable } ?: return@performOnPath false
+              val value = action.text ?: return@performOnPath false
+              field.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+              val args = Bundle().apply {
+                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, value)
+              }
+              field.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+            }
+            "scroll" -> {
+              val scrollable = chain.asReversed().firstOrNull { it.isEnabled && it.isScrollable } ?: return@performOnPath false
+              val operation = if (action.direction == "backward") AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD else AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+              scrollable.performAction(operation)
+            }
+            else -> false
           }
-          field.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
         }
-        "scroll" -> {
-          val scrollable = chain.asReversed().firstOrNull { it.isEnabled && it.isScrollable } ?: return@performOnPath false
-          val operation = if (action.direction == "backward") AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD else AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
-          scrollable.performAction(operation)
-        }
-        else -> false
       }
     }
     else -> false

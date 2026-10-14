@@ -6,4 +6,6 @@
     <string name="status_speaking">TRANSMITTING AUDIO</string>
     <string name="status_listening">LISTENING SENSORS ACTIVE</string>
     <string name="status_offline">LOCAL FALLBACK ACTIVE</string>
+    <string name="theo_accessibility_service_name">Theo Screen Automation</string>
+    <string name="theo_accessibility_service_description">Lets Theo inspect accessible labels and interact with apps only when you request a screen automation task. Editable field values and passwords are omitted from AI context. No screenshots are captured or saved.</string>
 </resources>

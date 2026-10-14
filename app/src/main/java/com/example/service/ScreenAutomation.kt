@@ -92,12 +92,12 @@ internal object ScreenActionParser {
 
 internal object ScreenTextSanitizer {
   private val contextualCode = Regex(
-    """(?i)\\b((?:verification|authentication|security|one[- ]time)\\s+)?(code|otp|passcode|password)\\b\\s*[:\\-]?\\s*[A-Za-z0-9!@#%^&*_-]{4,24}\\b"""
+    """(?i)\b((?:verification|authentication|security|one[- ]time)\s+)?(code|otp|passcode|password)\b\s*[:\-]?\s*[A-Za-z0-9!@#%^&*_-]{4,24}\b"""
   )
 
   fun sanitize(value: String): String {
     val trimmed = value.trim()
-    if (Regex("""^\\d{4,8}$""").matches(trimmed)) {
+    if (Regex("""^\d{4,8}$""").matches(trimmed)) {
       return "[possible verification code redacted]"
     }
     return contextualCode.replace(trimmed) { match ->

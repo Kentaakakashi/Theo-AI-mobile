@@ -122,47 +122,64 @@ class TheoAccessibilityService : AccessibilityService() {
     ).replace(trimmed, "$2 [redacted]")
   }
 
-  fun performScreenAction(action: ScreenAction): Boolean = when (action.kind) {
-    "back" -> performGlobalAction(GLOBAL_ACTION_BACK)
-    "wait" -> true
-    "click", "type", "scroll" -> {
-      val path = action.nodePath
-      if (path == null) {
-        false
-      } else {
-        performOnPath(path) { chain ->
-          val target = chain.lastOrNull() ?: return@performOnPath false
-          when (action.kind) {
-            "click" -> {
-              val button = chain.asReversed().firstOrNull { it.isEnabled && it.isClickable } ?: target
-              button.isEnabled && button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-            }
-            "type" -> {
-              val field = chain.asReversed().firstOrNull { it.isEnabled && it.isEditable } ?: return@performOnPath false
-              val value = action.text ?: return@performOnPath false
-              field.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
-              val args = Bundle().apply {
-                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, value)
+  internal fun performScreenAction(action: ScreenAction, expectedPackageName: String): Boolean {
+    val activeRoot = rootInActiveWindow ?: return false
+    val activePackage = try {
+      activeRoot.packageName?.toString().orEmpty()
+    } finally {
+      activeRoot.recycle()
+    }
+    // The UI may have changed while the selected AI provider planned its next step.
+    // Never dispatch an action into a different app than the one shown to the planner.
+    if (activePackage.isBlank() || activePackage == packageName || activePackage != expectedPackageName) return false
+
+    return when (action.kind) {
+      "back" -> performGlobalAction(GLOBAL_ACTION_BACK)
+      "wait" -> true
+      "click", "type", "scroll" -> {
+        val path = action.nodePath
+        if (path == null) {
+          false
+        } else {
+          performOnPath(path, expectedPackageName) { chain ->
+            val target = chain.lastOrNull() ?: return@performOnPath false
+            when (action.kind) {
+              "click" -> {
+                val button = chain.asReversed().firstOrNull { it.isEnabled && it.isClickable } ?: target
+                button.isEnabled && button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
               }
-              field.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+              "type" -> {
+                val field = chain.asReversed().firstOrNull { it.isEnabled && it.isEditable } ?: return@performOnPath false
+                val value = action.text ?: return@performOnPath false
+                field.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+                val args = Bundle().apply {
+                  putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, value)
+                }
+                field.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+              }
+              "scroll" -> {
+                val scrollable = chain.asReversed().firstOrNull { it.isEnabled && it.isScrollable } ?: return@performOnPath false
+                val operation = if (action.direction == "backward") AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD else AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                scrollable.performAction(operation)
+              }
+              else -> false
             }
-            "scroll" -> {
-              val scrollable = chain.asReversed().firstOrNull { it.isEnabled && it.isScrollable } ?: return@performOnPath false
-              val operation = if (action.direction == "backward") AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD else AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
-              scrollable.performAction(operation)
-            }
-            else -> false
           }
         }
       }
+      else -> false
     }
-    else -> false
   }
 
-  private fun performOnPath(path: String, action: (List<AccessibilityNodeInfo>) -> Boolean): Boolean {
+  private fun performOnPath(
+    path: String,
+    expectedPackageName: String,
+    action: (List<AccessibilityNodeInfo>) -> Boolean
+  ): Boolean {
     if (!Regex("^\\d+(?:\\.\\d+){0,12}$").matches(path)) return false
     val root = rootInActiveWindow ?: return false
-    if (root.packageName?.toString() == packageName) {
+    val activePackage = root.packageName?.toString().orEmpty()
+    if (activePackage == packageName || activePackage != expectedPackageName) {
       root.recycle()
       return false
     }

@@ -80,13 +80,19 @@ object DeviceActionHandler {
       normalize(label) == normalize(requestedName.trim())
   }
 
-  fun launchInstalledAppByPackage(context: Context, packageName: String): Boolean = try {
-    val intent = context.packageManager.getLaunchIntentForPackage(packageName) ?: return false
-    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    context.startActivity(intent)
-    true
-  } catch (e: Exception) {
-    false
+  fun launchInstalledAppByPackage(context: Context, packageName: String): Boolean {
+    return try {
+      val intent = context.packageManager.getLaunchIntentForPackage(packageName)
+      if (intent == null) {
+        false
+      } else {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+        true
+      }
+    } catch (_: Exception) {
+      false
+    }
   }
 
   private fun launchInstalledApp(context: Context, requestedName: String): Boolean {

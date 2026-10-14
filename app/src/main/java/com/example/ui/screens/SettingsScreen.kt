@@ -81,6 +81,10 @@ fun SettingsScreen(
   onTestGemini: () -> Unit,
   onClearChat: () -> Unit,
   onToggleSpeech: () -> Unit,
+  isScreenAutomationEnabled: Boolean,
+  isScreenAutomationRunning: Boolean,
+  onConfigureScreenAutomation: () -> Unit,
+  onStopScreenAutomation: () -> Unit,
   modifier: Modifier = Modifier
 ) {
   var selectedModel by remember(uiState.activeModel) { mutableStateOf(uiState.activeModel) }
@@ -541,6 +545,62 @@ fun SettingsScreen(
               uncheckedTrackColor = TheoSurfaceDeep
             )
           )
+        }
+      }
+
+      Spacer(modifier = Modifier.height(20.dp))
+
+      // Screen-aware automation: opt-in Android accessibility tree, no screenshot persistence.
+      SettingsSectionHeader(icon = Icons.Default.PhoneAndroid, title = "Screen-aware Automation")
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .clip(RoundedCornerShape(12.dp))
+          .background(TheoSurfaceGlass)
+          .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+          .padding(14.dp)
+      ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Column(modifier = Modifier.weight(1f)) {
+              Text(
+                text = if (isScreenAutomationEnabled) "Accessibility service enabled" else "Accessibility service not enabled",
+                color = if (isScreenAutomationEnabled) TheoOnlineGreen else TheoTextPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+              )
+              Text(
+                text = if (isScreenAutomationRunning) "A screen task is currently running" else "Inspect accessible labels and operate controls in other apps at your request.",
+                color = TheoTextSecondary,
+                fontSize = 11.sp
+              )
+            }
+            Button(
+              onClick = onConfigureScreenAutomation,
+              colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceCard)
+            ) {
+              Text(if (isScreenAutomationEnabled) "Manage" else "Enable", color = TheoCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+          }
+          Text(
+            text = "Screen labels and non-editable visible text are sent to the AI provider selected above only while you run a task. Current editable values and passwords are excluded. Theo does not capture or save screenshots in this version. Apps may expose incomplete accessibility data; Theo stops rather than guessing.",
+            color = TheoTextSecondary,
+            fontSize = 11.sp,
+            lineHeight = 16.sp
+          )
+          if (isScreenAutomationRunning) {
+            Button(
+              onClick = onStopScreenAutomation,
+              colors = ButtonDefaults.buttonColors(containerColor = TheoErrorRed.copy(alpha = 0.18f)),
+              modifier = Modifier.fillMaxWidth()
+            ) {
+              Text("Stop running task", color = TheoErrorRed, fontWeight = FontWeight.Bold)
+            }
+          }
         }
       }
 

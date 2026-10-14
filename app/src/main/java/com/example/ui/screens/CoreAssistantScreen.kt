@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.MessageEntity
+import com.example.service.ScreenAutomationRequest
 import com.example.ui.components.ChatMessageBubble
 import com.example.ui.components.TheoComposer
 import com.example.ui.components.TheoHeader
@@ -72,6 +73,8 @@ fun CoreAssistantScreen(
   onOpenSettings: () -> Unit,
   onExecuteAction: (String) -> Unit,
   onDismissAction: () -> Unit,
+  onSelectApp: (String) -> Unit,
+  onCancelAppSelection: () -> Unit,
   modifier: Modifier = Modifier
 ) {
   val listState = rememberLazyListState()
@@ -293,7 +296,12 @@ fun CoreAssistantScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-              text = if (actionTag.startsWith("order:", ignoreCase = true)) "Review Before Continuing" else "Review Multi-Step Action",
+              text = when {
+                actionTag.startsWith("order:", ignoreCase = true) -> "Review Before Continuing"
+                uiState.pendingScreenTargetLabel != null -> "Potentially Sensitive Control"
+                actionTag.startsWith("screen:", ignoreCase = true) -> "Confirm Screen Task"
+                else -> "Review Action"
+              },
               color = TheoTextPrimary,
               fontSize = 16.sp,
               fontWeight = FontWeight.Bold
@@ -303,7 +311,16 @@ fun CoreAssistantScreen(
         text = {
           Column {
             Text(
-              text = if (actionTag.startsWith("order:", ignoreCase = true)) "Theo will open real search options only. Review the item, address and price yourself; no purchase will be made." else "Review this multi-step request. Theo will attempt only supported actions and will not claim playback unless it can be verified.",
+              text = when {
+                actionTag.startsWith("order:", ignoreCase = true) ->
+                  "Theo will open real search options only. Review the item, address and price yourself; no purchase will be made."
+                uiState.pendingScreenTargetLabel != null ->
+                  "Theo stopped before activating \"${uiState.pendingScreenTargetLabel}\". Nothing was submitted or changed. Confirm to restart the task and authorize this sensitive step."
+                actionTag.startsWith("screen:", ignoreCase = true) ->
+                  "This task may submit, send, delete, share, or otherwise change data. Theo will use the AI provider selected in Settings and the current accessibility tree. Confirm to continue."
+                else ->
+                  "Review this action. Theo will report the handoff result rather than claim an action succeeded without evidence."
+              },
               color = TheoTextSecondary,
               fontSize = 13.sp
             )
@@ -315,8 +332,14 @@ fun CoreAssistantScreen(
                 .background(TheoSurfaceDeep)
                 .padding(10.dp)
             ) {
+              val screenRequest = ScreenAutomationRequest.parse(actionTag)
               Text(
-                text = "Intent: ${actionTag.uppercase()}",
+                text = when {
+                  uiState.pendingScreenTargetLabel != null -> "Control: ${uiState.pendingScreenTargetLabel}"
+                  screenRequest != null -> "Task: ${screenRequest.task}"
+                  actionTag.startsWith("order:", ignoreCase = true) -> "Search: ${actionTag.substringAfter(':')}"
+                  else -> "Action: $actionTag"
+                },
                 color = TheoCyan,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 13.sp,
@@ -331,7 +354,15 @@ fun CoreAssistantScreen(
             colors = ButtonDefaults.buttonColors(containerColor = TheoCyan),
             modifier = Modifier.testTag("confirm_action_btn")
           ) {
-            Text("Continue", color = TheoDarkBackground, fontWeight = FontWeight.Bold)
+            Text(
+              when {
+                uiState.pendingScreenTargetLabel != null || actionTag.startsWith("screen:", ignoreCase = true) -> "Confirm and run"
+                actionTag.startsWith("order:", ignoreCase = true) -> "Open search"
+                else -> "Continue"
+              },
+              color = TheoDarkBackground,
+              fontWeight = FontWeight.Bold
+            )
           }
         },
         dismissButton = {
@@ -342,4 +373,37 @@ fun CoreAssistantScreen(
       )
     }
   }
+
+    uiState.pendingAppSelection?.let { request ->
+      AlertDialog(
+        onDismissRequest = onCancelAppSelection,
+        containerColor = TheoSurfaceCard,
+        title = {
+          Text("Choose an installed app", color = TheoTextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        },
+        text = {
+          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+              text = "Theo couldn't identify one exact match for \"${request.requestedName}\". Choose the intended app from the installed matches below.",
+              color = TheoTextSecondary,
+              fontSize = 13.sp
+            )
+            request.candidates.forEach { candidate ->
+              OutlinedButton(
+                onClick = { onSelectApp(candidate.packageName) },
+                modifier = Modifier.fillMaxWidth()
+              ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                  Text(candidate.label, color = TheoTextPrimary, fontWeight = FontWeight.SemiBold)
+                  Text(candidate.packageName, color = TheoTextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                }
+              }
+            }
+          }
+        },
+        confirmButton = {
+          TextButton(onClick = onCancelAppSelection) { Text("Cancel", color = TheoTextMuted) }
+        }
+      )
+    }
 }

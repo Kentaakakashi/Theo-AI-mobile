@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.service.ActionIntentParser
 import com.example.service.ActionSafetyPolicy
 import com.example.service.ScreenActionParser
 import com.example.service.ScreenAutomationRequest
@@ -14,6 +15,18 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class ScreenAutomationTest {
+  @Test
+  fun screenInspectionRequestsUseNativeAndroidCapture() {
+    assertEquals("inspect-screen", ActionIntentParser.parse("What's on my screen?"))
+    assertEquals("inspect-screen", ActionIntentParser.parse("Look at my screen"))
+    assertEquals("inspect-screen", ActionIntentParser.parse("Please describe the current screen"))
+  }
+
+  @Test
+  fun unrelatedChatDoesNotTriggerScreenInspection() {
+    assertNull(ActionIntentParser.parse("Explain how screen capture works"))
+  }
+
   @Test
   fun parsesSupportedClickNode() {
     val action = ScreenActionParser.parse("""{"action":"click","node":"0.2.1","reason":"Open search"}""")

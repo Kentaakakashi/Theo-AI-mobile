@@ -298,7 +298,7 @@ class TheoAccessibilityService : AccessibilityService() {
   }
 
   internal fun performScreenAction(action: ScreenAction, expectedPackageName: String): Boolean {
-    val activeRoot = rootInActiveWindow ?: return false
+    val activeRoot = findExternalWindowRoot() ?: return false
     val activePackage = try {
       activeRoot.packageName?.toString().orEmpty()
     } finally {
@@ -363,7 +363,7 @@ class TheoAccessibilityService : AccessibilityService() {
     action: (List<AccessibilityNodeInfo>) -> Boolean
   ): Boolean {
     if (!Regex("^\\d+(?:\\.\\d+){0,12}$").matches(path)) return false
-    val root = rootInActiveWindow ?: return false
+    val root = findExternalWindowRoot() ?: return false
     val activePackage = root.packageName?.toString().orEmpty()
     if (activePackage == packageName || activePackage != expectedPackageName) {
       root.recycle()

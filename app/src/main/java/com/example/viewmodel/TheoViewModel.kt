@@ -640,7 +640,28 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           } while (snapshotAttempts < 12)
 
           if (snapshot == null || snapshot.elements.isEmpty()) {
-            finalMessage = "Theo waited for the app interface, but Android still exposed no usable accessibility elements. No guessed taps were made. Visual screenshot fallback is not available yet for this configured provider."
+            val capture = service.captureActiveScreenJpeg()
+            val bytes = capture.jpegBytes
+            var visualDescription: String? = null
+            var visualFailure = capture.error
+            if (bytes != null) {
+              try {
+                val vision = screenVisionAnalyzer.describe(
+                  jpegBytes = bytes,
+                  groqApiKey = _uiState.value.groqApiKey,
+                  geminiApiKeys = com.example.service.parseGeminiApiKeys(_uiState.value.customApiKey)
+                )
+                visualDescription = vision.text
+                visualFailure = vision.error
+              } finally {
+                bytes.fill(0)
+              }
+            }
+            finalMessage = if (!visualDescription.isNullOrBlank()) {
+              "Theo can visually inspect the screen, but Android exposed no actionable accessibility elements. No guessed taps were made. Visual context: $visualDescription"
+            } else {
+              "Android exposed no usable accessibility elements and visual inspection failed: \${visualFailure ?: "no vision description was returned"}. No guessed taps were made. Check the LOGS tab for SCREEN_VISION details."
+            }
             break
           }
           if (expectedPackageName != null && snapshot.packageName != expectedPackageName) {
@@ -673,9 +694,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             state.copy(currentThinkingStep = "Analyzing screenshot with cloud vision")
           }
           val visualContext = try {
-            val screenshotBytes = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-              service.captureActiveScreenJpeg()
-            } else null
+            val capture = service.captureActiveScreenJpeg()
+            val screenshotBytes = capture.jpegBytes
             if (screenshotBytes != null) {
               try {
                 val vision = screenVisionAnalyzer.describe(
@@ -686,14 +706,17 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                 TheoDiagnosticLogger.info(
                   "SCREEN_VISION",
                   "Screenshot interpretation finished",
-                  "provider=${vision.provider}, descriptionChars=${vision.text?.length ?: 0}"
+                  "provider=\${vision.provider}, descriptionChars=\${vision.text?.length ?: 0}"
                 )
+                if (vision.text == null) {
+                  TheoDiagnosticLogger.warn("SCREEN_VISION", "Vision provider returned no description", vision.error ?: "Unknown provider error")
+                }
                 vision.text
               } finally {
                 screenshotBytes.fill(0)
               }
             } else {
-              TheoDiagnosticLogger.info("SCREEN_VISION", "Screenshot unavailable; using accessibility tree only")
+              TheoDiagnosticLogger.info("SCREEN_VISION", "Screenshot unavailable; using accessibility tree only", capture.error ?: "No reason returned")
               null
             }
           } catch (visionError: Exception) {

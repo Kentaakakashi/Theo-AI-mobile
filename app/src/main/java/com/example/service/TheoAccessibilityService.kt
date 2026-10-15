@@ -1,6 +1,7 @@
 package com.example.service
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
 import android.content.ComponentName
 import android.content.Context
 import android.graphics.Color
@@ -60,6 +61,15 @@ class TheoAccessibilityService : AccessibilityService() {
     val bounds = Rect()
     node.getBoundsInScreen(bounds)
     if (bounds.isEmpty || !node.isVisibleToUser) return
+    showTapIndicator(bounds)
+  }
+
+  private fun showTapIndicatorAt(centerX: Int, centerY: Int) {
+    val size = (48 * resources.displayMetrics.density).toInt().coerceAtLeast(48)
+    showTapIndicator(Rect(centerX - size / 2, centerY - size / 2, centerX + size / 2, centerY + size / 2))
+  }
+
+  private fun showTapIndicator(bounds: Rect) {
     val windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: return
     val indicator = View(this).apply {
       background = GradientDrawable().apply {
@@ -81,8 +91,8 @@ class TheoAccessibilityService : AccessibilityService() {
       PixelFormat.TRANSLUCENT
     ).apply {
       gravity = Gravity.TOP or Gravity.START
-      x = bounds.left
-      y = bounds.top
+      x = bounds.left.coerceAtLeast(0)
+      y = bounds.top.coerceAtLeast(0)
       title = "Theo tap indicator"
     }
     try {
@@ -93,6 +103,19 @@ class TheoAccessibilityService : AccessibilityService() {
     } catch (error: Exception) {
       TheoDiagnosticLogger.warn("SCREEN_AUTOMATION", "Tap indicator could not be displayed", error.javaClass.simpleName)
     }
+  }
+
+  private fun dispatchCoordinateTap(normalizedX: Int, normalizedY: Int): Boolean {
+    if (normalizedX !in 0..1000 || normalizedY !in 0..1000) return false
+    val metrics = resources.displayMetrics
+    val x = (normalizedX / 1000f * metrics.widthPixels).toInt().coerceIn(1, metrics.widthPixels - 1)
+    val y = (normalizedY / 1000f * metrics.heightPixels).toInt().coerceIn(1, metrics.heightPixels - 1)
+    showTapIndicatorAt(x, y)
+    val path = android.graphics.Path().apply { moveTo(x.toFloat(), y.toFloat()) }
+    val gesture = GestureDescription.Builder()
+      .addStroke(GestureDescription.StrokeDescription(path, 0L, 70L))
+      .build()
+    return dispatchGesture(gesture, null, null)
   }
 
   // Do not collect events: a task explicitly requests a fresh snapshot when needed.
@@ -261,6 +284,11 @@ class TheoAccessibilityService : AccessibilityService() {
     return when (action.kind) {
       "back" -> performGlobalAction(GLOBAL_ACTION_BACK)
       "wait" -> true
+      "tap" -> {
+        val x = action.x ?: return false
+        val y = action.y ?: return false
+        dispatchCoordinateTap(x, y)
+      }
       "click", "type", "scroll" -> {
         val path = action.nodePath
         if (path == null) {

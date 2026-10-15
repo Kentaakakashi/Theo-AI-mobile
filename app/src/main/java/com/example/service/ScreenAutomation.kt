@@ -42,6 +42,9 @@ data class ScreenAction(
   val nodePath: String? = null,
   val text: String? = null,
   val direction: String? = null,
+  val x: Int? = null,
+  val y: Int? = null,
+  val targetLabel: String = "",
   val reason: String = ""
 )
 
@@ -80,10 +83,16 @@ internal object ScreenActionParser {
     val node = json.optString("node").trim().takeUnless { it.isBlank() || it == "null" }
     val text = json.optString("text").takeIf { it.isNotBlank() && it != "null" }?.take(1000)
     val direction = json.optString("direction").trim().lowercase(Locale.ROOT)
+    val x = if (json.has("x")) json.optInt("x", -1) else -1
+    val y = if (json.has("y")) json.optInt("y", -1) else -1
+    val targetLabel = json.optString("target").trim().take(120)
     val reason = json.optString("reason").trim().take(300)
 
     return when (kind) {
       "click" -> if (node != null && nodePathPattern.matches(node)) ScreenAction("click", nodePath = node, reason = reason) else null
+      "tap" -> if (x in 0..1000 && y in 0..1000 && targetLabel.isNotBlank()) {
+        ScreenAction("tap", x = x, y = y, targetLabel = targetLabel, reason = reason)
+      } else null
       "type" -> if (node != null && nodePathPattern.matches(node) && text != null) ScreenAction("type", nodePath = node, text = text, reason = reason) else null
       "scroll" -> if (node != null && nodePathPattern.matches(node) && direction in setOf("forward", "backward")) ScreenAction("scroll", nodePath = node, direction = direction, reason = reason) else null
       "back" -> ScreenAction("back", reason = reason)
@@ -129,5 +138,5 @@ internal object ActionSafetyPolicy {
   }
 
   fun targetRequiresConfirmation(action: ScreenAction, targetLabel: String): Boolean =
-    action.kind in setOf("click", "type") && sensitiveTarget.containsMatchIn(targetLabel)
+    action.kind in setOf("click", "tap", "type") && sensitiveTarget.containsMatchIn(targetLabel)
 }

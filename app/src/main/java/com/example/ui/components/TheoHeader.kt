@@ -92,7 +92,7 @@ fun TheoHeader(
           )
           Spacer(modifier = Modifier.width(6.dp))
           Text(
-            text = "// OS v2.4",
+            text = "// SOLAR CORE",
             color = TheoCyan,
             fontFamily = FontFamily.Monospace,
             fontSize = 11.sp,

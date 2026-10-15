@@ -30,6 +30,16 @@
                 android:resource="@xml/theo_accessibility_service_config" />
         </service>
 
+        <service
+            android:name=".service.TheoNotificationListenerService"
+            android:label="@string/theo_notification_listener_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

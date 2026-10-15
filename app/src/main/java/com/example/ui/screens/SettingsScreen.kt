@@ -556,7 +556,7 @@ fun SettingsScreen(
               .border(1.dp, if (isSelected) TheoViolet else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
               .clickable {
                 selectedIntensity = intensity
-                onSaveSettings(selectedModel, intensity, apiKeyInput, termuxHostInput)
+                onSaveSettings(selectedModel, intensity, apiKeyInput, termuxHostInput, groqApiKeyInput)
               }
               .padding(12.dp)
           ) {

@@ -427,7 +427,7 @@ fun SettingsScreen(
                   updatedKeys.add(cleanKey)
                 }
                 apiKeyInput = updatedKeys.distinct().joinToString("\n")
-                onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput)
+                onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput, groqApiKeyInput)
                 apiKeyDraft = ""
                 editingApiKeyIndex = null
               },

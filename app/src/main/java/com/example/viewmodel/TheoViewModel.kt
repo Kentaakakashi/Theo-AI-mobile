@@ -362,6 +362,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   fun executeDeviceAction(actionKey: String) {
     val state = _uiState.value
     val explicitlyConfirmed = state.pendingActionTag == actionKey
+    // SCREEN_INSPECTION_ACTION_PLACEHOLDER
 
     // If an unexpected sensitive target was found, explicit confirmation restarts the
     // task from the target app's current screen with the additional authorization.

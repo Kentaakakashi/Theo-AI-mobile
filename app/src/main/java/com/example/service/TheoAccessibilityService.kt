@@ -129,6 +129,8 @@ class TheoAccessibilityService : AccessibilityService() {
                 ERROR_TAKE_SCREENSHOT_NO_ACCESSIBILITY_ACCESS -> "Android denied screenshot access to the accessibility service. Check that Theo Screen Automation remains enabled."
                 ERROR_TAKE_SCREENSHOT_INTERVAL_TIME_SHORT -> "Android rate-limited screenshot capture because the previous capture was too recent."
                 ERROR_TAKE_SCREENSHOT_INVALID_DISPLAY -> "Android rejected the requested display for screenshot capture."
+                ERROR_TAKE_SCREENSHOT_INVALID_WINDOW -> "Android rejected the accessibility window selected for screenshot capture."
+                ERROR_TAKE_SCREENSHOT_SECURE_WINDOW -> "Android blocked screenshot capture because this window contains secure content."
                 else -> "Android screenshot capture failed with system error code $errorCode."
               }
               TheoDiagnosticLogger.warn("SCREEN_VISION", reason, "code=$errorCode")

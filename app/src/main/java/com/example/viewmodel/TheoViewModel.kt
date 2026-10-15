@@ -452,7 +452,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             description = vision.text
             provider = vision.provider
             failure = vision.error
-            TheoDiagnosticLogger.info("SCREEN_VISION", "Screen inspection finished", "provider=\${vision.provider}, descriptionChars=\${vision.text?.length ?: 0}")
+            TheoDiagnosticLogger.info("SCREEN_VISION", "Screen inspection finished", "provider=${vision.provider}, descriptionChars=${vision.text?.length ?: 0}")
           } finally {
             bytes.fill(0)
           }
@@ -461,12 +461,12 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           .filter { it.label.isNotBlank() || it.clickable || it.editable || it.scrollable }
           .take(40)
         val tree = visibleElements.joinToString("\n") { element ->
-          "- \${element.label.ifBlank { element.role.ifBlank { "Unlabelled control" } }}\${if (element.clickable) " [clickable]" else ""}\${if (element.editable) " [editable]" else ""}\${if (element.scrollable) " [scrollable]" else ""}"
+          "- ${element.label.ifBlank { element.role.ifBlank { "Unlabelled control" } }}${if (element.clickable) " [clickable]" else ""}${if (element.editable) " [editable]" else ""}${if (element.scrollable) " [scrollable]" else ""}"
         }
         val response = when {
-          !description.isNullOrBlank() -> "Current screen inspection via \${provider ?: "configured vision API"}:\n\n$description"
-          tree.isNotBlank() -> "Visual analysis unavailable: \${failure ?: "No configured vision provider returned a description."}\n\nAccessibility-only view of \${snapshot?.packageName ?: "the active app"}:\n$tree\n\nThis fallback may omit visual layout and images."
-          else -> "Theo could not inspect the current screen. \${failure ?: "Android did not expose a readable accessibility tree or screenshot."} Check that the screen is unlocked and Theo Screen Automation is enabled. Secure or DRM-protected screens may block capture. Native capture does not require Termux or ADB."
+          !description.isNullOrBlank() -> "Current screen inspection via ${provider ?: "configured vision API"}:\n\n$description"
+          tree.isNotBlank() -> "Visual analysis unavailable: ${failure ?: "No configured vision provider returned a description."}\n\nAccessibility-only view of ${snapshot?.packageName ?: "the active app"}:\n$tree\n\nThis fallback may omit visual layout and images."
+          else -> "Theo could not inspect the current screen. ${failure ?: "Android did not expose a readable accessibility tree or screenshot."} Check that the screen is unlocked and Theo Screen Automation is enabled. Secure or DRM-protected screens may block capture. Native capture does not require Termux or ADB."
         }
         appendAssistantMessage(response, badge = "SCREEN INSPECTION")
         dao.insertActivity(ActivityEntity(
@@ -480,7 +480,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         TheoDiagnosticLogger.info("SCREEN_VISION", "Screen inspection cancelled")
       } catch (error: Exception) {
         TheoDiagnosticLogger.error("SCREEN_VISION", "Screen inspection failed", error)
-        appendAssistantMessage("Screen inspection failed: \${error.localizedMessage ?: error.javaClass.simpleName}. No screen action was attempted.", badge = "SCREEN INSPECTION")
+        appendAssistantMessage("Screen inspection failed: ${error.localizedMessage ?: error.javaClass.simpleName}. No screen action was attempted.", badge = "SCREEN INSPECTION")
       } finally {
         _uiState.update {
           it.copy(
@@ -660,7 +660,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             finalMessage = if (!visualDescription.isNullOrBlank()) {
               "Theo can visually inspect the screen, but Android exposed no actionable accessibility elements. No guessed taps were made. Visual context: $visualDescription"
             } else {
-              "Android exposed no usable accessibility elements and visual inspection failed: \${visualFailure ?: "no vision description was returned"}. No guessed taps were made. Check the LOGS tab for SCREEN_VISION details."
+              "Android exposed no usable accessibility elements and visual inspection failed: ${visualFailure ?: "no vision description was returned"}. No guessed taps were made. Check the LOGS tab for SCREEN_VISION details."
             }
             break
           }
@@ -706,7 +706,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                 TheoDiagnosticLogger.info(
                   "SCREEN_VISION",
                   "Screenshot interpretation finished",
-                  "provider=\${vision.provider}, descriptionChars=\${vision.text?.length ?: 0}"
+                  "provider=${vision.provider}, descriptionChars=${vision.text?.length ?: 0}"
                 )
                 if (vision.text == null) {
                   TheoDiagnosticLogger.warn("SCREEN_VISION", "Vision provider returned no description", vision.error ?: "Unknown provider error")

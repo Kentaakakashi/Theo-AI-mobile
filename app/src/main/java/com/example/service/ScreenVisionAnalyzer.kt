@@ -31,9 +31,11 @@ internal class ScreenVisionAnalyzer {
     if (jpegBytes.isEmpty()) return@withContext VisionDescription(null, "none", "No screenshot bytes were available.")
     val base64 = Base64.encodeToString(jpegBytes, Base64.NO_WRAP)
     val groqKey = groqApiKey.trim()
+    var groqFailure: String? = null
     if (groqKey.isNotBlank()) {
       val primary = requestGroq(base64, groqKey)
       if (primary.first != null) return@withContext VisionDescription(primary.first, "Groq Qwen vision")
+      groqFailure = primary.second
       TheoDiagnosticLogger.warn("SCREEN_VISION", "Primary vision request failed; trying Gemini fallback", primary.second)
     } else {
       TheoDiagnosticLogger.warn("SCREEN_VISION", "Groq key is not configured; trying Gemini fallback")
@@ -46,7 +48,7 @@ internal class ScreenVisionAnalyzer {
       TheoDiagnosticLogger.warn("SCREEN_VISION", "Gemini vision fallback attempt failed", "keySlot=${index + 1}: ${fallback.second}")
     }
     val failure = buildList {
-      if (groqKey.isBlank()) add("Groq key is not configured") else add("Groq: ${primary.second}")
+      if (groqKey.isBlank()) add("Groq key is not configured") else add("Groq: ${groqFailure ?: "request failed"}")
       if (geminiApiKeys.isEmpty()) add("Gemini keys are not configured") else add("Gemini: ${geminiFailure ?: "request failed"}")
     }.joinToString("; ")
     VisionDescription(null, "none", "No configured vision provider could describe the screenshot ($failure).")

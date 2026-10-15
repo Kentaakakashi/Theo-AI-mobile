@@ -79,6 +79,7 @@ fun SettingsScreen(
   onSaveSettings: (AiModelType, AnimationIntensity, String, String, String) -> Unit,
   onTestQwen: () -> Unit,
   onTestGemini: () -> Unit,
+  onTestGroq: () -> Unit,
   onClearChat: () -> Unit,
   onToggleSpeech: () -> Unit,
   isScreenAutomationEnabled: Boolean,
@@ -505,6 +506,32 @@ fun SettingsScreen(
               unfocusedBorderColor = TheoSurfaceBorder
             ),
             modifier = Modifier.fillMaxWidth()
+          )
+          Button(
+            onClick = onTestGroq,
+            enabled = !uiState.isTestingGroq && groqApiKeyInput.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceCard)
+          ) {
+            if (uiState.isTestingGroq) {
+              CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = TheoCyan)
+              Spacer(modifier = Modifier.width(6.dp))
+            } else {
+              Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(14.dp))
+              Spacer(modifier = Modifier.width(6.dp))
+            }
+            Text("Test Groq API", color = TheoCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+          }
+          Text(
+            text = uiState.groqStatusMessage,
+            color = when {
+              uiState.groqStatusMessage.startsWith("Groq API key accepted") -> TheoOnlineGreen
+              uiState.isTestingGroq || uiState.groqStatusMessage == "Not tested yet" -> TheoTextMuted
+              else -> TheoWarningAmber
+            },
+            fontFamily = FontFamily.Monospace,
+            fontSize = 10.sp,
+            lineHeight = 14.sp
           )
           Text(
             text = if (groqApiKeyInput.isBlank()) "NOT CONFIGURED" else "KEY SAVED ON THIS DEVICE",

@@ -3,6 +3,15 @@ package com.example.service
 import android.accessibilityservice.AccessibilityService
 import android.content.ComponentName
 import android.content.Context
+import android.graphics.Color
+import android.graphics.PixelFormat
+import android.graphics.Rect
+import android.graphics.drawable.GradientDrawable
+import android.os.Handler
+import android.os.Looper
+import android.view.Gravity
+import android.view.View
+import android.view.WindowManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -36,9 +45,54 @@ class TheoAccessibilityService : AccessibilityService() {
     }
   }
 
+  private val overlayHandler = Handler(Looper.getMainLooper())
+
   override fun onServiceConnected() {
     super.onServiceConnected()
     instance = this
+  }
+
+  /**
+   * Briefly outlines the exact control Theo is about to activate. Accessibility overlays
+   * don't require the general draw-over-other-apps permission and don't intercept touches.
+   */
+  private fun showTapIndicator(node: AccessibilityNodeInfo) {
+    val bounds = Rect()
+    node.getBoundsInScreen(bounds)
+    if (bounds.isEmpty || !node.isVisibleToUser) return
+    val windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: return
+    val indicator = View(this).apply {
+      background = GradientDrawable().apply {
+        shape = GradientDrawable.RECTANGLE
+        setColor(Color.TRANSPARENT)
+        setStroke((2 * resources.displayMetrics.density).toInt().coerceAtLeast(2), Color.rgb(0, 229, 255))
+        cornerRadius = 10 * resources.displayMetrics.density
+      }
+      elevation = 24 * resources.displayMetrics.density
+      contentDescription = "Theo tap indicator"
+    }
+    val params = WindowManager.LayoutParams(
+      bounds.width().coerceAtLeast(12),
+      bounds.height().coerceAtLeast(12),
+      WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+      PixelFormat.TRANSLUCENT
+    ).apply {
+      gravity = Gravity.TOP or Gravity.START
+      x = bounds.left
+      y = bounds.top
+      title = "Theo tap indicator"
+    }
+    try {
+      windowManager.addView(indicator, params)
+      overlayHandler.postDelayed({
+        runCatching { windowManager.removeView(indicator) }
+      }, 360L)
+    } catch (error: Exception) {
+      TheoDiagnosticLogger.warn("SCREEN_AUTOMATION", "Tap indicator could not be displayed", error.javaClass.simpleName)
+    }
   }
 
   // Do not collect events: a task explicitly requests a fresh snapshot when needed.
@@ -217,7 +271,13 @@ class TheoAccessibilityService : AccessibilityService() {
             when (action.kind) {
               "click" -> {
                 val button = chain.asReversed().firstOrNull { it.isEnabled && it.isClickable } ?: target
-                button.isEnabled && button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                if (!button.isEnabled) {
+                  false
+                } else {
+                  // Make the target visible to the user before Android receives the click.
+                  showTapIndicator(button)
+                  button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                }
               }
               "type" -> {
                 val field = chain.asReversed().firstOrNull { it.isEnabled && it.isEditable } ?: return@performOnPath false

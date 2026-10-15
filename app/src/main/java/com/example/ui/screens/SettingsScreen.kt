@@ -637,7 +637,7 @@ fun SettingsScreen(
             }
           }
           Text(
-            text = "Screen labels and non-editable visible text are sent to the AI provider selected above only while you run a task. Current editable values and passwords are excluded. Theo does not capture or save screenshots in this version. Apps may expose incomplete accessibility data; Theo stops rather than guessing.",
+            text = "Screen labels and non-editable visible text are sent to the selected planner only while you run a task. On Android 11+, Theo also captures a transient screenshot in memory and sends it to Groq Qwen vision, falling back to your configured Gemini keys if Groq fails. Images are not saved by Theo; screenshot bytes are cleared after the request. Current editable values are excluded from the accessibility tree, but visible screen content (including anything shown in an app) may appear in the screenshot sent to the cloud. On Android 10 and earlier, Theo uses the accessibility tree only. Actions still require a matching accessible node; Theo will not guess coordinates.",
             color = TheoTextSecondary,
             fontSize = 11.sp,
             lineHeight = 16.sp

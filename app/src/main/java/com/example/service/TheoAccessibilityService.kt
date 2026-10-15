@@ -71,8 +71,10 @@ class TheoAccessibilityService : AccessibilityService() {
    * memory and is returned to the caller for immediate compression; callers must not persist it.
    * Android only exposes this API on API 30+.
    */
-  suspend fun captureActiveScreenJpeg(): ByteArray? {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null
+  suspend fun captureActiveScreenJpeg(): ScreenCaptureResult {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+      return ScreenCaptureResult(null, "Native accessibility screenshots require Android 11 or newer.")
+    }
     return kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
       try {
         takeScreenshot(
@@ -81,41 +83,63 @@ class TheoAccessibilityService : AccessibilityService() {
           object : TakeScreenshotCallback {
             override fun onSuccess(result: ScreenshotResult) {
               var bitmap: android.graphics.Bitmap? = null
+              var scaled: android.graphics.Bitmap? = null
               try {
                 val hardwareBuffer = result.hardwareBuffer
-                bitmap = android.graphics.Bitmap.wrapHardwareBuffer(hardwareBuffer, result.colorSpace)
-                hardwareBuffer.close()
-                val source = bitmap ?: run {
-                  if (continuation.isActive) continuation.resume(null) {}
+                try {
+                  bitmap = android.graphics.Bitmap.wrapHardwareBuffer(hardwareBuffer, result.colorSpace)
+                } finally {
+                  hardwareBuffer.close()
+                }
+                val source = bitmap
+                if (source == null) {
+                  if (continuation.isActive) continuation.resume(
+                    ScreenCaptureResult(null, "Android returned a screenshot buffer that could not be converted to a bitmap.")
+                  ) {}
                   return
                 }
                 // Downscale before encoding to reduce upload size and data usage.
                 val maxWidth = 1280
-                val scaled = if (source.width > maxWidth) {
+                scaled = if (source.width > maxWidth) {
                   val height = (source.height * (maxWidth.toFloat() / source.width)).toInt().coerceAtLeast(1)
                   android.graphics.Bitmap.createScaledBitmap(source, maxWidth, height, true)
                 } else source
                 val output = java.io.ByteArrayOutputStream()
-                scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 78, output)
-                if (scaled !== source) scaled.recycle()
-                if (continuation.isActive) continuation.resume(output.toByteArray()) {}
+                val encoded = scaled!!.compress(android.graphics.Bitmap.CompressFormat.JPEG, 78, output)
+                if (!encoded || output.size() == 0) {
+                  if (continuation.isActive) continuation.resume(
+                    ScreenCaptureResult(null, "Android captured a frame but JPEG encoding returned no image data.")
+                  ) {}
+                  return
+                }
+                if (continuation.isActive) continuation.resume(ScreenCaptureResult(output.toByteArray())) {}
               } catch (error: Exception) {
-                TheoDiagnosticLogger.warn("SCREEN_VISION", "Screenshot could not be encoded", error.javaClass.simpleName)
-                if (continuation.isActive) continuation.resume(null) {}
+                val reason = "Screenshot conversion failed: ${error.localizedMessage ?: error.javaClass.simpleName}"
+                TheoDiagnosticLogger.warn("SCREEN_VISION", reason)
+                if (continuation.isActive) continuation.resume(ScreenCaptureResult(null, reason)) {}
               } finally {
-                bitmap?.recycle()
+                if (scaled != null && scaled !== bitmap) runCatching { scaled?.recycle() }
+                runCatching { bitmap?.recycle() }
               }
             }
 
             override fun onFailure(errorCode: Int) {
-              TheoDiagnosticLogger.warn("SCREEN_VISION", "Android screenshot capture failed", "code=$errorCode")
-              if (continuation.isActive) continuation.resume(null) {}
+              val reason = when (errorCode) {
+                ERROR_TAKE_SCREENSHOT_INTERNAL_ERROR -> "Android reported an internal screenshot error."
+                ERROR_TAKE_SCREENSHOT_NO_ACCESSIBILITY_ACCESS -> "Android denied screenshot access to the accessibility service. Check that Theo Screen Automation remains enabled."
+                ERROR_TAKE_SCREENSHOT_INTERVAL_TIME_SHORT -> "Android rate-limited screenshot capture because the previous capture was too recent."
+                ERROR_TAKE_SCREENSHOT_INVALID_DISPLAY -> "Android rejected the requested display for screenshot capture."
+                else -> "Android screenshot capture failed with system error code $errorCode."
+              }
+              TheoDiagnosticLogger.warn("SCREEN_VISION", reason, "code=$errorCode")
+              if (continuation.isActive) continuation.resume(ScreenCaptureResult(null, reason)) {}
             }
           }
         )
       } catch (error: Exception) {
-        TheoDiagnosticLogger.warn("SCREEN_VISION", "Android screenshot capture unavailable", error.javaClass.simpleName)
-        if (continuation.isActive) continuation.resume(null) {}
+        val reason = "Android screenshot capture could not start: ${error.localizedMessage ?: error.javaClass.simpleName}"
+        TheoDiagnosticLogger.warn("SCREEN_VISION", reason)
+        if (continuation.isActive) continuation.resume(ScreenCaptureResult(null, reason)) {}
       }
     }
   }

@@ -639,6 +639,10 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             if (snapshotAttempts < 12) delay(650)
           } while (snapshotAttempts < 12)
 
+          if (snapshot != null && expectedPackageName != null && snapshot.packageName != expectedPackageName) {
+            finalMessage = "Theo expected the target app package $expectedPackageName but the active screen belongs to ${snapshot.packageName}. Theo stopped rather than inspecting or operating in another app."
+            break
+          }
           if (snapshot == null || snapshot.elements.isEmpty()) {
             val capture = service.captureActiveScreenJpeg()
             val bytes = capture.jpegBytes
@@ -662,10 +666,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             } else {
               "Android exposed no usable accessibility elements and visual inspection failed: ${visualFailure ?: "no vision description was returned"}. No guessed taps were made. Check the LOGS tab for SCREEN_VISION details."
             }
-            break
-          }
-          if (expectedPackageName != null && snapshot.packageName != expectedPackageName) {
-            finalMessage = "Theo expected the target app package $expectedPackageName but the active screen belongs to ${snapshot.packageName}. Theo stopped rather than operating in another app."
             break
           }
           val fingerprint = snapshot.elements.joinToString("|") {

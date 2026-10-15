@@ -86,7 +86,7 @@ fun SettingsScreen(
   isNotificationAccessEnabled: Boolean,
   isScreenAutomationRunning: Boolean,
   onConfigureScreenAutomation: () -> Unit,
-  onConfigureNotificationAccess: () -> Unit,
+  onConfigureNotificationAccess: () -> Unit = {},
   onStopScreenAutomation: () -> Unit,
   modifier: Modifier = Modifier
 ) {

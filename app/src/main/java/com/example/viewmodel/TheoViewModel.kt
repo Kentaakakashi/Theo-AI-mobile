@@ -685,7 +685,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       var lastSnapshotFingerprint: String? = null
       var stableSnapshotCount = 0
       try {
-        for (stepNumber in 1..12) {
+        for (stepNumber in 1..20) {
           kotlinx.coroutines.currentCoroutineContext().ensureActive()
           val service = TheoAccessibilityService.instance
           if (service == null) {
@@ -799,6 +799,9 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               null
             }
           } else null
+          val notificationContext = if (TaskNeedsNotificationContext.matches(task)) {
+            TheoNotificationListenerService.instance?.buildTaskContext(task)
+          } else null
           val plan = aiEngine.planScreenAction(
             task = task,
             screen = snapshot,
@@ -807,7 +810,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             customApiKey = _uiState.value.customApiKey,
             termuxHost = _uiState.value.termuxHost,
             sensitiveActionsAuthorized = sensitiveAuthorized,
-            visualContext = visualContext
+            visualContext = visualContext,
+            deviceContext = notificationContext
           )
           val action = plan.action
           if (action == null) {
@@ -860,8 +864,15 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           }
           if (action.kind in setOf("click", "type", "scroll")) {
             if (targetPath == null || snapshot.elements.none { it.id == targetPath }) {
-              finalMessage = "Theo's configured AI provider selected a node that was not present in the current accessibility tree. No action was taken."
-              break
+              consecutiveFailures++
+              history.add("Planner selected a node absent from the latest tree; fresh plan attempt #" + stepNumber + ". No action was taken.")
+              TheoDiagnosticLogger.warn("SCREEN_AUTOMATION", "Planner selected a stale node; retrying with a fresh tree", "step=" + stepNumber + "; failures=" + consecutiveFailures)
+              if (consecutiveFailures >= 3) {
+                finalMessage = "Theo couldn't recover after three fresh-tree retries because the planner kept selecting controls that weren't present. No action was taken for those failed selections. Try again with the target app open and fully loaded."
+                break
+              }
+              delay(250L)
+              continue
             }
             val hasSupportedTarget = when (action.kind) {
               "click" -> pathElements.any { it.enabled && it.clickable }
@@ -870,8 +881,15 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               else -> false
             }
             if (!hasSupportedTarget) {
-              finalMessage = "Theo's proposed action does not match the current accessible control capabilities. No action was taken."
-              break
+              consecutiveFailures++
+              history.add("Planner action did not match the current control capabilities at step " + stepNumber + "; re-read and replan.")
+              TheoDiagnosticLogger.warn("SCREEN_AUTOMATION", "Planner action did not match node capability; retrying", "step=" + stepNumber)
+              if (consecutiveFailures >= 3) {
+                finalMessage = "Theo stopped after three attempts to match an action to a current control. No action was taken on the unsupported target."
+                break
+              }
+              delay(250L)
+              continue
             }
           }
           // Include the node and nearby actionable ancestors so a labelled parent button
@@ -906,8 +924,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           } else {
             consecutiveFailures++
             history.add("Step $stepNumber: ${action.kind} on ${action.nodePath ?: "(system)"} failed; read a fresh tree.")
-            if (consecutiveFailures >= 2) {
-              finalMessage = "Theo stopped after two consecutive accessibility actions failed. The task may be incomplete; no further actions were guessed."
+            if (consecutiveFailures >= 3) {
+              finalMessage = "Theo stopped after three consecutive accessibility actions failed. The task may be incomplete; no further actions were guessed."
               break
             }
           }

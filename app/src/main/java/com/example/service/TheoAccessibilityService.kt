@@ -127,8 +127,35 @@ class TheoAccessibilityService : AccessibilityService() {
     super.onDestroy()
   }
 
+  private fun findExternalWindowRoot(): AccessibilityNodeInfo? {
+    val direct = runCatching { rootInActiveWindow }.getOrNull()
+    if (direct != null) {
+      val pkg = runCatching { direct.packageName?.toString().orEmpty() }.getOrDefault("")
+      if (pkg.isNotBlank() && pkg != packageName) return direct
+      runCatching { direct.recycle() }
+    }
+    val currentWindows = runCatching { windows }.getOrNull().orEmpty()
+    var chosen: AccessibilityNodeInfo? = null
+    var chosenScore = Int.MIN_VALUE
+    currentWindows.forEach { window ->
+      val root = runCatching { window.root }.getOrNull()
+      if (root != null) {
+        val pkg = runCatching { root.packageName?.toString().orEmpty() }.getOrDefault("")
+        val score = (if (window.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION) 100 else 0) + (if (window.isActive) 20 else 0)
+        if (pkg.isBlank() || pkg == packageName || score < chosenScore) runCatching { root.recycle() }
+        else {
+          runCatching { chosen?.recycle() }
+          chosen = root
+          chosenScore = score
+        }
+      }
+      runCatching { window.recycle() }
+    }
+    return chosen
+  }
+
   fun captureActiveScreen(): ScreenSnapshot? {
-    val root = rootInActiveWindow ?: return null
+    val root = findExternalWindowRoot() ?: return null
     val activePackage = root.packageName?.toString().orEmpty()
     if (activePackage.isBlank() || activePackage == packageName) {
       root.recycle()

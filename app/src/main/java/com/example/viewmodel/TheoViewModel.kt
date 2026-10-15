@@ -352,8 +352,9 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         executeDeviceAction(actionKey)
       }
 
-      // Voice read-out if speech enabled
-      if (_uiState.value.isSpeechEnabled) {
+      // Device actions already show progress in Theo's UI. Do not read the long
+      // implementation/safety preamble aloud before the action even begins.
+      if (_uiState.value.isSpeechEnabled && actionKey == null) {
         speechManager.speak(result.responseText)
       }
     }
@@ -690,39 +691,44 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             delay(700)
             continue
           }
-          _uiState.update { state ->
-            state.copy(currentThinkingStep = "Analyzing screenshot with cloud vision")
+          // Accessibility-first is both faster and more reliable for native controls.
+          // Only pay for a screenshot + cloud vision call when this screen exposes no
+          // actionable controls; don't send every screen to a second API on every step.
+          val hasActionableControls = snapshot.elements.any {
+            it.enabled && (it.clickable || it.editable || it.scrollable)
           }
-          val visualContext = try {
-            val capture = service.captureActiveScreenJpeg()
-            val screenshotBytes = capture.jpegBytes
-            if (screenshotBytes != null) {
-              try {
-                val vision = screenVisionAnalyzer.describe(
-                  jpegBytes = screenshotBytes,
-                  groqApiKey = _uiState.value.groqApiKey,
-                  geminiApiKeys = com.example.service.parseGeminiApiKeys(_uiState.value.customApiKey)
-                )
-                TheoDiagnosticLogger.info(
-                  "SCREEN_VISION",
-                  "Screenshot interpretation finished",
-                  "provider=${vision.provider}, descriptionChars=${vision.text?.length ?: 0}"
-                )
-                if (vision.text == null) {
-                  TheoDiagnosticLogger.warn("SCREEN_VISION", "Vision provider returned no description", vision.error ?: "Unknown provider error")
+          val visualContext = if (!hasActionableControls) {
+            _uiState.update { state ->
+              state.copy(currentThinkingStep = "Trying visual fallback")
+            }
+            try {
+              val capture = service.captureActiveScreenJpeg()
+              val screenshotBytes = capture.jpegBytes
+              if (screenshotBytes != null) {
+                try {
+                  val vision = screenVisionAnalyzer.describe(
+                    jpegBytes = screenshotBytes,
+                    groqApiKey = _uiState.value.groqApiKey,
+                    geminiApiKeys = com.example.service.parseGeminiApiKeys(_uiState.value.customApiKey)
+                  )
+                  TheoDiagnosticLogger.info(
+                    "SCREEN_VISION",
+                    "Visual fallback finished",
+                    "provider=${vision.provider}, descriptionChars=${vision.text?.length ?: 0}"
+                  )
+                  vision.text
+                } finally {
+                  screenshotBytes.fill(0)
                 }
-                vision.text
-              } finally {
-                screenshotBytes.fill(0)
+              } else {
+                TheoDiagnosticLogger.info("SCREEN_VISION", "Visual fallback unavailable; using accessibility tree", capture.error ?: "No reason returned")
+                null
               }
-            } else {
-              TheoDiagnosticLogger.info("SCREEN_VISION", "Screenshot unavailable; using accessibility tree only", capture.error ?: "No reason returned")
+            } catch (visionError: Exception) {
+              TheoDiagnosticLogger.warn("SCREEN_VISION", "Visual fallback failed; continuing with accessibility tree", visionError.javaClass.simpleName)
               null
             }
-          } catch (visionError: Exception) {
-            TheoDiagnosticLogger.warn("SCREEN_VISION", "Vision step failed; continuing with accessibility tree", visionError.javaClass.simpleName)
-            null
-          }
+          } else null
           val plan = aiEngine.planScreenAction(
             task = task,
             screen = snapshot,
@@ -881,7 +887,18 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       latencyMs = 0L,
       actionTag = actionTag
     ))
-    if (_uiState.value.isSpeechEnabled) speechManager.speak(text)
+    if (_uiState.value.isSpeechEnabled) {
+      val spokenStatus = if (badge == "SCREEN AUTOMATION") {
+        when {
+          text.contains("judged the task complete", ignoreCase = true) ->
+            "Theo finished its steps, but the result is not verified. Check your screen."
+          text.contains("stopped", ignoreCase = true) || text.contains("failed", ignoreCase = true) ->
+            "Theo stopped the task. Check the chat for details."
+          else -> "Theo's screen task ended. Check the chat for details."
+        }
+      } else text
+      speechManager.speak(spokenStatus)
+    }
   }
 
   fun dismissPendingAction() {

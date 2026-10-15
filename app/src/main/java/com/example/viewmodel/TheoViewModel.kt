@@ -71,8 +71,16 @@ data class TheoUiState(
   val pendingScreenPackageName: String? = null,
   val pendingAppSelection: PendingAppSelection? = null,
   val isScreenAutomationEnabled: Boolean = false,
+  val isNotificationAccessEnabled: Boolean = false,
   val isScreenAutomationRunning: Boolean = false
 )
+
+private object TaskNeedsNotificationContext {
+  fun matches(task: String): Boolean = Regex(
+    """\b(notifications?|notification shade|what(?:'s| is) playing|now playing|current song|current track|music playback|what song|unread messages|message notifications|recent notifications)\b""",
+    RegexOption.IGNORE_CASE
+  ).containsMatchIn(task)
+}
 
 class TheoViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -137,7 +145,21 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
 
   fun refreshScreenAutomationStatus() {
     _uiState.update {
-      it.copy(isScreenAutomationEnabled = TheoAccessibilityService.isEnabled(getApplication()))
+      it.copy(
+        isScreenAutomationEnabled = TheoAccessibilityService.isEnabled(getApplication()),
+        isNotificationAccessEnabled = TheoNotificationListenerService.isEnabled(getApplication())
+      )
+    }
+  }
+
+  fun openNotificationAccessSettings() {
+    try {
+      getApplication<Application>().startActivity(
+        Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      )
+    } catch (error: Exception) {
+      TheoDiagnosticLogger.error("NOTIFICATION_ACCESS", "Could not open notification access settings", error)
+      appendMessageAsync("Android could not open Notification access settings. Open Settings and search for Notification access.")
     }
   }
 

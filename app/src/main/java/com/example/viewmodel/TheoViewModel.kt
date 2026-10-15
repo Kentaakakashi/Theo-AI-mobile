@@ -933,7 +933,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           delay(if (action.kind == "wait") 1000L else 650L)
         }
         if (finalMessage.isBlank()) {
-          finalMessage = "Theo reached the 12-step safety limit. The task may be incomplete; review the target app."
+          finalMessage = "Theo reached the 20-step safety limit. The task may be incomplete; review the target app."
         }
         appendAssistantMessage(finalMessage, badge = "SCREEN AUTOMATION")
         dao.insertActivity(ActivityEntity(

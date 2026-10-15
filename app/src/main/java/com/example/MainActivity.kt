@@ -172,6 +172,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
             },
             onTestQwen = { viewModel.testQwenConnection() },
             onTestGemini = { viewModel.testGeminiConnection() },
+            onTestGroq = { viewModel.testGroqConnection() },
             onClearChat = { viewModel.clearChatHistory() },
             onToggleSpeech = { viewModel.toggleSpeech() },
             isScreenAutomationEnabled = uiState.isScreenAutomationEnabled,

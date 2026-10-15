@@ -14,7 +14,7 @@ internal object ActionIntentParser {
 
     // Screen inspection is a native Android action, not a prompt for the chat model to guess.
     if (Regex(
-        "^(?:please\\s+)?(?:what(?:'s| is)\\s+(?:on|in)\\s+(?:my\\s+)?(?:current\\s+)?screen|(?:look\\s+at|inspect|read|describe|analy[sz]e|check)\\s+(?:my\\s+|the\\s+|current\\s+)?screen|(?:can\\s+you\\s+)?see\\s+(?:my\\s+)?screen|what\\s+can\\s+you\\s+see\\s+on\\s+(?:my\\s+)?screen)$",
+        "^(?:please\\s+)?(?:what(?:'s| is)\\s+(?:on|in)\\s+(?:my\\s+)?(?:current\\s+)?screen|(?:look\\s+at|inspect|read|describe|analy[sz]e|check)\\s+(?:(?:my|the)\\s+)?(?:current\\s+)?screen|(?:can\\s+you\\s+)?see\\s+(?:my\\s+)?screen|what\\s+can\\s+you\\s+see\\s+on\\s+(?:my\\s+)?screen)$",
         flags
       ).matches(trimmed)) return "inspect-screen"
 

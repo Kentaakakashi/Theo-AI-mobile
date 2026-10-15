@@ -76,7 +76,7 @@ import com.example.viewmodel.TheoUiState
 @Composable
 fun SettingsScreen(
   uiState: TheoUiState,
-  onSaveSettings: (AiModelType, AnimationIntensity, String, String) -> Unit,
+  onSaveSettings: (AiModelType, AnimationIntensity, String, String, String) -> Unit,
   onTestQwen: () -> Unit,
   onTestGemini: () -> Unit,
   onClearChat: () -> Unit,
@@ -90,6 +90,7 @@ fun SettingsScreen(
   var selectedModel by remember(uiState.activeModel) { mutableStateOf(uiState.activeModel) }
   var selectedIntensity by remember(uiState.animationIntensity) { mutableStateOf(uiState.animationIntensity) }
   var apiKeyInput by remember(uiState.customApiKey) { mutableStateOf(uiState.customApiKey) }
+  var groqApiKeyInput by remember(uiState.groqApiKey) { mutableStateOf(uiState.groqApiKey) }
   var termuxHostInput by remember(uiState.termuxHost) { mutableStateOf(uiState.termuxHost) }
 
   Box(
@@ -137,7 +138,7 @@ fun SettingsScreen(
               .border(1.dp, if (isSelected) TheoCyan else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
               .clickable {
                 selectedModel = model
-                onSaveSettings(model, selectedIntensity, apiKeyInput, termuxHostInput)
+                onSaveSettings(model, selectedIntensity, apiKeyInput, termuxHostInput, groqApiKeyInput)
               }
               .padding(12.dp)
           ) {
@@ -215,7 +216,7 @@ fun SettingsScreen(
             value = termuxHostInput,
             onValueChange = {
               termuxHostInput = it
-              onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, it)
+              onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, it, groqApiKeyInput)
             },
             label = { Text("Local Socket URL") },
             textStyle = androidx.compose.ui.text.TextStyle(
@@ -384,7 +385,7 @@ fun SettingsScreen(
                     apiKeyInput = updatedKeys.joinToString("\n")
                     editingApiKeyIndex = null
                     apiKeyDraft = ""
-                    onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput)
+                    onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput, groqApiKeyInput)
                   },
                   contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                   colors = ButtonDefaults.buttonColors(containerColor = TheoErrorRed.copy(alpha = 0.16f))
@@ -465,6 +466,55 @@ fun SettingsScreen(
       }
 
       Spacer(modifier = Modifier.height(20.dp))
+
+      Spacer(modifier = Modifier.height(20.dp))
+
+      // Groq cloud vision provider credentials. Stored locally; never hard-code keys.
+      SettingsSectionHeader(icon = Icons.Default.Key, title = "Groq Qwen Vision Credentials")
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .clip(RoundedCornerShape(12.dp))
+          .background(TheoSurfaceGlass)
+          .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+          .padding(14.dp)
+      ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Text(
+            text = "Used for cloud screenshot understanding with Groq-hosted Qwen vision. Screenshots are sent only when you explicitly run a screen task. Keep this key private; never paste it into chat.",
+            color = TheoTextSecondary,
+            fontSize = 12.sp,
+            lineHeight = 16.sp
+          )
+          OutlinedTextField(
+            value = groqApiKeyInput,
+            onValueChange = {
+              groqApiKeyInput = it
+              onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput, it)
+            },
+            label = { Text("Groq API key") },
+            placeholder = { Text("gsk_…") },
+            singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(
+              fontFamily = FontFamily.Monospace,
+              fontSize = 12.sp,
+              color = TheoTextPrimary
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedBorderColor = TheoCyan,
+              unfocusedBorderColor = TheoSurfaceBorder
+            ),
+            modifier = Modifier.fillMaxWidth()
+          )
+          Text(
+            text = if (groqApiKeyInput.isBlank()) "NOT CONFIGURED" else "KEY SAVED ON THIS DEVICE",
+            color = if (groqApiKeyInput.isBlank()) TheoWarningAmber else TheoOnlineGreen,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
+          )
+        }
+      }
 
       // Section 4: Motion & Battery Optimization
       SettingsSectionHeader(icon = Icons.Default.Animation, title = "Motion & Thermal Profile")

@@ -56,6 +56,8 @@ data class TheoUiState(
   val qwenStatusMessage: String = "Idle (Tap to ping 127.0.0.1:8080)",
   val isTestingQwen: Boolean = false,
   val isTestingGemini: Boolean = false,
+  val isTestingGroq: Boolean = false,
+  val groqStatusMessage: String = "Not tested yet",
   val geminiStatusMessage: String = "Not tested yet",
   val thinkingSteps: List<String> = emptyList(),
   val currentThinkingStep: String = "",
@@ -816,6 +818,15 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     }
   }
 
+  fun testGroqConnection() {
+    _uiState.update { it.copy(isTestingGroq = true, groqStatusMessage = "Testing saved Groq key…") }
+    viewModelScope.launch {
+      val (success, message) = aiEngine.testGroqConnection(_uiState.value.groqApiKey)
+      TheoDiagnosticLogger.info("GROQ_TEST", "API key test finished", "success=$success, result=$message")
+      _uiState.update { it.copy(isTestingGroq = false, groqStatusMessage = message) }
+    }
+  }
+
   fun testGeminiConnection() {
     TheoDiagnosticLogger.info("GEMINI_TEST", "Test requested from Settings")
     _uiState.update { it.copy(isTestingGemini = true, geminiStatusMessage = "Testing saved Gemini key…") }
@@ -867,6 +878,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         animationIntensity = intensity,
         customApiKey = apiKey,
         groqApiKey = groqKey,
+        groqStatusMessage = if (groqKey != it.groqApiKey) "Not tested yet" else it.groqStatusMessage,
         termuxHost = termuxHost,
         geminiStatusMessage = if (apiKey != it.customApiKey) "Not tested yet" else it.geminiStatusMessage
       )

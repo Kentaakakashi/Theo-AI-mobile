@@ -1,10 +1,18 @@
 package com.example.service
 
 import android.content.Context
+import android.os.Build
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.speech.tts.Voice
 import java.util.Locale
 
+/**
+ * Android-native speech output tuned for a composed, British JARVIS-like delivery.
+ *
+ * Uses voices already installed in Android's TTS engine; no bundled voice model,
+ * extra API key, or third-party voice-cloning service is required.
+ */
 class TheoSpeechManager(
   private val context: Context,
   private val onSpeakingStateChanged: (Boolean) -> Unit
@@ -19,15 +27,48 @@ class TheoSpeechManager(
   }
 
   override fun onInit(status: Int) {
-    if (status == TextToSpeech.SUCCESS) {
-      val result = tts?.setLanguage(Locale.US)
-      if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
-        isInitialized = true
-        tts?.setPitch(0.92f) // Slightly deeper, futuristic timbre
-        tts?.setSpeechRate(1.02f)
-        setupListener()
-      }
+    if (status != TextToSpeech.SUCCESS) return
+
+    val engine = tts ?: return
+    val britishLocale = Locale.UK
+    val languageResult = engine.setLanguage(britishLocale)
+    if (languageResult == TextToSpeech.LANG_MISSING_DATA ||
+      languageResult == TextToSpeech.LANG_NOT_SUPPORTED
+    ) {
+      // Keep speech functional if the device has no British English voice data.
+      val fallbackResult = engine.setLanguage(Locale.US)
+      if (fallbackResult == TextToSpeech.LANG_MISSING_DATA ||
+        fallbackResult == TextToSpeech.LANG_NOT_SUPPORTED
+      ) return
     }
+
+    // Prefer an installed British English male voice when the engine exposes one.
+    // Voice names vary by manufacturer, so use locale + quality rather than a
+    // hard-coded vendor-specific voice identifier.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      val britishMale = engine.voices
+        ?.filter { voice ->
+          voice.locale.language == "en" &&
+            voice.locale.country == "GB" &&
+            !voice.isNetworkConnectionRequired &&
+            !voice.name.contains("female", ignoreCase = true)
+        }
+        ?.maxByOrNull { it.quality }
+
+      val britishAny = engine.voices
+        ?.filter { voice ->
+          voice.locale.language == "en" && voice.locale.country == "GB"
+        }
+        ?.maxByOrNull { it.quality }
+
+      (britishMale ?: britishAny)?.let { engine.voice = it }
+    }
+
+    isInitialized = true
+    // Calm, slightly lower and measured; this is a voice style, not a cloned actor.
+    engine.setPitch(0.86f)
+    engine.setSpeechRate(0.94f)
+    setupListener()
   }
 
   private fun setupListener() {
@@ -49,12 +90,16 @@ class TheoSpeechManager(
   fun speak(text: String) {
     if (!isSpeechEnabled || !isInitialized) return
 
-    // Clean text of markdown asterisks or code fences for cleaner speech synthesis
+    // Clean markdown and avoid speaking raw link destinations.
     val cleanText = text
+      .replace(Regex("\\[([^\\]]+)]\\((?:[^()]|\\([^()]*\\))*\\)"), "$1")
+      .replace(Regex("https?://\\S+"), "")
       .replace(Regex("[*#`_~]"), "")
-      .replace(Regex("\\[.*?\\]\\(.*?\\)"), "")
-      .take(400) // Keep spoken response concise and snappy
+      .replace(Regex("\\s+"), " ")
+      .trim()
+      .take(700)
 
+    if (cleanText.isBlank()) return
     tts?.speak(cleanText, TextToSpeech.QUEUE_FLUSH, null, "THEO_UTTERANCE_${System.currentTimeMillis()}")
   }
 

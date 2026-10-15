@@ -516,6 +516,9 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       var finalMessage = ""
       var pausedForReview = false
       var consecutiveFailures = 0
+      var consecutiveWaits = 0
+      var lastSnapshotFingerprint: String? = null
+      var stableSnapshotCount = 0
       try {
         for (stepNumber in 1..12) {
           kotlinx.coroutines.currentCoroutineContext().ensureActive()
@@ -526,26 +529,49 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           }
           var snapshot: com.example.service.ScreenSnapshot? = null
           var snapshotAttempts = 0
+          // App launch intents often expose a splash screen or an empty tree first.
+          // Re-sample for a bounded period instead of treating the first frame as final.
           do {
             snapshot = service.captureActiveScreen()
-            if (expectedPackageName == null || snapshot?.packageName == expectedPackageName) break
+            val packageMatches = snapshot != null &&
+              (expectedPackageName == null || snapshot.packageName == expectedPackageName)
+            val hasUsefulElements = snapshot?.elements?.any {
+              it.label.isNotBlank() || it.clickable || it.editable || it.scrollable
+            } == true
+            if (packageMatches && hasUsefulElements) break
             snapshotAttempts++
-            if (snapshotAttempts < 5) delay(400)
-          } while (snapshotAttempts < 5)
+            if (snapshotAttempts < 12) delay(650)
+          } while (snapshotAttempts < 12)
 
           if (snapshot == null || snapshot.elements.isEmpty()) {
-            finalMessage = "Theo couldn't read an accessible UI tree from the current app. No guessed taps were made. This app may not expose accessible controls; screenshot fallback is not enabled in this build."
+            finalMessage = "Theo waited for the app interface, but Android still exposed no usable accessibility elements. No guessed taps were made. Visual screenshot fallback is not available yet for this configured provider."
             break
           }
           if (expectedPackageName != null && snapshot.packageName != expectedPackageName) {
             finalMessage = "Theo expected the target app package $expectedPackageName but the active screen belongs to ${snapshot.packageName}. Theo stopped rather than operating in another app."
             break
           }
+          val fingerprint = snapshot.elements.joinToString("|") {
+            "${it.id}:${it.label}:${it.clickable}:${it.editable}:${it.scrollable}"
+          }.hashCode().toString()
+          if (fingerprint == lastSnapshotFingerprint) stableSnapshotCount++ else stableSnapshotCount = 0
+          lastSnapshotFingerprint = fingerprint
+
           _uiState.update { state ->
             state.copy(
-              currentThinkingStep = "Planning step $stepNumber",
-              thinkingSteps = (state.thinkingSteps + "Inspecting accessible UI · step $stepNumber").takeLast(6)
+              currentThinkingStep = if (stableSnapshotCount < 1) "Waiting for interface to settle" else "Planning step $stepNumber",
+              thinkingSteps = (state.thinkingSteps + if (stableSnapshotCount < 1) {
+                "Waiting for app transition · sample $stepNumber"
+              } else {
+                "Inspecting accessible UI · step $stepNumber"
+              }).takeLast(6)
             )
+          }
+          // Give a newly opened screen another beat to finish its transition before asking
+          // the model to judge it. The retry is bounded by the overall action-step limit.
+          if (stableSnapshotCount < 1) {
+            delay(700)
+            continue
           }
           val plan = aiEngine.planScreenAction(
             task = task,
@@ -562,6 +588,22 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             break
           }
           when (action.kind) {
+            "wait" -> {
+              consecutiveWaits++
+              if (consecutiveWaits >= 5) {
+                finalMessage = "Theo waited and rechecked the screen several times, but the configured AI provider still could not identify a safe next step. Check whether the app finished loading, then retry."
+                break
+              }
+              history.add("Step $stepNumber: wait for the interface to load or settle. Reason: ${action.reason.take(120)}")
+              _uiState.update { state ->
+                state.copy(
+                  currentThinkingStep = "Waiting for the app interface",
+                  thinkingSteps = (state.thinkingSteps + "Waiting and re-reading the screen").takeLast(6)
+                )
+              }
+              delay(1_200)
+              continue
+            }
             "done" -> {
               finalMessage = if (Regex("\\b(play|playing|playback|music)\\b", RegexOption.IGNORE_CASE).containsMatchIn(task)) {
                 "Theo's configured AI provider judged the task complete from the visible accessibility tree. Playback itself could not be independently verified."
@@ -612,6 +654,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             break
           }
 
+          consecutiveWaits = 0
           val success = service.performScreenAction(action, snapshot.packageName)
           if (success) {
             consecutiveFailures = 0

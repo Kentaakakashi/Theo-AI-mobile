@@ -91,7 +91,7 @@ internal class ScreenVisionAnalyzer {
             .put(JSONObject().put("text", prompt))
             .put(JSONObject().put("inlineData", JSONObject()
               .put("mimeType", "image/jpeg")
-              .put("data", base64)))
+              .put("data", base64))))
         }))
         put("generationConfig", JSONObject().put("temperature", 0.1).put("maxOutputTokens", 700))
       }

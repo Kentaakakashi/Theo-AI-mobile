@@ -681,10 +681,12 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             val hasUsefulElements = snapshot?.elements?.any {
               it.label.isNotBlank() || it.clickable || it.editable || it.scrollable
             } == true
-            if (packageMatches && hasUsefulElements) break
+            // An empty tree can be a custom-drawn app, not a loading failure. Let the
+            // visual fallback inspect it immediately instead of burning ~8 seconds retrying.
+            if (packageMatches && (hasUsefulElements || snapshot?.elements?.isEmpty() == true)) break
             snapshotAttempts++
-            if (snapshotAttempts < 12) delay(650)
-          } while (snapshotAttempts < 12)
+            if (snapshotAttempts < 5) delay(350)
+          } while (snapshotAttempts < 5)
 
           if (snapshot != null && expectedPackageName != null && snapshot.packageName != expectedPackageName) {
             finalMessage = "Theo expected the target app package $expectedPackageName but the active screen belongs to ${snapshot.packageName}. Theo stopped rather than inspecting or operating in another app."
@@ -827,8 +829,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               .filter { it.id == nodeId || nodeId.startsWith("${it.id}.") }
               .sortedByDescending { it.id.length }
           }.orEmpty()
-          if (action.kind == "tap" && hasActionableControls) {
-            finalMessage = "Theo rejected a coordinate tap because this screen exposes actionable accessibility controls. No action was taken."
+          val hasVisualCoordinates = Regex(
+            "(?i)CONTROL:.*center=\\(\\d{1,4},\\s*\\d{1,4}\\)"
+          ).containsMatchIn(visualContext.orEmpty())
+          if (action.kind == "tap" && (hasActionableControls || !hasVisualCoordinates)) {
+            finalMessage = "Theo rejected the visual tap because a fresh screenshot did not provide a usable coordinate target, or accessible controls were available. No action was taken."
             break
           }
           if (action.kind in setOf("click", "type", "scroll")) {

@@ -176,6 +176,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
             onClearChat = { viewModel.clearChatHistory() },
             onToggleSpeech = { viewModel.toggleSpeech() },
             isScreenAutomationEnabled = uiState.isScreenAutomationEnabled,
+            isNotificationAccessEnabled = uiState.isNotificationAccessEnabled,
             isScreenAutomationRunning = uiState.isScreenAutomationRunning,
             onConfigureScreenAutomation = { viewModel.openAccessibilitySettings() },
             onStopScreenAutomation = { viewModel.stopScreenAutomation() }

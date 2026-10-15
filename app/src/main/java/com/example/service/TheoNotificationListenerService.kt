@@ -6,6 +6,7 @@ import android.content.Context
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -84,17 +85,17 @@ class TheoNotificationListenerService : NotificationListenerService() {
         val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE).orEmpty()
         val artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST).orEmpty()
         val state = when (controller.playbackState?.state) {
-          MediaController.PlaybackState.STATE_PLAYING -> "playing"
-          MediaController.PlaybackState.STATE_PAUSED -> "paused"
-          MediaController.PlaybackState.STATE_BUFFERING -> "buffering"
-          MediaController.PlaybackState.STATE_NONE -> "idle"
+          PlaybackState.STATE_PLAYING -> "playing"
+          PlaybackState.STATE_PAUSED -> "paused"
+          PlaybackState.STATE_BUFFERING -> "buffering"
+          PlaybackState.STATE_NONE -> "idle"
           else -> "unknown"
         }
         val label = listOf(title, artist).filter { it.isNotBlank() }.joinToString(" — ").ifBlank { "Unknown track" }
-        "- $label; state=$state; package=\${controller.packageName}"
+        "- $label; state=$state; package=${controller.packageName}"
       }
     } catch (error: Exception) {
-      "Media-session access failed: \${error.javaClass.simpleName}."
+      "Media-session access failed: ${error.javaClass.simpleName}."
     }
   }
 
@@ -118,10 +119,10 @@ class TheoNotificationListenerService : NotificationListenerService() {
           packageManager.getApplicationLabel(packageManager.getApplicationInfo(item.packageName, 0)).toString()
         }.getOrDefault(item.packageName)
         val preview = redactSensitivePreview(text).take(240)
-        "- app=$appLabel; title=\${redactSensitivePreview(title).take(100)}; preview=$preview"
+        "- app=$appLabel; title=${redactSensitivePreview(title).take(100)}; preview=$preview"
       }
     } catch (error: Exception) {
-      "Notification preview access failed: \${error.javaClass.simpleName}."
+      "Notification preview access failed: ${error.javaClass.simpleName}."
     }
   }
 

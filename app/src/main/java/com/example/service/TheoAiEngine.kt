@@ -183,9 +183,9 @@ class TheoAiEngine {
     sensitiveActionsAuthorized: Boolean,
     visualContext: String? = null
   ): ScreenPlanResult = withContext(Dispatchers.IO) {
-    if (screen.elements.isEmpty()) {
-      return@withContext ScreenPlanResult(error = "The active app did not expose accessible screen elements.")
-    }
+    // An empty tree is still actionable when the screenshot fallback provides explicit
+    // normalized control coordinates. The executor enforces that coordinate taps are only
+    // allowed when no actionable accessibility node exists.
 
     val policy = """
 You are Theo's Android screen-action planner. You return one structured action; you do not execute it.

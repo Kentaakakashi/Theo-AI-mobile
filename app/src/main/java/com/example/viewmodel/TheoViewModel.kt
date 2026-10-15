@@ -52,6 +52,7 @@ data class TheoUiState(
   val currentTab: Int = 0, // 0: Core/Orb, 1: Memory, 2: Activity, 3: Settings
   val termuxHost: String = "http://127.0.0.1:8080/v1",
   val customApiKey: String = "",
+  val groqApiKey: String = "",
   val qwenStatusMessage: String = "Idle (Tap to ping 127.0.0.1:8080)",
   val isTestingQwen: Boolean = false,
   val isTestingGemini: Boolean = false,
@@ -82,6 +83,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   private val _uiState = MutableStateFlow(
     TheoUiState(
       customApiKey = prefs.getString("gemini_api_key", "") ?: "",
+      groqApiKey = prefs.getString("groq_api_key", "") ?: "",
       termuxHost = prefs.getString("termux_host", "http://127.0.0.1:8080/v1") ?: "http://127.0.0.1:8080/v1",
       activeModel = try {
         AiModelType.valueOf(prefs.getString("active_model", AiModelType.GEMINI_FLASH.name) ?: AiModelType.GEMINI_FLASH.name)
@@ -815,12 +817,14 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     model: AiModelType,
     intensity: AnimationIntensity,
     apiKey: String,
-    termuxHost: String
+    termuxHost: String,
+    groqKey: String = _uiState.value.groqApiKey
   ) {
     prefs.edit()
       .putString("active_model", model.name)
       .putString("anim_intensity", intensity.name)
       .putString("gemini_api_key", apiKey)
+      .putString("groq_api_key", groqKey)
       .putString("termux_host", termuxHost)
       .apply()
 
@@ -829,6 +833,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         activeModel = model,
         animationIntensity = intensity,
         customApiKey = apiKey,
+        groqApiKey = groqKey,
         termuxHost = termuxHost,
         geminiStatusMessage = if (apiKey != it.customApiKey) "Not tested yet" else it.geminiStatusMessage
       )

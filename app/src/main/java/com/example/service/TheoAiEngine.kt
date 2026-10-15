@@ -304,6 +304,33 @@ Choose the next single action.
     }
   }
 
+  suspend fun testGroqConnection(apiKey: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+    if (apiKey.isBlank()) return@withContext Pair(false, "Add a Groq API key in Settings first.")
+    val testClient = OkHttpClient.Builder()
+      .connectTimeout(8, TimeUnit.SECONDS)
+      .readTimeout(10, TimeUnit.SECONDS)
+      .callTimeout(12, TimeUnit.SECONDS)
+      .build()
+    try {
+      val request = Request.Builder()
+        .url("https://api.groq.com/openai/v1/models")
+        .header("Authorization", "Bearer ${apiKey.trim()}")
+        .get()
+        .build()
+      testClient.newCall(request).execute().use { response ->
+        val body = response.body?.string().orEmpty()
+        if (response.isSuccessful) {
+          Pair(true, "Groq API key accepted · HTTP ${response.code}. Vision generation is tested only during a screen task.")
+        } else {
+          val detail = try { JSONObject(body).optJSONObject("error")?.optString("message").orEmpty() } catch (_: Exception) { "" }
+          Pair(false, "Groq HTTP ${response.code}" + if (detail.isBlank()) "" else " · " + detail.take(160))
+        }
+      }
+    } catch (e: Exception) {
+      Pair(false, "Groq connection failed: ${e.localizedMessage ?: e.javaClass.simpleName}")
+    }
+  }
+
   suspend fun testQwenConnection(termuxHost: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
     TheoDiagnosticLogger.info("QWEN_BRIDGE", "Socket ping started", "host=${termuxHost.substringBefore("/v1")}")
     try {

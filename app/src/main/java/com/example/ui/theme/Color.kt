@@ -2,31 +2,31 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Theo Cybernetic & Futuristic Obsidian Palette
-val TheoDarkBackground = Color(0xFF090D14)
-val TheoSurfaceDeep = Color(0xFF0E1522)
-val TheoSurfaceCard = Color(0xFF141D2D)
-val TheoSurfaceGlass = Color(0xCC162235)
-val TheoSurfaceGlassLight = Color(0x2238BDF8)
-val TheoSurfaceBorder = Color(0x3338BDF8)
-val TheoSurfaceBorderSubtle = Color(0x1AFFFFFF)
+// Theo Solar Core palette: obsidian surfaces, ember glass and a warm reactor glow.
+val TheoDarkBackground = Color(0xFF050505)
+val TheoSurfaceDeep = Color(0xFF0B0A08)
+val TheoSurfaceCard = Color(0xFF15110C)
+val TheoSurfaceGlass = Color(0xCC1D160D)
+val TheoSurfaceGlassLight = Color(0x22FF9A00)
+val TheoSurfaceBorder = Color(0x44FF9A00)
+val TheoSurfaceBorderSubtle = Color(0x24FFFFFF)
 
-// Primary & Energy Accents
-val TheoCyan = Color(0xFF00F2FE)
-val TheoIceBlue = Color(0xFF38BDF8)
-val TheoDeepCyan = Color(0xFF0284C7)
-val TheoViolet = Color(0xFF8B5CF6)
-val TheoDeepViolet = Color(0xFF6D28D9)
-val TheoMagenta = Color(0xFFA855F7)
+// Solar-core energy accents. Existing UI components inherit the new palette.
+val TheoCyan = Color(0xFFFFA21A)
+val TheoIceBlue = Color(0xFFFFC45C)
+val TheoDeepCyan = Color(0xFFE56B00)
+val TheoViolet = Color(0xFFFF6A1A)
+val TheoDeepViolet = Color(0xFF9C3D00)
+val TheoMagenta = Color(0xFFFFD166)
 
-// Status Indicators
-val TheoOnlineGreen = Color(0xFF10B981)
-val TheoWarningAmber = Color(0xFFF59E0B)
-val TheoErrorRed = Color(0xFFEF4444)
+// Status indicators remain distinct from the assistant's visual accent.
+val TheoOnlineGreen = Color(0xFF52D68A)
+val TheoWarningAmber = Color(0xFFFFB020)
+val TheoErrorRed = Color(0xFFFF4D4D)
 
-// Typography & Contrast
-val TheoTextPrimary = Color(0xFFF8FAFC)
-val TheoTextSecondary = Color(0xFF94A3B8)
-val TheoTextMuted = Color(0xFF64748B)
-val TheoTextCyan = Color(0xFF7DD3FC)
-val TheoTextViolet = Color(0xFFC084FC)
+// Typography & contrast
+val TheoTextPrimary = Color(0xFFFFF8ED)
+val TheoTextSecondary = Color(0xFFB7AA98)
+val TheoTextMuted = Color(0xFF817363)
+val TheoTextCyan = Color(0xFFFFC45C)
+val TheoTextViolet = Color(0xFFFFB16B)

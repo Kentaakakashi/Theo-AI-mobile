@@ -690,7 +690,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             finalMessage = "Theo expected the target app package $expectedPackageName but the active screen belongs to ${snapshot.packageName}. Theo stopped rather than inspecting or operating in another app."
             break
           }
-          if (snapshot == null || snapshot.elements.isEmpty()) {
+          if (snapshot == null) {
             val capture = service.captureActiveScreenJpeg()
             val bytes = capture.jpegBytes
             var visualDescription: String? = null
@@ -827,6 +827,10 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               .filter { it.id == nodeId || nodeId.startsWith("${it.id}.") }
               .sortedByDescending { it.id.length }
           }.orEmpty()
+          if (action.kind == "tap" && hasActionableControls) {
+            finalMessage = "Theo rejected a coordinate tap because this screen exposes actionable accessibility controls. No action was taken."
+            break
+          }
           if (action.kind in setOf("click", "type", "scroll")) {
             if (targetPath == null || snapshot.elements.none { it.id == targetPath }) {
               finalMessage = "Theo's configured AI provider selected a node that was not present in the current accessibility tree. No action was taken."
@@ -845,7 +849,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           }
           // Include the node and nearby actionable ancestors so a labelled parent button
           // (for example, Send) cannot be hidden behind an unlabeled child icon.
-          val targetLabel = pathElements.take(4).map { it.label }.filter { it.isNotBlank() }.joinToString(" ")
+          val targetLabel = if (action.kind == "tap") {
+            action.targetLabel
+          } else {
+            pathElements.take(4).map { it.label }.filter { it.isNotBlank() }.joinToString(" ")
+          }
           if (!sensitiveAuthorized && ActionSafetyPolicy.targetRequiresConfirmation(action, targetLabel)) {
             finalMessage = "Theo stopped before activating the potentially sensitive control \"$targetLabel\". Nothing was submitted, deleted, shared, or paid for. Review and confirm before retrying."
             pausedForReview = true

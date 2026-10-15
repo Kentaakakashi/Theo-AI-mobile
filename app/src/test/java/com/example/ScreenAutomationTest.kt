@@ -45,8 +45,8 @@ class ScreenAutomationTest {
   fun coordinateTapRequiresNormalizedCoordinatesAndVisibleTargetLabel() {
     val tap = ScreenActionParser.parse("""{"action":"tap","x":420,"y":710,"target":"Play button","reason":"Start playback"}""")
     assertEquals("tap", tap?.kind)
-    assertEquals(420, tap?.x)
-    assertEquals(710, tap?.y)
+    assertEquals(420, tap?.x ?: -1)
+    assertEquals(710, tap?.y ?: -1)
     assertEquals("Play button", tap?.targetLabel)
     assertNull(ScreenActionParser.parse("""{"action":"tap","x":1100,"y":710,"target":"Play button"}"""))
     assertNull(ScreenActionParser.parse("""{"action":"tap","x":420,"y":710}"""))

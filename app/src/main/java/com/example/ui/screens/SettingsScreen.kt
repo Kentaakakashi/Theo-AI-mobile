@@ -83,8 +83,10 @@ fun SettingsScreen(
   onClearChat: () -> Unit,
   onToggleSpeech: () -> Unit,
   isScreenAutomationEnabled: Boolean,
+  isNotificationAccessEnabled: Boolean,
   isScreenAutomationRunning: Boolean,
   onConfigureScreenAutomation: () -> Unit,
+  onConfigureNotificationAccess: () -> Unit,
   onStopScreenAutomation: () -> Unit,
   modifier: Modifier = Modifier
 ) {
@@ -627,6 +629,40 @@ fun SettingsScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
+      SettingsSectionHeader(icon = Icons.Default.Security, title = "Notification & Playback Access")
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .clip(RoundedCornerShape(12.dp))
+          .background(TheoSurfaceGlass)
+          .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+          .padding(14.dp)
+      ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+          Text(
+            text = if (isNotificationAccessEnabled) "Notification access enabled" else "Notification access not enabled",
+            color = if (isNotificationAccessEnabled) TheoOnlineGreen else TheoTextPrimary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold
+          )
+          Text(
+            text = "Optional Android-granted access lets Theo inspect active media-session metadata (track, artist and playback state) and, only for tasks that ask about notifications, read recent notification previews. Message previews can contain private content. Theo does not save or log them, and does not include them in unrelated tasks. Enable this only if you want those features.",
+            color = TheoTextSecondary,
+            fontSize = 11.sp,
+            lineHeight = 16.sp
+          )
+          Button(
+            onClick = onConfigureNotificationAccess,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceCard)
+          ) {
+            Text(if (isNotificationAccessEnabled) "Manage Notification Access" else "Enable Notification & Playback Access", color = TheoCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+          }
+        }
+      }
+
+      Spacer(modifier = Modifier.height(20.dp))
+
       // Screen-aware automation: opt-in Android accessibility tree, no screenshot persistence.
       SettingsSectionHeader(icon = Icons.Default.PhoneAndroid, title = "Screen-aware Automation")
       Box(
@@ -664,7 +700,7 @@ fun SettingsScreen(
             }
           }
           Text(
-            text = "Screen labels and non-editable visible text are sent to the selected planner only while you run a task. On Android 11+, Theo also captures a transient screenshot in memory and sends it to Groq Qwen vision, falling back to your configured Gemini keys if Groq fails. Images are not saved by Theo; screenshot bytes are cleared after the request. Current editable values are excluded from the accessibility tree, but visible screen content (including anything shown in an app) may appear in the screenshot sent to the cloud. On Android 10 and earlier, Theo uses the accessibility tree only. Actions still require a matching accessible node; Theo will not guess coordinates.",
+            text = "Screen labels are sent to the selected planner while a screen task runs. On Android 11+, Theo attempts one-off screenshot capture; screenshots may be sent to Groq Qwen vision or your configured Gemini fallback for that task only and are not saved. Editable values are excluded from the accessibility tree, but may be visible in a screenshot. Some devices block native screenshot capture; Theo retries one transient failure, then continues only with available accessible information. Coordinate taps are rejected unless a current visual description explicitly identifies a control and no accessible controls are available.",
             color = TheoTextSecondary,
             fontSize = 11.sp,
             lineHeight = 16.sp

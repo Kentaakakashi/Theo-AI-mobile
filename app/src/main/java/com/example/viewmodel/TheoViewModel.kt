@@ -386,6 +386,10 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     _uiState.update { it.copy(pendingActionTag = null, pendingScreenTargetLabel = null) }
+    if (actionKey.startsWith("music:", ignoreCase = true)) {
+      startMusicSearchAndPlayback(actionKey)
+      return
+    }
     if (actionKey.startsWith("app:", ignoreCase = true)) {
       startAppLaunch(actionKey.substringAfter(':').trim())
       return
@@ -406,6 +410,48 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       }
     } else {
       appendMessageAsync("Android could not dispatch the requested action. No successful outcome is being claimed.")
+    }
+  }
+
+  /**
+   * Music requests are not complete when the search URL merely opens. Launch the
+   * provider's search, then hand the live screen to the same native accessibility
+   * action loop so Theo can select a track and press Play like a user would.
+   */
+  private fun startMusicSearchAndPlayback(actionKey: String) {
+    val payload = actionKey.substringAfter(':').trim()
+    val separator = payload.indexOf('|')
+    val query = if (separator >= 0) payload.substring(separator + 1).trim() else payload
+    if (query.isBlank()) {
+      appendMessageAsync("Tell Theo which song to play.")
+      return
+    }
+    if (!TheoAccessibilityService.isEnabled(getApplication())) {
+      appendMessageAsync(
+        "Theo can open the music search, but screen control must be enabled before it can tap the result and Play.",
+        actionTag = "setup:accessibility"
+      )
+      return
+    }
+    val opened = DeviceActionHandler.executeAction(getApplication(), actionKey)
+    if (!opened) {
+      appendMessageAsync("Theo couldn't open the music search for \"$query\".")
+      return
+    }
+    viewModelScope.launch {
+      // Give Android App Links time to route to the music app rather than the browser.
+      delay(900)
+      val service = TheoAccessibilityService.instance
+      val snapshot = service?.captureActiveScreen()
+      if (snapshot == null || snapshot.packageName == getApplication<Application>().packageName) {
+        appendAssistantMessage("The music search opened, but Theo couldn't read the destination screen to continue. No playback is claimed.")
+        return@launch
+      }
+      runScreenAutomation(
+        task = "Find the song \"$query\" in the current music app and start playback. Prefer an exact title match. If multiple plausible tracks remain, ask me instead of guessing. Verify visible playback state before reporting completion.",
+        sensitiveAuthorized = false,
+        expectedPackageName = snapshot.packageName
+      )
     }
   }
 

@@ -42,6 +42,17 @@ class ScreenAutomationTest {
   }
 
   @Test
+  fun coordinateTapRequiresNormalizedCoordinatesAndVisibleTargetLabel() {
+    val tap = ScreenActionParser.parse("""{"action":"tap","x":420,"y":710,"target":"Play button","reason":"Start playback"}""")
+    assertEquals("tap", tap?.kind)
+    assertEquals(420, tap?.x)
+    assertEquals(710, tap?.y)
+    assertEquals("Play button", tap?.targetLabel)
+    assertNull(ScreenActionParser.parse("""{"action":"tap","x":1100,"y":710,"target":"Play button"}"""))
+    assertNull(ScreenActionParser.parse("""{"action":"tap","x":420,"y":710}"""))
+  }
+
+  @Test
   fun typeRequiresNodeAndNonBlankText() {
     assertNull(ScreenActionParser.parse("""{"action":"type","node":"0.1"}"""))
     assertNull(ScreenActionParser.parse("""{"action":"type","node":"0.1","text":""}"""))
@@ -85,6 +96,14 @@ class ScreenAutomationTest {
     assertTrue(ActionSafetyPolicy.requiresConfirmation("order:pizza"))
     assertFalse(ActionSafetyPolicy.requiresConfirmation("screen:current|task:scroll down"))
     assertFalse(ActionSafetyPolicy.requiresConfirmation("app:Calculator"))
+  }
+
+  @Test
+  fun coordinateTapsToSensitiveControlsNeedConfirmation() {
+    val tap = ScreenActionParser.parse("""{"action":"tap","x":500,"y":500,"target":"Delete account"}""")!!
+    assertTrue(ActionSafetyPolicy.targetRequiresConfirmation(tap, tap.targetLabel))
+    val play = ScreenActionParser.parse("""{"action":"tap","x":500,"y":500,"target":"Play"}""")!!
+    assertFalse(ActionSafetyPolicy.targetRequiresConfirmation(play, play.targetLabel))
   }
 
   @Test

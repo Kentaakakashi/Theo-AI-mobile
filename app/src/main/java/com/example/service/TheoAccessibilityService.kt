@@ -66,6 +66,60 @@ class TheoAccessibilityService : AccessibilityService() {
     return ScreenSnapshot(activePackage, elements)
   }
 
+  /**
+   * Captures a one-off screenshot through Android Accessibility. The bitmap exists only in
+   * memory and is returned to the caller for immediate compression; callers must not persist it.
+   * Android only exposes this API on API 30+.
+   */
+  suspend fun captureActiveScreenJpeg(): ByteArray? {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null
+    return kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+      try {
+        takeScreenshot(
+          android.view.Display.DEFAULT_DISPLAY,
+          mainExecutor,
+          object : TakeScreenshotCallback {
+            override fun onSuccess(result: ScreenshotResult) {
+              var bitmap: android.graphics.Bitmap? = null
+              try {
+                val hardwareBuffer = result.hardwareBuffer
+                bitmap = android.graphics.Bitmap.wrapHardwareBuffer(hardwareBuffer, result.colorSpace)
+                hardwareBuffer.close()
+                val source = bitmap ?: run {
+                  if (continuation.isActive) continuation.resume(null) {}
+                  return
+                }
+                // Downscale before encoding to reduce upload size and data usage.
+                val maxWidth = 1280
+                val scaled = if (source.width > maxWidth) {
+                  val height = (source.height * (maxWidth.toFloat() / source.width)).toInt().coerceAtLeast(1)
+                  android.graphics.Bitmap.createScaledBitmap(source, maxWidth, height, true)
+                } else source
+                val output = java.io.ByteArrayOutputStream()
+                scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 78, output)
+                if (scaled !== source) scaled.recycle()
+                if (continuation.isActive) continuation.resume(output.toByteArray()) {}
+              } catch (error: Exception) {
+                TheoDiagnosticLogger.warn("SCREEN_VISION", "Screenshot could not be encoded", error.javaClass.simpleName)
+                if (continuation.isActive) continuation.resume(null) {}
+              } finally {
+                bitmap?.recycle()
+              }
+            }
+
+            override fun onFailure(errorCode: Int) {
+              TheoDiagnosticLogger.warn("SCREEN_VISION", "Android screenshot capture failed", "code=$errorCode")
+              if (continuation.isActive) continuation.resume(null) {}
+            }
+          }
+        )
+      } catch (error: Exception) {
+        TheoDiagnosticLogger.warn("SCREEN_VISION", "Android screenshot capture unavailable", error.javaClass.simpleName)
+        if (continuation.isActive) continuation.resume(null) {}
+      }
+    }
+  }
+
   private fun collectElements(
     node: AccessibilityNodeInfo,
     path: String,

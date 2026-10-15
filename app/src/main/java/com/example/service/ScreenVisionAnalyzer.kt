@@ -28,7 +28,7 @@ internal class ScreenVisionAnalyzer {
     groqApiKey: String,
     geminiApiKeys: List<String>
   ): VisionDescription = withContext(Dispatchers.IO) {
-    if (jpegBytes.isEmpty()) return@withContext VisionDescription(null, "No screenshot bytes were available.")
+    if (jpegBytes.isEmpty()) return@withContext VisionDescription(null, "none", "No screenshot bytes were available.")
     val base64 = Base64.encodeToString(jpegBytes, Base64.NO_WRAP)
     val groqKey = groqApiKey.trim()
     if (groqKey.isNotBlank()) {
@@ -38,12 +38,18 @@ internal class ScreenVisionAnalyzer {
     } else {
       TheoDiagnosticLogger.warn("SCREEN_VISION", "Groq key is not configured; trying Gemini fallback")
     }
+    var geminiFailure: String? = null
     for ((index, key) in geminiApiKeys.withIndex()) {
       val fallback = requestGemini(base64, key)
       if (fallback.first != null) return@withContext VisionDescription(fallback.first, "Gemini vision fallback")
+      geminiFailure = fallback.second
       TheoDiagnosticLogger.warn("SCREEN_VISION", "Gemini vision fallback attempt failed", "keySlot=${index + 1}: ${fallback.second}")
     }
-    VisionDescription(null, "Vision providers failed or are not configured. Configure Groq and Gemini API keys in Settings.")
+    val failure = buildList {
+      if (groqKey.isBlank()) add("Groq key is not configured") else add("Groq: ${primary.second}")
+      if (geminiApiKeys.isEmpty()) add("Gemini keys are not configured") else add("Gemini: ${geminiFailure ?: "request failed"}")
+    }.joinToString("; ")
+    VisionDescription(null, "none", "No configured vision provider could describe the screenshot ($failure).")
   }
 
   private fun requestGroq(base64: String, apiKey: String): Pair<String?, String> {
@@ -124,4 +130,4 @@ internal class ScreenVisionAnalyzer {
   }
 }
 
-internal data class VisionDescription(val text: String?, val provider: String)
+internal data class VisionDescription(val text: String?, val provider: String, val error: String? = null)

@@ -77,6 +77,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   private val database = TheoDatabase.getDatabase(application)
   private val dao = database.theoDao()
   private val aiEngine = TheoAiEngine()
+  private val screenVisionAnalyzer = com.example.service.ScreenVisionAnalyzer()
   private val prefs = application.getSharedPreferences("theo_prefs", Context.MODE_PRIVATE)
   private var screenAutomationJob: Job? = null
 
@@ -575,6 +576,37 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             delay(700)
             continue
           }
+          _uiState.update { state ->
+            state.copy(currentThinkingStep = "Analyzing screenshot with cloud vision")
+          }
+          val visualContext = try {
+            val screenshotBytes = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+              service.captureActiveScreenJpeg()
+            } else null
+            if (screenshotBytes != null) {
+              try {
+                val vision = screenVisionAnalyzer.describe(
+                  jpegBytes = screenshotBytes,
+                  groqApiKey = _uiState.value.groqApiKey,
+                  geminiApiKeys = com.example.service.parseGeminiApiKeys(_uiState.value.customApiKey)
+                )
+                TheoDiagnosticLogger.info(
+                  "SCREEN_VISION",
+                  "Screenshot interpretation finished",
+                  "provider=${vision.provider}, descriptionChars=${vision.text?.length ?: 0}"
+                )
+                vision.text
+              } finally {
+                screenshotBytes.fill(0)
+              }
+            } else {
+              TheoDiagnosticLogger.info("SCREEN_VISION", "Screenshot unavailable; using accessibility tree only")
+              null
+            }
+          } catch (visionError: Exception) {
+            TheoDiagnosticLogger.warn("SCREEN_VISION", "Vision step failed; continuing with accessibility tree", visionError.javaClass.simpleName)
+            null
+          }
           val plan = aiEngine.planScreenAction(
             task = task,
             screen = snapshot,
@@ -582,7 +614,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             activeModel = _uiState.value.activeModel,
             customApiKey = _uiState.value.customApiKey,
             termuxHost = _uiState.value.termuxHost,
-            sensitiveActionsAuthorized = sensitiveAuthorized
+            sensitiveActionsAuthorized = sensitiveAuthorized,
+            visualContext = visualContext
           )
           val action = plan.action
           if (action == null) {

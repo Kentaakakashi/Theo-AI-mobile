@@ -176,6 +176,20 @@ class TheoAccessibilityService : AccessibilityService() {
    * Android only exposes this API on API 30+.
    */
   suspend fun captureActiveScreenJpeg(): ScreenCaptureResult {
+    val first = captureActiveScreenJpegOnce()
+    if (first.succeeded || first.error?.contains("internal screenshot error", ignoreCase = true) != true) return first
+    // A single bounded retry can recover transient OEM screenshot failures.
+    kotlinx.coroutines.delay(350L)
+    val retry = captureActiveScreenJpegOnce()
+    if (retry.succeeded) {
+      TheoDiagnosticLogger.info("SCREEN_VISION", "Screenshot retry recovered")
+      return retry
+    }
+    TheoDiagnosticLogger.warn("SCREEN_VISION", "Screenshot retry also failed", retry.error ?: "No reason returned")
+    return ScreenCaptureResult(null, (first.error ?: "Screenshot capture failed") + " A single retry also failed: " + (retry.error ?: "unknown screenshot error"))
+  }
+
+  private suspend fun captureActiveScreenJpegOnce(): ScreenCaptureResult {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
       return ScreenCaptureResult(null, "Native accessibility screenshots require Android 11 or newer.")
     }

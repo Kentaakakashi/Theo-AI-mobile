@@ -146,7 +146,7 @@ fun CoreAssistantScreen(
               )
               Spacer(modifier = Modifier.width(5.dp))
               Text(
-                text = "Tap Orb to State Voice Command",
+                text = "TAP CORE TO SPEAK",
                 color = TheoTextSecondary,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 10.sp,

@@ -362,7 +362,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   fun executeDeviceAction(actionKey: String) {
     val state = _uiState.value
     val explicitlyConfirmed = state.pendingActionTag == actionKey
-    // SCREEN_INSPECTION_ACTION_PLACEHOLDER
+    if (actionKey.equals("inspect-screen", ignoreCase = true)) {
+      _uiState.update { it.copy(pendingActionTag = null, pendingScreenTargetLabel = null, pendingScreenPackageName = null) }
+      inspectCurrentScreen()
+      return
+    }
 
     // If an unexpected sensitive target was found, explicit confirmation restarts the
     // task from the target app's current screen with the additional authorization.
@@ -401,6 +405,92 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       }
     } else {
       appendMessageAsync("Android could not dispatch the requested action. No successful outcome is being claimed.")
+    }
+  }
+
+  private fun inspectCurrentScreen() {
+    if (screenAutomationJob?.isActive == true) {
+      appendMessageAsync("A screen task is already running. Stop it from Settings before requesting another inspection.")
+      return
+    }
+    if (!TheoAccessibilityService.isEnabled(getApplication())) {
+      appendMessageAsync(
+        "Enable Theo Screen Automation in Android Accessibility Settings, return to Theo, and retry screen inspection.",
+        actionTag = "setup:accessibility"
+      )
+      return
+    }
+    screenAutomationJob = viewModelScope.launch {
+      _uiState.update {
+        it.copy(
+          isScreenAutomationRunning = true,
+          assistantState = AssistantState.THINKING,
+          currentThinkingStep = "Capturing current screen",
+          thinkingSteps = listOf("Screen inspection requested")
+        )
+      }
+      try {
+        val service = TheoAccessibilityService.instance
+        if (service == null) {
+          appendAssistantMessage("Theo Screen Automation is enabled but Android has not connected the service yet. Return to Theo and retry.", badge = "SCREEN INSPECTION")
+          return@launch
+        }
+        val snapshot = service.captureActiveScreen()
+        val capture = service.captureActiveScreenJpeg()
+        var description: String? = null
+        var provider: String? = null
+        var failure = capture.error
+        val bytes = capture.jpegBytes
+        if (bytes != null) {
+          try {
+            _uiState.update { it.copy(currentThinkingStep = "Analyzing screenshot with configured vision API") }
+            val vision = screenVisionAnalyzer.describe(
+              jpegBytes = bytes,
+              groqApiKey = _uiState.value.groqApiKey,
+              geminiApiKeys = com.example.service.parseGeminiApiKeys(_uiState.value.customApiKey)
+            )
+            description = vision.text
+            provider = vision.provider
+            failure = vision.error
+            TheoDiagnosticLogger.info("SCREEN_VISION", "Screen inspection finished", "provider=\${vision.provider}, descriptionChars=\${vision.text?.length ?: 0}")
+          } finally {
+            bytes.fill(0)
+          }
+        }
+        val visibleElements = snapshot?.elements.orEmpty()
+          .filter { it.label.isNotBlank() || it.clickable || it.editable || it.scrollable }
+          .take(40)
+        val tree = visibleElements.joinToString("\n") { element ->
+          "- \${element.label.ifBlank { element.role.ifBlank { "Unlabelled control" } }}\${if (element.clickable) " [clickable]" else ""}\${if (element.editable) " [editable]" else ""}\${if (element.scrollable) " [scrollable]" else ""}"
+        }
+        val response = when {
+          !description.isNullOrBlank() -> "Current screen inspection via \${provider ?: "configured vision API"}:\n\n$description"
+          tree.isNotBlank() -> "Visual analysis unavailable: \${failure ?: "No configured vision provider returned a description."}\n\nAccessibility-only view of \${snapshot?.packageName ?: "the active app"}:\n$tree\n\nThis fallback may omit visual layout and images."
+          else -> "Theo could not inspect the current screen. \${failure ?: "Android did not expose a readable accessibility tree or screenshot."} Check that the screen is unlocked and Theo Screen Automation is enabled. Secure or DRM-protected screens may block capture. Native capture does not require Termux or ADB."
+        }
+        appendAssistantMessage(response, badge = "SCREEN INSPECTION")
+        dao.insertActivity(ActivityEntity(
+          id = UUID.randomUUID().toString(),
+          title = "Screen Inspection",
+          subtitle = response.take(110),
+          timestamp = System.currentTimeMillis(),
+          type = "DEVICE"
+        ))
+      } catch (cancelled: CancellationException) {
+        TheoDiagnosticLogger.info("SCREEN_VISION", "Screen inspection cancelled")
+      } catch (error: Exception) {
+        TheoDiagnosticLogger.error("SCREEN_VISION", "Screen inspection failed", error)
+        appendAssistantMessage("Screen inspection failed: \${error.localizedMessage ?: error.javaClass.simpleName}. No screen action was attempted.", badge = "SCREEN INSPECTION")
+      } finally {
+        _uiState.update {
+          it.copy(
+            isScreenAutomationRunning = false,
+            assistantState = if (it.assistantState == AssistantState.THINKING) AssistantState.IDLE else it.assistantState,
+            currentThinkingStep = "",
+            thinkingSteps = emptyList()
+          )
+        }
+      }
     }
   }
 

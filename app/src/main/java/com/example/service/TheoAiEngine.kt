@@ -83,6 +83,8 @@ class TheoAiEngine {
     val actionIntent = ActionIntentParser.parse(prompt)
     if (actionIntent != null) {
       val actionDescription = when {
+        actionIntent == "inspect-screen" ->
+          "inspect the current Android screen using native screenshot capture and accessible UI labels"
         actionIntent.startsWith("screen:", ignoreCase = true) ->
           "use the live Android accessibility tree to attempt \"${ScreenAutomationRequest.parse(actionIntent)?.task.orEmpty()}\""
         actionIntent.startsWith("app:", ignoreCase = true) ->
@@ -108,8 +110,10 @@ class TheoAiEngine {
       TheoDiagnosticLogger.info("DEVICE_ACTION", "Action request recognized", "action=$actionIntent")
       return@withContext EngineResult(
         responseText = when {
+          actionIntent == "inspect-screen" ->
+            "I will inspect the current screen using Android native screenshot/accessibility APIs. No Termux or ADB bridge is required. A screenshot may be sent to your configured Groq or Gemini vision API for this request only; Theo does not save it."
           actionIntent.startsWith("screen:", ignoreCase = true) ->
-            "I'll attempt this task using the active app's accessibility labels and the AI provider selected in Theo Settings. Theo stops if the screen is ambiguous or a sensitive step needs confirmation. Screen labels are inspected only for this task; screenshots are not captured or saved."
+            "I will attempt this task using the active app accessibility labels and, when supported, a transient screenshot for visual context. Theo stops if the screen is ambiguous or a sensitive step needs confirmation. Screenshots are not saved."
           actionIntent.startsWith("order:", ignoreCase = true) ->
             "I can ${actionDescription}. Review the item, address, and price yourself; Theo will not place an order or confirm payment automatically."
           actionIntent.startsWith("sequence:", ignoreCase = true) ->

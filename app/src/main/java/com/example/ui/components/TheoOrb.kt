@@ -159,6 +159,44 @@ fun TheoOrb(
       val canvasCenter = Offset(size.width / 2f, size.height / 2f)
       val maxRadius = size.width / 2f
 
+      // Solar flare spokes: varied lengths create the radial reactor silhouette.
+      if (isFullAnim) {
+        for (i in 0 until 32) {
+          val angle = (i * (2.0 * PI / 32.0) + ringRotation * PI / 180.0).toFloat()
+          val innerRadius = maxRadius * (0.19f + (i % 4) * 0.025f)
+          val outerRadius = maxRadius * (0.69f + ((i * 7) % 6) * 0.045f)
+          val start = Offset(
+            canvasCenter.x + cos(angle) * innerRadius,
+            canvasCenter.y + sin(angle) * innerRadius
+          )
+          val end = Offset(
+            canvasCenter.x + cos(angle) * outerRadius,
+            canvasCenter.y + sin(angle) * outerRadius
+          )
+          drawLine(
+            color = primaryColor.copy(alpha = if (state == AssistantState.THINKING) 0.72f else 0.42f),
+            start = start,
+            end = end,
+            strokeWidth = if (i % 4 == 0) 1.8.dp.toPx() else 1.dp.toPx()
+          )
+        }
+
+        // Stable orbit particles (deterministic positions, no per-frame random allocations).
+        for (i in 0 until 96) {
+          val angle = (i * 2.39996f + ringRotation * PI.toFloat() / 180f).toFloat()
+          val radial = maxRadius * (0.56f + ((i * 13) % 41) / 100f)
+          val dot = Offset(
+            canvasCenter.x + cos(angle) * radial,
+            canvasCenter.y + sin(angle) * radial
+          )
+          drawCircle(
+            color = primaryColor.copy(alpha = 0.18f + (i % 5) * 0.07f),
+            radius = if (i % 9 == 0) 1.6.dp.toPx() else 0.8.dp.toPx(),
+            center = dot
+          )
+        }
+      }
+
       // Multi-stop radial atmospheric aura
       drawCircle(
         brush = Brush.radialGradient(

@@ -14,6 +14,11 @@ data class ScreenElement(
   val enabled: Boolean
 )
 
+/** One-shot screenshot result; failures retain the Android reason for diagnostics. */
+data class ScreenCaptureResult(val jpegBytes: ByteArray?, val error: String? = null) {
+  val succeeded: Boolean get() = jpegBytes != null && jpegBytes.isNotEmpty()
+}
+
 data class ScreenSnapshot(val packageName: String, val elements: List<ScreenElement>) {
   fun toModelText(maxChars: Int = 12000): String = buildString {
     append("package=").append(packageName).append('\n')

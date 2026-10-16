@@ -134,6 +134,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   init {
+    TheoAccessibilityService.overlayStopHandler = { stopScreenAutomation() }
     TheoDiagnosticLogger.info("VIEW_MODEL", "TheoViewModel initialized", "model=${_uiState.value.activeModel}")
     refreshTelemetry()
     seedWelcomeIfEmpty()
@@ -678,6 +679,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           thinkingSteps = listOf("Screen task accepted")
         )
       }
+      publishAutomationOverlay(
+        task = task,
+        status = "Starting · checking the active app",
+        detail = if (expectedPackageName != null) "Expected app: $expectedPackageName" else "Reading the currently active app."
+      )
       val history = mutableListOf<String>()
       var finalMessage = ""
       var pausedForReview = false
@@ -688,6 +694,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       try {
         for (stepNumber in 1..20) {
           kotlinx.coroutines.currentCoroutineContext().ensureActive()
+          publishAutomationOverlay(
+            task = task,
+            status = "Inspecting screen · step $stepNumber/20",
+            detail = "Checking the current app and available controls before acting."
+          )
           val service = TheoAccessibilityService.instance
           if (service == null) {
             finalMessage = "Theo's Accessibility Service is enabled in Android Settings but is not connected yet. Return to Theo and retry."
@@ -721,6 +732,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               val transitionStartedAt = System.currentTimeMillis()
               val transitionTimeoutMs = 10_000L
               var observedPackage = snapshot.packageName
+              publishAutomationOverlay(
+                task = task,
+                status = "Waiting for app selection / unlock",
+                detail = "Expected: $targetPackage · Currently showing: $observedPackage. Theo will not click this screen."
+              )
               _uiState.update {
                 it.copy(
                   currentThinkingStep = "Waiting for Android app selection or unlock",
@@ -867,6 +883,13 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             deviceContext = notificationContext
           )
           val action = plan.action
+          if (action != null) {
+            publishAutomationOverlay(
+              task = task,
+              status = "Plan: ${action.kind}",
+              detail = action.reason.ifBlank { action.targetLabel }.ifBlank { "Theo is preparing the next action." }
+            )
+          }
           if (action == null) {
             finalMessage = "Screen automation stopped safely: ${plan.error ?: "the configured AI provider returned no usable action."}"
             break
@@ -964,8 +987,18 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           }
 
           consecutiveWaits = 0
+          publishAutomationOverlay(
+            task = task,
+            status = "Doing: ${action.kind}",
+            detail = "Target: ${targetLabel.ifBlank { action.nodePath ?: "screen control" }} · ${action.reason.take(130)}"
+          )
           val success = service.performScreenAction(action, snapshot.packageName)
           if (success) {
+            publishAutomationOverlay(
+              task = task,
+              status = "Action sent: ${action.kind}",
+              detail = "Target: ${targetLabel.ifBlank { action.nodePath ?: "screen control" }}"
+            )
             consecutiveFailures = 0
             history.add("Step $stepNumber: ${action.kind} on ${action.nodePath ?: "(system)"} dispatched. Reason: ${action.reason.take(120)}")
             _uiState.update { state ->
@@ -987,6 +1020,12 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         if (finalMessage.isBlank()) {
           finalMessage = "Theo reached the 20-step safety limit. The task may be incomplete; review the target app."
         }
+        publishAutomationOverlay(
+          task = task,
+          status = if (pausedForReview) "Paused for your confirmation" else if (finalMessage.contains("complete", true)) "Task steps finished · verify result" else "Task ended",
+          detail = finalMessage,
+          autoHideMs = 9_000L
+        )
         appendAssistantMessage(finalMessage, badge = "SCREEN AUTOMATION")
         dao.insertActivity(ActivityEntity(
           id = UUID.randomUUID().toString(),
@@ -1016,9 +1055,29 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     }
   }
 
+  private fun publishAutomationOverlay(
+    task: String,
+    status: String,
+    detail: String,
+    autoHideMs: Long = 0L
+  ) {
+    TheoAccessibilityService.instance?.showAutomationOverlay(
+      title = task.take(100),
+      status = status.take(180),
+      detail = detail.take(220),
+      autoHideMs = autoHideMs
+    )
+  }
+
   fun stopScreenAutomation() {
     screenAutomationJob?.cancel()
     screenAutomationJob = null
+    TheoAccessibilityService.instance?.showAutomationOverlay(
+      title = "Task stopped",
+      status = "Stopped by you",
+      detail = "Theo will not send any more actions.",
+      autoHideMs = 2500L
+    )
   }
 
   private fun appendMessageAsync(text: String, actionTag: String? = null) {

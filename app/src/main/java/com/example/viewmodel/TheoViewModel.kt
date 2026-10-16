@@ -315,6 +315,20 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         )
       }
 
+      val deviceContextRequested = TaskNeedsNotificationContext.matches(text)
+      val requestedDeviceContext = if (deviceContextRequested) {
+        val application = getApplication<Application>()
+        val listener = TheoNotificationListenerService.instance
+        when {
+          !TheoNotificationListenerService.isEnabled(application) ->
+            "LIVE DEVICE CONTEXT UNAVAILABLE: Theo's Android Notification access permission is disabled. Do not claim to read current media or notification previews."
+          listener == null ->
+            "LIVE DEVICE CONTEXT UNAVAILABLE: Android reports Notification access enabled, but Theo's listener is not connected; no live media or notification content is available."
+          else -> listener.buildTaskContext(text)
+            ?: "LIVE DEVICE CONTEXT UNAVAILABLE: Theo could not obtain relevant current media metadata or notification previews for this request. Do not invent them."
+        }
+      } else null
+
       val result = try {
         aiEngine.processQuery(
           prompt = text,
@@ -332,7 +346,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                   else current.thinkingSteps + step
               )
             }
-          }
+          },
+          deviceContext = requestedDeviceContext
         )
       } catch (e: Exception) {
         TheoDiagnosticLogger.error("CHAT", "Unhandled AI processing exception", e)

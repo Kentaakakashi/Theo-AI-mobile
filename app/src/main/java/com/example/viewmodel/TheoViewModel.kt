@@ -719,7 +719,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             if (stepNumber == 1) {
               val targetPackage = expectedPackageName
               val transitionStartedAt = System.currentTimeMillis()
-              val transitionTimeoutMs = 60_000L
+              val transitionTimeoutMs = 10_000L
               var observedPackage = snapshot.packageName
               _uiState.update {
                 it.copy(

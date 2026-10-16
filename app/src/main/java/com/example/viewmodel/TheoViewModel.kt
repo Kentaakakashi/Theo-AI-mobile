@@ -1392,8 +1392,10 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   ): Boolean {
     if (actions.size !in 2..3) return false
     if (ActionSafetyPolicy.requiresConfirmation("screen:current|task:$task")) return false
-    if (Regex("""(?i)\b(permission|settings|enable|disable|grant access)\b""").containsMatchIn(task)) return false
+    if (Regex("""(?i)\b(permission|settings|enable|disable|grant access|login|log in|sign in|sign up|account|password|passcode|otp|verification|authenticate)\b""").containsMatchIn(task)) return false
+    val nonBatchableTarget = Regex("""(?i)\b(save|submit|confirm|approve|accept|allow|send|publish|post|delete|remove|checkout|purchase|payment)\b""")
     return actions.all { action ->
+      if (nonBatchableTarget.containsMatchIn(action.targetLabel)) return@all false
       if (action.kind !in setOf("click", "type", "scroll")) return@all false
       if (action.nodePath.isNullOrBlank() || action.targetLabel.isBlank()) return@all false
       if (ActionSafetyPolicy.targetRequiresConfirmation(action, action.targetLabel)) return@all false

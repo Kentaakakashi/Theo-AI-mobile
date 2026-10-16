@@ -738,6 +738,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         detail = if (expectedPackageName != null) "Expected app: $expectedPackageName" else "Reading the currently active app."
       )
       val history = mutableListOf<String>()
+      val pendingPlannedActions = mutableListOf<com.example.service.ScreenAction>()
       var finalMessage = ""
       var pausedForReview = false
       var consecutiveFailures = 0
@@ -914,6 +915,27 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           }
           lastSnapshotFingerprint = fingerprint
 
+          var validatedQueuedAction: com.example.service.ScreenAction? = null
+          if (pendingPlannedActions.isNotEmpty()) {
+            val queuedCandidate = pendingPlannedActions.removeAt(0)
+            if (isBatchedActionApplicable(queuedCandidate, snapshot)) {
+              validatedQueuedAction = queuedCandidate
+              TheoDiagnosticLogger.info(
+                "SCREEN_AUTOMATION",
+                "Using fresh-screen validated planned action",
+                "step=$stepNumber; kind=${queuedCandidate.kind}; target=${queuedCandidate.targetLabel.take(80)}; remaining=${pendingPlannedActions.size}"
+              )
+            } else {
+              pendingPlannedActions.clear()
+              TheoDiagnosticLogger.info(
+                "SCREEN_AUTOMATION",
+                "Discarded stale planned action batch",
+                "step=$stepNumber; kind=${queuedCandidate.kind}; target=${queuedCandidate.targetLabel.take(80)}"
+              )
+              history.add("Step $stepNumber: discarded queued actions because the current screen no longer matched their node, label or capability; replan from fresh UI.")
+            }
+          }
+
           _uiState.update { state ->
             state.copy(
               currentThinkingStep = "Planning step $stepNumber",
@@ -929,7 +951,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           val hasActionableControls = snapshot.elements.any {
             it.enabled && (it.clickable || it.editable || it.scrollable)
           }
-          val visualContext = if (!hasActionableControls) {
+          val visualContext = if (!hasActionableControls && validatedQueuedAction == null) {
             _uiState.update { state ->
               state.copy(currentThinkingStep = "Trying visual fallback")
             }
@@ -961,7 +983,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               null
             }
           } else null
-          val notificationContext = if (com.example.service.AutomationTaskVerifier.requestsDeviceContext(task)) {
+          val notificationContext = if (validatedQueuedAction == null && com.example.service.AutomationTaskVerifier.requestsDeviceContext(task)) {
             val application = getApplication<Application>()
             val listener = TheoNotificationListenerService.instance
             when {
@@ -982,21 +1004,47 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             "step=$stepNumber; package=${snapshot.packageName}; elements=${snapshot.elements.size}; actionable=$hasActionableControls; visualContextChars=${visualContext?.length ?: 0}; model=${_uiState.value.activeModel}"
           )
           val plannerStartedAt = System.currentTimeMillis()
-          val plan = aiEngine.planScreenAction(
-            task = task,
-            screen = snapshot,
-            history = history,
-            activeModel = _uiState.value.activeModel,
-            customApiKey = _uiState.value.customApiKey,
-            sensitiveActionsAuthorized = sensitiveAuthorized,
-            visualContext = visualContext,
-            deviceContext = notificationContext,
-            learnedWorkflowHint = learnedWorkflowHint
-          )
+          val plan = if (validatedQueuedAction != null) {
+            com.example.service.ScreenPlanResult(
+              action = validatedQueuedAction,
+              actions = listOf(validatedQueuedAction)
+            )
+          } else {
+            aiEngine.planScreenAction(
+              task = task,
+              screen = snapshot,
+              history = history,
+              activeModel = _uiState.value.activeModel,
+              customApiKey = _uiState.value.customApiKey,
+              sensitiveActionsAuthorized = sensitiveAuthorized,
+              visualContext = visualContext,
+              deviceContext = notificationContext,
+              learnedWorkflowHint = learnedWorkflowHint
+            )
+          }
           if (screenAutomationPaused) {
+            pendingPlannedActions.clear()
             awaitAutomationResume(task)
             history.add("Step $stepNumber: discarded the pre-pause plan and will inspect a fresh screen after resume.")
             continue
+          }
+          if (validatedQueuedAction == null) {
+            pendingPlannedActions.clear()
+            val safeBatch = plan.actions.takeIf { isSafePlannedBatch(task, it) }
+            if (safeBatch != null) {
+              pendingPlannedActions.addAll(safeBatch.drop(1))
+              TheoDiagnosticLogger.info(
+                "SCREEN_AUTOMATION",
+                "Accepted guarded action batch",
+                "step=$stepNumber; queued=${pendingPlannedActions.size}; model=${_uiState.value.activeModel}"
+              )
+            } else if (plan.actions.size > 1) {
+              TheoDiagnosticLogger.info(
+                "SCREEN_AUTOMATION",
+                "Rejected unsafe action batch",
+                "step=$stepNumber; count=${plan.actions.size}"
+              )
+            }
           }
           val action = plan.action
           TheoDiagnosticLogger.info(
@@ -1334,6 +1382,53 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       detail = detail.take(220),
       autoHideMs = autoHideMs
     )
+  }
+
+  private fun isSafePlannedBatch(
+    task: String,
+    actions: List<com.example.service.ScreenAction>
+  ): Boolean {
+    if (actions.size !in 2..3) return false
+    if (ActionSafetyPolicy.requiresConfirmation("screen:current|task:$task")) return false
+    if (Regex(
+        """(?i)\\b(send|message|dm|reply|comment|post|publish|delete|remove|buy|purchase|pay|payment|checkout|order|transfer|share|upload|install|uninstall|permission|password|passcode|otp|verification code)\\b"""
+      ).containsMatchIn(task)
+    ) return false
+
+    return actions.all { action ->
+      if (action.kind !in setOf("click", "type", "scroll")) return@all false
+      if (action.nodePath.isNullOrBlank() || action.targetLabel.isBlank()) return@all false
+      if (ActionSafetyPolicy.targetRequiresConfirmation(action, action.targetLabel)) return@all false
+      if (action.kind == "type") {
+        val textToType = action.text?.trim().orEmpty()
+        if (textToType.isBlank() || !task.contains(textToType, ignoreCase = true)) return@all false
+      }
+      true
+    }
+  }
+
+  private fun isBatchedActionApplicable(
+    action: com.example.service.ScreenAction,
+    snapshot: com.example.service.ScreenSnapshot
+  ): Boolean {
+    if (action.kind !in setOf("click", "type", "scroll")) return false
+    val path = action.nodePath ?: return false
+    val expectedLabel = action.targetLabel.trim()
+    if (expectedLabel.isBlank()) return false
+    val element = snapshot.elements.firstOrNull { it.id == path } ?: return false
+    if (!element.enabled) return false
+    val actualLabel = element.label.trim()
+    if (
+      !actualLabel.equals(expectedLabel, ignoreCase = true) &&
+      !actualLabel.contains(expectedLabel, ignoreCase = true)
+    ) return false
+
+    return when (action.kind) {
+      "click" -> element.clickable
+      "type" -> element.editable && !action.text.isNullOrBlank()
+      "scroll" -> element.scrollable
+      else -> false
+    }
   }
 
   private suspend fun awaitAutomationResume(task: String) {

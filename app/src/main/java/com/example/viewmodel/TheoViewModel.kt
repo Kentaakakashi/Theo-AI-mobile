@@ -839,7 +839,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             // become the active window after an explicit app launch. Never interact with
             // those screens as if they were the target app; wait for the user to finish
             // the system prompt, then resume only when the exact target package is active.
-            if (true) {
               val targetPackage = expectedPackageName
               val transitionStartedAt = System.currentTimeMillis()
               // System App Lock and biometric prompts can appear after any action.
@@ -891,10 +890,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                 finalMessage = "Theo waited 2 minutes for $targetPackage, but Android kept showing $observedPackage. Unlock the phone/app or finish the app chooser, then start the task again. Theo did not interact with that other screen."
                 break
               }
-            } else {
-              finalMessage = "Theo waited for the target app, but the active screen still belongs to ${snapshot.packageName}. Theo stopped rather than inspecting or operating in another app."
-              break
-            }
           }
           if (snapshot == null) {
             val activePackage = service.getActiveWindowPackageName()

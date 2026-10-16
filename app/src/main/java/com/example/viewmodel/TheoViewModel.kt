@@ -1000,8 +1000,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           } else null
           TheoDiagnosticLogger.info(
             "SCREEN_AUTOMATION",
-            "Planning next screen action",
-            "step=$stepNumber; package=${snapshot.packageName}; elements=${snapshot.elements.size}; actionable=$hasActionableControls; visualContextChars=${visualContext?.length ?: 0}; model=${_uiState.value.activeModel}"
+            "Selecting next screen action",
+            "step=$stepNumber; package=${snapshot.packageName}; elements=${snapshot.elements.size}; actionable=$hasActionableControls; queuedAction=${validatedQueuedAction != null}; visualContextChars=${visualContext?.length ?: 0}; model=${_uiState.value.activeModel}"
           )
           val plannerStartedAt = System.currentTimeMillis()
           val queuedActionForPlan = validatedQueuedAction
@@ -1051,7 +1051,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           TheoDiagnosticLogger.info(
             "SCREEN_AUTOMATION",
             "Screen planner returned",
-            "step=$stepNumber; latencyMs=${System.currentTimeMillis() - plannerStartedAt}; action=${action?.kind ?: "none"}; reason=${action?.reason?.take(120).orEmpty()}; error=${plan.error?.take(180).orEmpty()}"
+            "step=$stepNumber; source=${if (queuedActionForPlan != null) "validated_batch" else "model"}; latencyMs=${System.currentTimeMillis() - plannerStartedAt}; action=${action?.kind ?: "none"}; reason=${action?.reason?.take(120).orEmpty()}; error=${plan.error?.take(180).orEmpty()}"
           )
           if (action != null) {
             publishAutomationOverlay(
@@ -1392,6 +1392,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   ): Boolean {
     if (actions.size !in 2..3) return false
     if (ActionSafetyPolicy.requiresConfirmation("screen:current|task:$task")) return false
+    if (Regex("""(?i)\b(permission|settings|enable|disable|grant access)\b""").containsMatchIn(task)) return false
     return actions.all { action ->
       if (action.kind !in setOf("click", "type", "scroll")) return@all false
       if (action.nodePath.isNullOrBlank() || action.targetLabel.isBlank()) return@all false

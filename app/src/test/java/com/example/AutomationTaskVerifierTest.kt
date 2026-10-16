@@ -21,6 +21,7 @@ class AutomationTaskVerifierTest {
   fun extractsUnquotedTrackTitleWithoutGuessingOtherWords() {
     assertEquals("My House Is Not a Home", AutomationTaskVerifier.requestedTrack("play My House Is Not a Home"))
     assertEquals("Creep", AutomationTaskVerifier.requestedTrack("play the song Creep on BitChord"))
+    assertEquals("Creep", AutomationTaskVerifier.requestedTrack("play Creep now"))
     assertNull(AutomationTaskVerifier.requestedTrack("open BitChord"))
   }
 

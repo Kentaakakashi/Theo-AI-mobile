@@ -155,7 +155,11 @@ class TheoNotificationListenerService : NotificationListenerService() {
       }
       val matching = candidates.filter { candidate ->
         val actual = normalizeTrackTitle(candidate.title)
-        actual == requested || actual.contains(requested) || requested.contains(actual)
+        actual == requested ||
+          (requested.length >= 4 && actual.startsWith("$requested ")) ||
+          (actual.length >= 4 && requested.startsWith("$actual ")) ||
+          (requested.length >= 8 && actual.contains(" $requested ")) ||
+          (actual.length >= 8 && requested.contains(" $actual "))
       }
       val expected = expectedPackageName?.takeIf { it.isNotBlank() }
       val selected = if (expected == null) {

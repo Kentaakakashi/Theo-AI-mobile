@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -94,7 +93,6 @@ fun SettingsScreen(
   var selectedIntensity by remember(uiState.animationIntensity) { mutableStateOf(uiState.animationIntensity) }
   var apiKeyInput by remember(uiState.customApiKey) { mutableStateOf(uiState.customApiKey) }
   var groqApiKeyInput by remember(uiState.groqApiKey) { mutableStateOf(uiState.groqApiKey) }
-  var termuxHostInput by remember(uiState.termuxHost) { mutableStateOf(uiState.termuxHost) }
 
   Box(
     modifier = modifier
@@ -141,7 +139,7 @@ fun SettingsScreen(
               .border(1.dp, if (isSelected) TheoCyan else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
               .clickable {
                 selectedModel = model
-                onSaveSettings(model, selectedIntensity, apiKeyInput, termuxHostInput, groqApiKeyInput)
+                onSaveSettings(model, selectedIntensity, apiKeyInput, "", groqApiKeyInput)
               }
               .padding(12.dp)
           ) {
@@ -197,94 +195,8 @@ fun SettingsScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
-      // Section 2: Termux Local Qwen Bridge
-      SettingsSectionHeader(icon = Icons.Default.Terminal, title = "Termux Qwen3-1.7B Local Bridge")
-      Box(
-        modifier = Modifier
-          .fillMaxWidth()
-          .clip(RoundedCornerShape(12.dp))
-          .background(TheoSurfaceGlass)
-          .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
-          .padding(14.dp)
-      ) {
-        Column {
-          Text(
-            text = "On-device inference via localhost socket without internet:",
-            color = TheoTextSecondary,
-            fontSize = 12.sp
-          )
-          Spacer(modifier = Modifier.height(8.dp))
-
-          OutlinedTextField(
-            value = termuxHostInput,
-            onValueChange = {
-              termuxHostInput = it
-              onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, it, groqApiKeyInput)
-            },
-            label = { Text("Local Socket URL") },
-            textStyle = androidx.compose.ui.text.TextStyle(
-              fontFamily = FontFamily.Monospace,
-              fontSize = 12.sp,
-              color = TheoTextPrimary
-            ),
-            colors = OutlinedTextFieldDefaults.colors(
-              focusedBorderColor = TheoCyan,
-              unfocusedBorderColor = TheoSurfaceBorder
-            ),
-            modifier = Modifier.fillMaxWidth()
-          )
-
-          Spacer(modifier = Modifier.height(10.dp))
-
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-          ) {
-            Button(
-              onClick = onTestQwen,
-              enabled = !uiState.isTestingQwen,
-              colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceCard),
-              modifier = Modifier.border(1.dp, TheoCyan.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-            ) {
-              if (uiState.isTestingQwen) {
-                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = TheoCyan)
-                Spacer(modifier = Modifier.width(6.dp))
-              } else {
-                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(14.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-              }
-              Text("Ping Socket", color = TheoCyan, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-            }
-
-            Text(
-              text = uiState.qwenStatusMessage,
-              color = if (uiState.qwenStatusMessage.contains("OK")) TheoOnlineGreen else TheoTextMuted,
-              fontFamily = FontFamily.Monospace,
-              fontSize = 10.sp,
-              modifier = Modifier.padding(start = 8.dp)
-            )
-          }
-
-          Spacer(modifier = Modifier.height(10.dp))
-
-          Box(
-            modifier = Modifier
-              .fillMaxWidth()
-              .clip(RoundedCornerShape(8.dp))
-              .background(TheoSurfaceDeep)
-              .padding(8.dp)
-          ) {
-            Text(
-              text = "💡 In Termux, run:\nllama-server -m qwen3-1.7b.gguf --port 8080",
-              color = TheoTextSecondary,
-              fontFamily = FontFamily.Monospace,
-              fontSize = 10.sp
-            )
-          }
-        }
-      }
-
+      // Local Qwen is being migrated to an in-app inference runtime.
+      // The old Termux-host URL and socket-ping controls are intentionally removed.
       Spacer(modifier = Modifier.height(20.dp))
 
       // Section 3: Gemini Cloud API Keys
@@ -388,7 +300,7 @@ fun SettingsScreen(
                     apiKeyInput = updatedKeys.joinToString("\n")
                     editingApiKeyIndex = null
                     apiKeyDraft = ""
-                    onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput, groqApiKeyInput)
+                    onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, "", groqApiKeyInput)
                   },
                   contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                   colors = ButtonDefaults.buttonColors(containerColor = TheoErrorRed.copy(alpha = 0.16f))

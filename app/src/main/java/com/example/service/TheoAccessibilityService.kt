@@ -37,6 +37,7 @@ class TheoAccessibilityService : AccessibilityService() {
     private const val MAX_NODES = 120
     private const val MAX_DEPTH = 12
     @Volatile var overlayStopHandler: (() -> Unit)? = null
+    @Volatile var overlayPauseToggleHandler: (() -> Boolean)? = null
 
     fun isEnabled(context: Context): Boolean {
       val expected = ComponentName(context, TheoAccessibilityService::class.java).flattenToString()
@@ -68,6 +69,7 @@ class TheoAccessibilityService : AccessibilityService() {
   private var automationOverlay: View? = null
   private var overlayStatusView: android.widget.TextView? = null
   private var overlayDetailView: android.widget.TextView? = null
+  private var overlayPauseButton: android.widget.Button? = null
   private var overlayHideRunnable: Runnable? = null
 
   /** Small floating status card shown only during explicitly requested automation. */
@@ -122,8 +124,16 @@ class TheoAccessibilityService : AccessibilityService() {
           isAllCaps = false
           setOnClickListener { hideAutomationOverlay() }
         }
+        val pause = android.widget.Button(this).apply {
+          text = "Pause"
+          isAllCaps = false
+          setOnClickListener {
+            val nowPaused = overlayPauseToggleHandler?.invoke() ?: false
+            setAutomationPaused(nowPaused)
+          }
+        }
         val stop = android.widget.Button(this).apply {
-          text = "Stop task"
+          text = "Stop"
           isAllCaps = false
           setTextColor(Color.WHITE)
           setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(165, 48, 70)))
@@ -133,6 +143,7 @@ class TheoAccessibilityService : AccessibilityService() {
           }
         }
         buttons.addView(close, android.widget.LinearLayout.LayoutParams(-2, (42 * density).toInt()))
+        buttons.addView(pause, android.widget.LinearLayout.LayoutParams(-2, (42 * density).toInt()))
         buttons.addView(stop, android.widget.LinearLayout.LayoutParams(-2, (42 * density).toInt()))
         root.addView(heading)
         root.addView(taskView)
@@ -155,6 +166,7 @@ class TheoAccessibilityService : AccessibilityService() {
           automationOverlay = root
           overlayStatusView = statusText
           overlayDetailView = detailText
+          overlayPauseButton = pause
           root.tag = taskView
           card = root
         } catch (error: Exception) {
@@ -176,6 +188,12 @@ class TheoAccessibilityService : AccessibilityService() {
     }
   }
 
+  fun setAutomationPaused(paused: Boolean) {
+    overlayHandler.post {
+      overlayPauseButton?.text = if (paused) "Resume" else "Pause"
+    }
+  }
+
   fun hideAutomationOverlay() {
     overlayHandler.post {
       overlayHideRunnable?.let(overlayHandler::removeCallbacks)
@@ -185,6 +203,7 @@ class TheoAccessibilityService : AccessibilityService() {
       automationOverlay = null
       overlayStatusView = null
       overlayDetailView = null
+      overlayPauseButton = null
     }
   }
 

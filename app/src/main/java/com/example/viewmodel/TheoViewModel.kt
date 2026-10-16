@@ -1222,6 +1222,12 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       } catch (cancelled: CancellationException) {
         _uiState.update { it.copy(qwenStatusMessage = "Local Qwen preparation cancelled.") }
         throw cancelled
+      } catch (error: OutOfMemoryError) {
+        localQwenRuntime.release()
+        TheoDiagnosticLogger.error("LOCAL_QWEN", "Native model preparation ran out of memory", error)
+        _uiState.update {
+          it.copy(qwenStatusMessage = "Failed to prepare local Qwen: Android ran out of memory. Close background apps and retry.")
+        }
       } catch (error: Throwable) {
         TheoDiagnosticLogger.error("LOCAL_QWEN", "Native model preparation failed", error)
         val message = error.localizedMessage ?: error.javaClass.simpleName

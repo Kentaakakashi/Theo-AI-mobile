@@ -944,6 +944,9 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           val notificationContext = if (TaskNeedsNotificationContext.matches(task)) {
             TheoNotificationListenerService.instance?.buildTaskContext(task)
           } else null
+          val learnedWorkflowHint = if (com.example.service.AutomationTaskVerifier.requestedTrack(task) != null) {
+            prefs.getString("verified_music_flow_${snapshot.packageName.hashCode().toString(16)}", null)
+          } else null
           TheoDiagnosticLogger.info(
             "SCREEN_AUTOMATION",
             "Planning next screen action",
@@ -958,7 +961,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             customApiKey = _uiState.value.customApiKey,
             sensitiveActionsAuthorized = sensitiveAuthorized,
             visualContext = visualContext,
-            deviceContext = notificationContext
+            deviceContext = notificationContext,
+            learnedWorkflowHint = learnedWorkflowHint
           )
           if (screenAutomationPaused) {
             awaitAutomationResume(task)
@@ -1029,6 +1033,20 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                   delay(350L)
                 }
                 finalMessage = if (verification?.verified == true) {
+                  val workflowSteps = history.mapNotNull { entry ->
+                    Regex("""(?i)\\bStep\\s+\\d+:\\s*(click|type|scroll|tap|back)\\b""")
+                      .find(entry)?.groupValues?.getOrNull(1)?.lowercase(java.util.Locale.ROOT)
+                  }.take(8)
+                  if (workflowSteps.isNotEmpty()) {
+                    prefs.edit()
+                      .putString("verified_music_flow_${snapshot.packageName.hashCode().toString(16)}", workflowSteps.joinToString(" → "))
+                      .apply()
+                    TheoDiagnosticLogger.info(
+                      "SCREEN_AUTOMATION",
+                      "Saved privacy-safe verified music workflow hint",
+                      "steps=${workflowSteps.size}"
+                    )
+                  }
                   val trackLabel = listOf(verification?.title, verification?.artist)
                     .filterNotNull().filter { it.isNotBlank() }.joinToString(" — ")
                   "Verified playing: \"${trackLabel.ifBlank { requestedTrack }}\". Android reports playback active in ${verification?.packageName ?: snapshot.packageName}."

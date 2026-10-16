@@ -1466,6 +1466,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   fun stopScreenAutomation() {
     screenAutomationJob?.cancel()
     screenAutomationJob = null
+    com.example.service.TheoAutomationForegroundService.stop(getApplication<Application>())
     TheoAccessibilityService.instance?.showAutomationOverlay(
       title = "Task stopped",
       status = "Stopped by you",

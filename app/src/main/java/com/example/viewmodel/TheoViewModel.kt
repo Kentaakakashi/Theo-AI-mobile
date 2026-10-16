@@ -672,7 +672,13 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       appendMessageAsync("A screen automation task is already running. Stop it from Settings before starting another.")
       return
     }
+    TheoDiagnosticLogger.info(
+      "SCREEN_AUTOMATION",
+      "Automation coroutine scheduled",
+      "taskChars=${task.length}; expectedPackage=${expectedPackageName ?: "(any external app)"}; model=${_uiState.value.activeModel}"
+    )
     screenAutomationJob = viewModelScope.launch {
+      TheoDiagnosticLogger.info("SCREEN_AUTOMATION", "Automation coroutine started", "task=${task.take(140)}")
       _uiState.update { state ->
         state.copy(
           isScreenAutomationRunning = true,
@@ -891,6 +897,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           val notificationContext = if (TaskNeedsNotificationContext.matches(task)) {
             TheoNotificationListenerService.instance?.buildTaskContext(task)
           } else null
+          TheoDiagnosticLogger.info(
+            "SCREEN_AUTOMATION",
+            "Planning next screen action",
+            "step=$stepNumber; package=${snapshot.packageName}; elements=${snapshot.elements.size}; actionable=$hasActionableControls; visualContextChars=${visualContext?.length ?: 0}; model=${_uiState.value.activeModel}"
+          )
           val plan = aiEngine.planScreenAction(
             task = task,
             screen = snapshot,
@@ -902,6 +913,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             deviceContext = notificationContext
           )
           val action = plan.action
+          TheoDiagnosticLogger.info(
+            "SCREEN_AUTOMATION",
+            "Screen planner returned",
+            "step=$stepNumber; action=${action?.kind ?: "none"}; reason=${action?.reason?.take(120).orEmpty()}; error=${plan.error?.take(180).orEmpty()}"
+          )
           if (action != null) {
             publishAutomationOverlay(
               task = task,
@@ -1061,11 +1077,17 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           type = "DEVICE"
         ))
       } catch (cancelled: CancellationException) {
+        TheoDiagnosticLogger.info("SCREEN_AUTOMATION", "Automation coroutine cancelled", "task=${task.take(100)}")
         TheoDiagnosticLogger.info("SCREEN_AUTOMATION", "Task stopped by user")
       } catch (e: Exception) {
         TheoDiagnosticLogger.error("SCREEN_AUTOMATION", "Screen automation failed", e)
         appendAssistantMessage("Screen automation stopped after an unexpected error. No further steps were attempted: ${e.localizedMessage ?: "unknown error"}.", badge = "SCREEN AUTOMATION")
       } finally {
+        TheoDiagnosticLogger.info(
+          "SCREEN_AUTOMATION",
+          "Automation coroutine finished",
+          "task=${task.take(100)}; finalMessage=${finalMessage.take(180)}; pausedForReview=$pausedForReview"
+        )
         _uiState.update { state ->
           state.copy(
             isScreenAutomationRunning = false,

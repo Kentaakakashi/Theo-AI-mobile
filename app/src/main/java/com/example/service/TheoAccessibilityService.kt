@@ -9,6 +9,7 @@ import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
+import android.os.SystemClock
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
@@ -18,6 +19,8 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import kotlinx.coroutines.delay
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * User-enabled, on-demand bridge to Android's accessibility tree.
@@ -45,6 +48,20 @@ class TheoAccessibilityService : AccessibilityService() {
           ComponentName.unflattenFromString(entry)?.flattenToString()?.equals(expected, ignoreCase = true) == true
       }
     }
+  }
+
+  // A counter only: accessibility event text is never retained. It lets the action loop wait
+  // for UI changes instead of sleeping for a fixed delay after every tap.
+  private val screenRevision = AtomicLong(0L)
+
+  fun currentScreenRevision(): Long = screenRevision.get()
+
+  suspend fun awaitScreenChange(afterRevision: Long, timeoutMs: Long = 400L): Boolean {
+    val deadline = SystemClock.elapsedRealtime() + timeoutMs.coerceAtLeast(0L)
+    while (screenRevision.get() == afterRevision && SystemClock.elapsedRealtime() < deadline) {
+      delay(25L)
+    }
+    return screenRevision.get() != afterRevision
   }
 
   private val overlayHandler = Handler(Looper.getMainLooper())
@@ -240,8 +257,10 @@ class TheoAccessibilityService : AccessibilityService() {
     return dispatchGesture(gesture, null, null)
   }
 
-  // Do not collect events: a task explicitly requests a fresh snapshot when needed.
-  override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
+  // Use event arrival only as a signal to re-read the UI. Do not retain event text/content.
+  override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+    if (event != null) screenRevision.incrementAndGet()
+  }
   override fun onInterrupt() = Unit
 
   override fun onDestroy() {

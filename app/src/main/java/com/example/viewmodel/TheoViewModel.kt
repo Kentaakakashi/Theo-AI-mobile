@@ -730,7 +730,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       var lastDispatchedActionFingerprint: String? = null
       try {
         var playbackAlreadyVerified = false
-        val requestedTrackBeforeStart = requestedPlaybackTrack(task)
+        val requestedTrackBeforeStart = com.example.service.AutomationTaskVerifier.requestedTrack(task)
         if (requestedTrackBeforeStart != null) {
           val listener = TheoNotificationListenerService.instance
           val packageConstraint = expectedPackageName
@@ -1000,7 +1000,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               continue
             }
             "done" -> {
-              val requestedTrack = requestedPlaybackTrack(task)
+              val requestedTrack = com.example.service.AutomationTaskVerifier.requestedTrack(task)
               if (requestedTrack != null) {
                 publishAutomationOverlay(
                   task = task,
@@ -1049,15 +1049,15 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                   "verified=${verification?.verified == true}; status=${verification?.status ?: "NO_RESULT"}; elapsedMs=${System.currentTimeMillis() - verificationStartedAt}"
                 )
               } else {
-                val requestedMessage = requestedMessageForTask(task)
+                val requestedMessage = com.example.service.AutomationTaskVerifier.requestedMessage(task)
                 if (requestedMessage != null) {
                   val visibleLabels = snapshot.elements
                     .filterNot { it.editable }
                     .map { it.label }
                     .filter { it.isNotBlank() }
-                  val visibleText = normalizeVerificationText(visibleLabels.joinToString(" "))
-                  val recipientVisible = visibleText.contains(normalizeVerificationText(requestedMessage.first))
-                  val bodyVisible = visibleText.contains(normalizeVerificationText(requestedMessage.second))
+                  val visibleText = com.example.service.AutomationTaskVerifier.normalizeVisibleText(visibleLabels.joinToString(" "))
+                  val recipientVisible = visibleText.contains(com.example.service.AutomationTaskVerifier.normalizeVisibleText(requestedMessage.recipient))
+                  val bodyVisible = visibleText.contains(com.example.service.AutomationTaskVerifier.normalizeVisibleText(requestedMessage.body))
                   finalMessage = if (recipientVisible && bodyVisible) {
                     "The current conversation visibly contains the requested recipient and message text. Theo did not tap Send again. The app's delivery status is not independently exposed, so delivery is not being claimed."
                   } else {
@@ -1273,44 +1273,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         }
       }
     }
-  }
-
-  private fun requestedMessageForTask(task: String): Pair<String, String>? {
-    val match = Regex(
-      """(?i)\b(?:message|dm)\s+(.+?)\s+saying\s+(.+?)\s*$"""
-    ).find(task) ?: return null
-    val recipient = match.groupValues.getOrNull(1)?.trim()
-      ?.removeSurrounding("\"")?.removeSurrounding("'")?.trim().orEmpty()
-    val body = match.groupValues.getOrNull(2)?.trim()
-      ?.removeSurrounding("\"")?.removeSurrounding("'")
-      ?.removeSurrounding("“", "”")?.trim().orEmpty()
-    if (recipient.isBlank() || body.isBlank()) return null
-    return recipient to body
-  }
-
-  private fun normalizeVerificationText(value: String): String =
-    value.lowercase(java.util.Locale.ROOT).replace(Regex("\\s+"), " ").trim()
-
-  /**
-   * Resolve a track title from explicit music automation instructions only.
-   * Quoted song/track names take priority to avoid guessing from the surrounding task.
-   */
-  private fun requestedPlaybackTrack(task: String): String? {
-    val quoted = Regex(
-      """(?i)\b(?:song|track)\s+["“']([^"”']+)["”']"""
-    ).find(task)?.groupValues?.getOrNull(1)?.trim()
-    if (!quoted.isNullOrBlank()) return quoted
-
-    val playMatch = Regex(
-      """(?i)\bplay\s+(?:(?:the\s+)?(?:song|track)\s+)?["“']?(.+?)["”']?(?=\s+(?:in|on|using|through|via)\s+|[.!?,]|$)"""
-    ).find(task)?.groupValues?.getOrNull(1)
-    val candidate = playMatch
-      ?.trim()
-      ?.removeSurrounding("\"")
-      ?.removeSurrounding("'")
-      ?.trimEnd('.', ',', ':')
-      ?.trim()
-    return candidate?.takeIf { it.isNotBlank() && !it.equals("music", ignoreCase = true) }
   }
 
   private fun publishAutomationOverlay(

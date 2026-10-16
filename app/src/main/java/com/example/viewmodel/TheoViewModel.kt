@@ -964,7 +964,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                   thinkingSteps = (state.thinkingSteps + "Waiting and re-reading the screen").takeLast(6)
                 )
               }
-              delay(1_200)
+              delay(450L)
               continue
             }
             "done" -> {
@@ -1119,6 +1119,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             status = "Doing: ${action.kind}",
             detail = "Target: ${targetLabel.ifBlank { action.nodePath ?: "screen control" }} · ${action.reason.take(130)}"
           )
+          val revisionBeforeAction = service.currentScreenRevision()
           val success = service.performScreenAction(action, snapshot.packageName)
           if (success) {
             publishAutomationOverlay(
@@ -1146,7 +1147,16 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               break
             }
           }
-          delay(if (action.kind == "wait") 1000L else 650L)
+          if (success) {
+            val screenChanged = service.awaitScreenChange(revisionBeforeAction, timeoutMs = 420L)
+            TheoDiagnosticLogger.debug(
+              "SCREEN_AUTOMATION",
+              "Action settle wait finished",
+              "step=$stepNumber; screenChanged=$screenChanged; timeoutMs=420"
+            )
+          } else {
+            delay(100L)
+          }
         }
         if (finalMessage.isBlank()) {
           finalMessage = "Theo reached the 20-step safety limit. The task may be incomplete; review the target app."

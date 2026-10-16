@@ -108,9 +108,16 @@ class LocalQwenRuntime(context: Context) {
 
   /** Free native model memory when Theo's view model is permanently cleared. */
   fun release() {
-    val model = loadedModel ?: return
-    loadedModel = null
-    runCatching { Llama.releaseModel(model) }
+    // Don't free native memory while another coroutine is inside llama.cpp.
+    // If inference is still active, leave cleanup to the next idle point/process exit.
+    if (!mutex.tryLock()) return
+    try {
+      val model = loadedModel ?: return
+      loadedModel = null
+      runCatching { Llama.releaseModel(model) }
+    } finally {
+      mutex.unlock()
+    }
   }
 
   private suspend fun ensureDownloaded(onStatus: (String) -> Unit): File = withContext(Dispatchers.IO) {
@@ -165,7 +172,7 @@ class LocalQwenRuntime(context: Context) {
         if (downloaded < MINIMUM_MODEL_BYTES) throw IOException("Downloaded Qwen file is too small ($downloaded bytes).")
         if (!hasGgufHeader(partialFile)) throw IOException("The downloaded file is not a valid GGUF model.")
         onStatus("Verifying Qwen model checksum…")
-        val actualHash = digest.digest().joinToString("") { "%02x".format(Locale.ROOT, it) }
+        val actualHash = digest.digest().joinToString("") { "%02x".format(Locale.ROOT, it.toInt() and 0xff) }
         if (!actualHash.equals(EXPECTED_SHA256, ignoreCase = true)) {
           throw IOException("Qwen model checksum did not match the published file. The partial download was discarded.")
         }

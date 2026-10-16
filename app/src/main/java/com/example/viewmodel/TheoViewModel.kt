@@ -691,6 +691,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       var consecutiveWaits = 0
       var lastSnapshotFingerprint: String? = null
       var stableSnapshotCount = 0
+      var lastDispatchedActionWasSend = false
       try {
         for (stepNumber in 1..20) {
           kotlinx.coroutines.currentCoroutineContext().ensureActive()
@@ -823,6 +824,12 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             "${it.id}:${it.label}:${it.clickable}:${it.editable}:${it.scrollable}"
           }.hashCode().toString()
           if (fingerprint == lastSnapshotFingerprint) stableSnapshotCount++ else stableSnapshotCount = 0
+          // Never repeat a Send tap when the fresh screen has not visibly changed.
+          if (lastDispatchedActionWasSend && fingerprint == lastSnapshotFingerprint) {
+            finalMessage = "Theo attempted to send the requested message, but the screen did not visibly change. To prevent a duplicate, Theo stopped without tapping Send again. Check the conversation before retrying."
+            TheoDiagnosticLogger.warn("SCREEN_AUTOMATION", "Stopped after send without visible screen change; duplicate prevented", "step=$stepNumber")
+            break
+          }
           lastSnapshotFingerprint = fingerprint
 
           _uiState.update { state ->
@@ -986,7 +993,12 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           } else {
             pathElements.take(4).map { it.label }.filter { it.isNotBlank() }.joinToString(" ")
           }
-          if (!sensitiveAuthorized && ActionSafetyPolicy.targetRequiresConfirmation(action, targetLabel)) {
+          val explicitlyRequestedOrdinarySend =
+            action.kind == "click" &&
+              Regex("""\b(message|reply|send)\b""", RegexOption.IGNORE_CASE).containsMatchIn(task) &&
+              Regex("""\b(send|send message|reply)\b""", RegexOption.IGNORE_CASE).containsMatchIn(targetLabel) &&
+              !Regex("""\b(pay|payment|purchase|transfer|delete|remove|share|publish|install|permission|password|otp|code)\b""", RegexOption.IGNORE_CASE).containsMatchIn(task)
+          if (!sensitiveAuthorized && !explicitlyRequestedOrdinarySend && ActionSafetyPolicy.targetRequiresConfirmation(action, targetLabel)) {
             finalMessage = "Theo stopped before activating the potentially sensitive control \"$targetLabel\". Nothing was submitted, deleted, shared, or paid for. Review and confirm before retrying."
             pausedForReview = true
             _uiState.update { it.copy(
@@ -1011,7 +1023,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               detail = "Target: ${targetLabel.ifBlank { action.nodePath ?: "screen control" }}"
             )
             consecutiveFailures = 0
-            history.add("Step $stepNumber: ${action.kind} on ${action.nodePath ?: "(system)"} dispatched. Reason: ${action.reason.take(120)}")
+            lastDispatchedActionWasSend = explicitlyRequestedOrdinarySend
+            history.add("Step $stepNumber: ${action.kind} on ${action.nodePath ?: "(system)"} dispatched; target=${targetLabel.take(100)}. Reason: ${action.reason.take(120)}")
             _uiState.update { state ->
               state.copy(
                 currentThinkingStep = "Dispatched step $stepNumber",
@@ -1019,6 +1032,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               )
             }
           } else {
+            lastDispatchedActionWasSend = false
             consecutiveFailures++
             history.add("Step $stepNumber: ${action.kind} on ${action.nodePath ?: "(system)"} failed; read a fresh tree.")
             if (consecutiveFailures >= 3) {

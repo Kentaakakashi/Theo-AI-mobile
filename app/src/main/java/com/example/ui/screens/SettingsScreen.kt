@@ -212,7 +212,7 @@ fun SettingsScreen(
       ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
           Text(
-            text = "Download and load Qwen3-1.7B Q4_K_M for offline text generation. The model is saved to Downloads/Theo/models/qwen, outside Theo's app data, so it remains after uninstall/reinstall. Android will ask you to allow Theo to manage files for this persistent storage. The first download is about 1.11 GB; inference uses phone RAM and CPU. The model is not bundled in the APK.",
+            text = "Download and load Qwen3-1.7B Q4_K_M for offline text generation. The model is saved to Download/qwen-model/Qwen3-1.7B-Q4_K_M.gguf, outside Theo's app data, so it remains after uninstall/reinstall. Theo creates Download/qwen-model automatically if it does not exist. Android will ask you to allow Theo to manage files for this persistent storage. The first download is about 1.11 GB; inference uses phone RAM and CPU. The model is not bundled in the APK.",
             color = TheoTextSecondary,
             fontSize = 12.sp,
             lineHeight = 17.sp

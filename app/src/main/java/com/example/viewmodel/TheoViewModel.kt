@@ -1213,15 +1213,20 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
    */
   private fun requestedPlaybackTrack(task: String): String? {
     val quoted = Regex(
-      """(?i)\\b(?:song|track)\\s+["“']([^"”']+)["”']"""
+      """(?i)\b(?:song|track)\s+["“']([^"”']+)["”']"""
     ).find(task)?.groupValues?.getOrNull(1)?.trim()
     if (!quoted.isNullOrBlank()) return quoted
 
     val playMatch = Regex(
-      """(?i)\\bplay\\s+(?:(?:the\\s+)?(?:song|track)\\s+)?["“']?(.+?)["”']?(?=\\s+(?:in|on|using|through|via)\\s+|[.!?,]|$)"""
+      """(?i)\bplay\s+(?:(?:the\s+)?(?:song|track)\s+)?["“']?(.+?)["”']?(?=\s+(?:in|on|using|through|via)\s+|[.!?,]|$)"""
     ).find(task)?.groupValues?.getOrNull(1)
-    return playMatch?.trim()?.trim('"', '“', '”', '\'', '.', ',', ':')
-      ?.takeIf { it.isNotBlank() && !it.equals("music", ignoreCase = true) }
+    val candidate = playMatch
+      ?.trim()
+      ?.removeSurrounding("\"")
+      ?.removeSurrounding("'")
+      ?.trimEnd('.', ',', ':')
+      ?.trim()
+    return candidate?.takeIf { it.isNotBlank() && !it.equals("music", ignoreCase = true) }
   }
 
   private fun publishAutomationOverlay(

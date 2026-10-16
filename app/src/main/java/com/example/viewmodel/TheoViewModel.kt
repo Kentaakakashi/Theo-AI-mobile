@@ -92,6 +92,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   private val screenVisionAnalyzer = com.example.service.ScreenVisionAnalyzer()
   private val prefs = application.getSharedPreferences("theo_prefs", Context.MODE_PRIVATE)
   private var screenAutomationJob: Job? = null
+  @Volatile private var screenAutomationPaused = false
 
   private val _uiState = MutableStateFlow(
     TheoUiState(
@@ -138,6 +139,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     // Clear the obsolete host URL on upgrade; local inference no longer uses a Termux bridge.
     prefs.edit().remove("termux_host").apply()
     TheoAccessibilityService.overlayStopHandler = { stopScreenAutomation() }
+    TheoAccessibilityService.overlayPauseToggleHandler = { toggleScreenAutomationPause() }
     TheoDiagnosticLogger.info("VIEW_MODEL", "TheoViewModel initialized", "model=${_uiState.value.activeModel}")
     val interruptedAt = prefs.getLong("screen_automation_started_at", 0L)
     val wasRunning = prefs.getBoolean("screen_automation_in_progress", false)
@@ -693,6 +695,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       "taskChars=${task.length}; expectedPackage=${expectedPackageName ?: "(any external app)"}; model=${_uiState.value.activeModel}"
     )
     screenAutomationJob = viewModelScope.launch {
+      screenAutomationPaused = false
+      TheoAccessibilityService.instance?.setAutomationPaused(false)
       prefs.edit()
         .putBoolean("screen_automation_in_progress", true)
         .putLong("screen_automation_started_at", System.currentTimeMillis())
@@ -726,6 +730,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       try {
         for (stepNumber in 1..20) {
           kotlinx.coroutines.currentCoroutineContext().ensureActive()
+          awaitAutomationResume(task)
           publishAutomationOverlay(
             task = task,
             status = "Inspecting screen · step $stepNumber/20",
@@ -927,6 +932,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             visualContext = visualContext,
             deviceContext = notificationContext
           )
+          if (screenAutomationPaused) {
+            awaitAutomationResume(task)
+            history.add("Step $stepNumber: discarded the pre-pause plan and will inspect a fresh screen after resume.")
+            continue
+          }
           val action = plan.action
           TheoDiagnosticLogger.info(
             "SCREEN_AUTOMATION",
@@ -1176,6 +1186,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         TheoDiagnosticLogger.error("SCREEN_AUTOMATION", "Screen automation failed", e)
         appendAssistantMessage("Screen automation stopped after an unexpected error. No further steps were attempted: ${e.localizedMessage ?: "unknown error"}.", badge = "SCREEN AUTOMATION")
       } finally {
+        screenAutomationPaused = false
+        TheoAccessibilityService.instance?.setAutomationPaused(false)
         prefs.edit()
           .putBoolean("screen_automation_in_progress", false)
           .remove("screen_automation_started_at")
@@ -1235,6 +1247,35 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       detail = detail.take(220),
       autoHideMs = autoHideMs
     )
+  }
+
+  private suspend fun awaitAutomationResume(task: String) {
+    while (screenAutomationPaused) {
+      kotlinx.coroutines.currentCoroutineContext().ensureActive()
+      publishAutomationOverlay(
+        task = task,
+        status = "Paused · waiting for Resume",
+        detail = "Theo will not dispatch actions while paused."
+      )
+      delay(120L)
+    }
+  }
+
+  fun toggleScreenAutomationPause(): Boolean {
+    if (screenAutomationJob?.isActive != true) return false
+    screenAutomationPaused = !screenAutomationPaused
+    TheoAccessibilityService.instance?.setAutomationPaused(screenAutomationPaused)
+    publishAutomationOverlay(
+      task = "Theo screen automation",
+      status = if (screenAutomationPaused) "Paused" else "Resuming · refreshing screen",
+      detail = if (screenAutomationPaused) {
+        "No new actions will be dispatched until you resume."
+      } else {
+        "Theo will inspect the current screen again before continuing."
+      }
+    )
+    TheoDiagnosticLogger.info("SCREEN_AUTOMATION", if (screenAutomationPaused) "Task paused by user" else "Task resumed by user")
+    return screenAutomationPaused
   }
 
   fun stopScreenAutomation() {

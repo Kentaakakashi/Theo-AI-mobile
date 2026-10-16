@@ -84,7 +84,7 @@ class LocalQwenRuntime(context: Context) {
     migrateLegacyPrivateModel(onStatus)
     val file = ensureDownloaded(onStatus)
     val readyModel = loadedModel ?: run {
-      onStatus("Loading Qwen3-1.7B into memory · CPU mode · 4K context…")
+      onStatus("Loading Qwen3-1.7B into memory · CPU mode · 2K context…")
       Llama.loadModel(
         modelPath = file.absolutePath,
         config = LlamaConfig(

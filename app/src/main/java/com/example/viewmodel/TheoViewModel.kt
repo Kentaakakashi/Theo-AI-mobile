@@ -78,7 +78,7 @@ data class TheoUiState(
 
 private object TaskNeedsNotificationContext {
   fun matches(task: String): Boolean = Regex(
-    """\b(notifications?|notification shade|what(?:'s| is) playing|now playing|current song|current track|music playback|what song|unread messages|message notifications|recent notifications)\b""",
+    """\b(notifications?|notification shade|what(?:'s| is) playing|now playing|current song|current track|music playback|what song|unread messages|message notifications|recent notifications|read my messages|message previews|who messaged me|who texted me)\b""",
     RegexOption.IGNORE_CASE
   ).containsMatchIn(task)
 }

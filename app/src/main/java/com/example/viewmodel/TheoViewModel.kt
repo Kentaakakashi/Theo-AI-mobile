@@ -1004,10 +1004,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             "step=$stepNumber; package=${snapshot.packageName}; elements=${snapshot.elements.size}; actionable=$hasActionableControls; visualContextChars=${visualContext?.length ?: 0}; model=${_uiState.value.activeModel}"
           )
           val plannerStartedAt = System.currentTimeMillis()
-          val plan = if (validatedQueuedAction != null) {
+          val queuedActionForPlan = validatedQueuedAction
+          val plan = if (queuedActionForPlan != null) {
             com.example.service.ScreenPlanResult(
-              action = validatedQueuedAction,
-              actions = listOf(validatedQueuedAction)
+              action = queuedActionForPlan,
+              actions = listOf(queuedActionForPlan)
             )
           } else {
             aiEngine.planScreenAction(

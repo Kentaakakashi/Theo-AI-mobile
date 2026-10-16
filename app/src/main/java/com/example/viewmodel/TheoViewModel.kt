@@ -728,7 +728,33 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       var lastDispatchedActionSignature: String? = null
       var lastDispatchedActionFingerprint: String? = null
       try {
+        var playbackAlreadyVerified = false
+        val requestedTrackBeforeStart = requestedPlaybackTrack(task)
+        if (requestedTrackBeforeStart != null) {
+          val listener = TheoNotificationListenerService.instance
+          val packageConstraint = expectedPackageName
+            ?: TheoAccessibilityService.instance?.getActiveWindowPackageName()
+          val initialPlayback = listener?.verifyRequestedTrack(requestedTrackBeforeStart, packageConstraint)
+          if (initialPlayback?.verified == true) {
+            val label = listOf(initialPlayback.title, initialPlayback.artist)
+              .filter { it.isNotBlank() }.joinToString(" — ").ifBlank { requestedTrackBeforeStart }
+            finalMessage = "Already playing and independently verified: \"$label\" in ${initialPlayback.packageName}."
+            playbackAlreadyVerified = true
+            publishAutomationOverlay(
+              task = task,
+              status = "Playback already confirmed",
+              detail = finalMessage,
+              autoHideMs = 9_000L
+            )
+            TheoDiagnosticLogger.info(
+              "PLAYBACK_VERIFY",
+              "Task satisfied by existing playback session",
+              "package=${initialPlayback.packageName}; track=${initialPlayback.title}"
+            )
+          }
+        }
         for (stepNumber in 1..20) {
+          if (playbackAlreadyVerified) break
           kotlinx.coroutines.currentCoroutineContext().ensureActive()
           awaitAutomationResume(task)
           publishAutomationOverlay(

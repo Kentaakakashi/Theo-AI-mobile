@@ -243,7 +243,7 @@ Choose the next single action.
     val startTime = System.currentTimeMillis()
     val result = try {
       when (activeModel) {
-        AiModelType.LOCAL_QWEN -> tryCallLocalQwen(userPrompt, policy, startTime)
+        AiModelType.LOCAL_QWEN -> tryCallLocalQwen(userPrompt, policy, startTime, maxTokens = 128)
         AiModelType.GEMINI_FLASH, AiModelType.GEMINI_PRO -> {
           val apiKeys = parseGeminiApiKeys(customApiKey)
           if (apiKeys.isEmpty()) {
@@ -359,7 +359,8 @@ Choose the next single action.
   private suspend fun tryCallLocalQwen(
     prompt: String,
     memoryContext: String,
-    startTime: Long
+    startTime: Long,
+    maxTokens: Int = 512
   ): EngineResult {
     val runtime = localQwenRuntime ?: return EngineResult(
       responseText = "Theo's native Qwen runtime is not initialized. Open Settings → On-device Qwen Runtime and tap Download & Load Qwen.",
@@ -370,7 +371,7 @@ Choose the next single action.
       val answer = runtime.generate(
         prompt = prompt,
         systemPrompt = "$theoPersonality\n\n$memoryContext",
-        maxTokens = 512
+        maxTokens = maxTokens
       )
       val latency = System.currentTimeMillis() - startTime
       TheoDiagnosticLogger.info("LOCAL_QWEN", "On-device generation succeeded", "latencyMs=$latency; chars=${answer.length}")

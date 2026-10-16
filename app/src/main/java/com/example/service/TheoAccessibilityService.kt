@@ -276,9 +276,19 @@ class TheoAccessibilityService : AccessibilityService() {
     return dispatchGesture(gesture, null, null)
   }
 
-  // Use event arrival only as a signal to re-read the UI. Do not retain event text/content.
+  // Count meaningful target-app changes only. Ignore Theo's own overlay events and
+  // the immediate click event, which can fire before the app has actually transitioned.
+  // Event text/content is never retained.
   override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-    if (event != null) screenRevision.incrementAndGet()
+    if (event == null) return
+    val eventPackage = event.packageName?.toString().orEmpty()
+    if (eventPackage == packageName) return
+    when (event.eventType) {
+      AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
+      AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
+      AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED,
+      AccessibilityEvent.TYPE_VIEW_SCROLLED -> screenRevision.incrementAndGet()
+    }
   }
   override fun onInterrupt() = Unit
 

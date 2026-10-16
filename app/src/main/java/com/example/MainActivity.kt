@@ -167,10 +167,10 @@ fun TheoMainContent(viewModel: TheoViewModel) {
 
           4 -> SettingsScreen(
             uiState = uiState,
-            onSaveSettings = { model, anim, key, host, groqKey ->
-              viewModel.updateSettings(model, anim, key, host, groqKey)
+            onSaveSettings = { model, anim, key, groqKey ->
+              viewModel.updateSettings(model, anim, key, groqKey)
             },
-            onTestQwen = { viewModel.testQwenConnection() },
+            onTestQwen = { viewModel.prepareLocalQwen() },
             onTestGemini = { viewModel.testGeminiConnection() },
             onTestGroq = { viewModel.testGroqConnection() },
             onClearChat = { viewModel.clearChatHistory() },

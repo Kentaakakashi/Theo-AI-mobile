@@ -279,6 +279,15 @@ class TheoAccessibilityService : AccessibilityService() {
     return chosen
   }
 
+  fun getActiveWindowPackageName(): String? {
+    val root = runCatching { rootInActiveWindow }.getOrNull() ?: return null
+    return try {
+      root.packageName?.toString()?.takeIf { it.isNotBlank() }
+    } finally {
+      runCatching { root.recycle() }
+    }
+  }
+
   fun captureActiveScreen(): ScreenSnapshot? {
     val root = findExternalWindowRoot() ?: return null
     val activePackage = root.packageName?.toString().orEmpty()

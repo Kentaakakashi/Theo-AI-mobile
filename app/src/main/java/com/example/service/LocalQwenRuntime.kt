@@ -2,6 +2,10 @@ package com.example.service
 
 import android.content.Context
 import android.os.Build
+import android.os.Environment
+import android.net.Uri
+import android.content.Intent
+import android.provider.Settings
 import dev.ffmpegkit.llama.Llama
 import dev.ffmpegkit.llama.LlamaConfig
 import dev.ffmpegkit.llama.LlamaModel
@@ -22,13 +26,19 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
- * Native Qwen model manager. GGUF weights live in Theo's private app storage;
+ * Native Qwen model manager. GGUF weights live in shared Downloads/Theo/models/qwen,
+ * outside app-private storage so uninstalling Theo does not delete the model.
  * llama.cpp loads and runs inference in-process, without Termux or a localhost server.
  */
 class LocalQwenRuntime(context: Context) {
   private val appContext = context.applicationContext
-  private val modelFile = File(appContext.filesDir, "models/qwen/Qwen3-1.7B-Q4_K_M.gguf")
-  private val partialFile = File(appContext.filesDir, "models/qwen/Qwen3-1.7B-Q4_K_M.gguf.partial")
+  private val persistentModelDir = File(
+    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+    "Theo/models/qwen"
+  )
+  private val modelFile = File(persistentModelDir, "Qwen3-1.7B-Q4_K_M.gguf")
+  private val partialFile = File(persistentModelDir, "Qwen3-1.7B-Q4_K_M.gguf.partial")
+  private val legacyPrivateModelFile = File(appContext.filesDir, "models/qwen/Qwen3-1.7B-Q4_K_M.gguf")
   private val mutex = Mutex()
   @Volatile private var loadedModel: LlamaModel? = null
 
@@ -43,11 +53,35 @@ class LocalQwenRuntime(context: Context) {
     modelFile.isFile && modelFile.length() >= MINIMUM_MODEL_BYTES && hasGgufHeader(modelFile)
 
   /**
+   * Android 11+ requires the user to grant All files access before Theo can manage a large
+   * GGUF in shared Downloads and reopen it by a stable filesystem path after reinstall.
+   */
+  private fun ensurePersistentStorageAccess() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+      throw IllegalStateException(
+        "Persistent shared model storage currently requires Android 11 or newer. This device's Android version needs a separate storage-access implementation."
+      )
+    }
+    if (!Environment.isExternalStorageManager()) {
+      val intent = Intent(
+        Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+        Uri.parse("package:${appContext.packageName}")
+      ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      runCatching { appContext.startActivity(intent) }
+      throw IllegalStateException(
+        "Allow Theo to manage files in Android Settings, then return to Theo and tap Download & Load again. The model will be stored in Downloads/Theo/models/qwen and survive app reinstall."
+      )
+    }
+  }
+
+  /**
    * Downloads the model once, verifies its known SHA-256 and GGUF magic, loads it,
    * and runs a tiny real inference request before reporting success.
    */
   suspend fun prepare(onStatus: (String) -> Unit = {}): String = mutex.withLock {
     requireSupportedAbi()
+    ensurePersistentStorageAccess()
+    migrateLegacyPrivateModel(onStatus)
     val file = ensureDownloaded(onStatus)
     val readyModel = loadedModel ?: run {
       onStatus("Loading Qwen3-1.7B into memory · CPU mode · 4K context…")
@@ -80,6 +114,7 @@ class LocalQwenRuntime(context: Context) {
     maxTokens: Int = 512
   ): String = mutex.withLock {
     requireSupportedAbi()
+    ensurePersistentStorageAccess()
     val model = loadedModel ?: run {
       if (!isDownloaded()) {
         throw IllegalStateException("The local Qwen model is not downloaded yet. Open Settings → On-device Qwen Runtime and tap Download & Load Qwen.")
@@ -118,6 +153,38 @@ class LocalQwenRuntime(context: Context) {
     } finally {
       mutex.unlock()
     }
+  }
+
+  private suspend fun migrateLegacyPrivateModel(onStatus: (String) -> Unit) = withContext(Dispatchers.IO) {
+    if (isDownloaded() || !legacyPrivateModelFile.isFile ||
+      legacyPrivateModelFile.length() < MINIMUM_MODEL_BYTES ||
+      !hasGgufHeader(legacyPrivateModelFile)
+    ) return@withContext
+
+    onStatus("Moving your existing Qwen model into persistent Downloads storage…")
+    persistentModelDir.mkdirs()
+    val migrationFile = File(persistentModelDir, "Qwen3-1.7B-Q4_K_M.gguf.migrating")
+    migrationFile.delete()
+    legacyPrivateModelFile.inputStream().use { input ->
+      FileOutputStream(migrationFile).use { output ->
+        input.copyTo(output, 1024 * 1024)
+        output.fd.sync()
+      }
+    }
+    if (migrationFile.length() != legacyPrivateModelFile.length() || !hasGgufHeader(migrationFile)) {
+      migrationFile.delete()
+      throw IOException("Could not safely move the existing Qwen model into persistent storage.")
+    }
+    if (modelFile.exists() && !modelFile.delete()) {
+      migrationFile.delete()
+      throw IOException("Could not replace an invalid persistent Qwen model file.")
+    }
+    if (!migrationFile.renameTo(modelFile)) {
+      migrationFile.delete()
+      throw IOException("Could not finalize the Qwen model migration.")
+    }
+    // Only remove the old private copy after the persistent copy is complete.
+    legacyPrivateModelFile.delete()
   }
 
   private suspend fun ensureDownloaded(onStatus: (String) -> Unit): File = withContext(Dispatchers.IO) {

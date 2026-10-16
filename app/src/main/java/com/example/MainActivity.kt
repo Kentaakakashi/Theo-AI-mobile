@@ -179,6 +179,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
             isNotificationAccessEnabled = uiState.isNotificationAccessEnabled,
             isScreenAutomationRunning = uiState.isScreenAutomationRunning,
             onConfigureScreenAutomation = { viewModel.openAccessibilitySettings() },
+            onConfigureNotificationAccess = { viewModel.openNotificationAccessSettings() },
             onStopScreenAutomation = { viewModel.stopScreenAutomation() }
           )
         }

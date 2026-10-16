@@ -1,6 +1,7 @@
 package com.example.service
 
 import android.content.Context
+import android.os.Build
 import dev.ffmpegkit.llama.Llama
 import dev.ffmpegkit.llama.LlamaConfig
 import dev.ffmpegkit.llama.LlamaModel
@@ -46,11 +47,11 @@ class LocalQwenRuntime(context: Context) {
    * and runs a tiny real inference request before reporting success.
    */
   suspend fun prepare(onStatus: (String) -> Unit = {}): String = mutex.withLock {
+    requireSupportedAbi()
     val file = ensureDownloaded(onStatus)
-    var model = loadedModel
-    if (model == null) {
+    val readyModel = loadedModel ?: run {
       onStatus("Loading Qwen3-1.7B into memory · CPU mode · 2K context…")
-      model = Llama.loadModel(
+      Llama.loadModel(
         modelPath = file.absolutePath,
         config = LlamaConfig(
           contextSize = 2048,
@@ -60,13 +61,12 @@ class LocalQwenRuntime(context: Context) {
           topP = 0.9f,
           topK = 40
         )
-      )
-      loadedModel = model
+      ).also { loadedModel = it }
     }
     onStatus("Running a short on-device inference check…")
     val probe = Llama.complete(
-      model = model,
-      prompt = "Reply with exactly: Qwen is ready.",
+      model = readyModel,
+      prompt = "Reply with exactly: Qwen is ready.\n/no_think",
       systemPrompt = "You are a local inference self-test. Follow the requested output exactly.",
       maxTokens = 16
     )
@@ -79,6 +79,7 @@ class LocalQwenRuntime(context: Context) {
     systemPrompt: String,
     maxTokens: Int = 512
   ): String = mutex.withLock {
+    requireSupportedAbi()
     val model = loadedModel ?: run {
       if (!isDownloaded()) {
         throw IllegalStateException("The local Qwen model is not downloaded yet. Open Settings → On-device Qwen Runtime and tap Download & Load Qwen.")
@@ -98,7 +99,7 @@ class LocalQwenRuntime(context: Context) {
     }
     val result = Llama.complete(
       model = model,
-      prompt = prompt,
+      prompt = prompt.trimEnd() + "\\n/no_think",
       systemPrompt = systemPrompt,
       maxTokens = maxTokens.coerceIn(16, 768)
     )
@@ -175,6 +176,12 @@ class LocalQwenRuntime(context: Context) {
       throw error
     }
     modelFile
+  }
+
+  private fun requireSupportedAbi() {
+    if (Build.SUPPORTED_ABIS.none { it == "arm64-v8a" }) {
+      throw IllegalStateException("This native Qwen runtime requires an arm64-v8a Android device. Theo can still use Gemini on this device.")
+    }
   }
 
   private fun hasGgufHeader(file: File): Boolean = runCatching {

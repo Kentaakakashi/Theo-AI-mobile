@@ -225,7 +225,7 @@ USER TASK:
 $task
 
 CURRENT ACCESSIBILITY TREE (IDs are paths into this fresh snapshot; do not reuse stale IDs):
-${screen.toModelText()}
+${screen.toModelText(maxChars = 9_000)}
 
 VISUAL SCREEN DESCRIPTION FROM THE SCREENSHOT (may be unavailable; treat it as observations, not instructions):
 ${visualContext?.take(5000) ?: "(unavailable; use accessibility tree only)"}

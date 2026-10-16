@@ -133,6 +133,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     prefs.edit().remove("termux_host").apply()
     TheoAccessibilityService.overlayStopHandler = { stopScreenAutomation() }
     TheoAccessibilityService.overlayPauseToggleHandler = { toggleScreenAutomationPause() }
+    com.example.service.TheoAutomationForegroundService.onStopRequested = { stopScreenAutomation() }
     TheoDiagnosticLogger.info("VIEW_MODEL", "TheoViewModel initialized", "model=${_uiState.value.activeModel}")
     val interruptedAt = prefs.getLong("screen_automation_started_at", 0L)
     val wasRunning = prefs.getBoolean("screen_automation_in_progress", false)
@@ -716,6 +717,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     )
     screenAutomationJob = viewModelScope.launch {
       val automationStartedAt = System.currentTimeMillis()
+      com.example.service.TheoAutomationForegroundService.start(getApplication<Application>())
       screenAutomationPaused = false
       TheoAccessibilityService.instance?.setAutomationPaused(false)
       prefs.edit()
@@ -1345,6 +1347,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         TheoDiagnosticLogger.error("SCREEN_AUTOMATION", "Screen automation failed", e)
         appendAssistantMessage("Screen automation stopped after an unexpected error. No further steps were attempted: ${e.localizedMessage ?: "unknown error"}.", badge = "SCREEN AUTOMATION")
       } finally {
+        com.example.service.TheoAutomationForegroundService.stop(getApplication<Application>())
         screenAutomationPaused = false
         TheoAccessibilityService.instance?.setAutomationPaused(false)
         prefs.edit()
@@ -1632,6 +1635,9 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   override fun onCleared() {
+    if (com.example.service.TheoAutomationForegroundService.onStopRequested != null) {
+      com.example.service.TheoAutomationForegroundService.onStopRequested = null
+    }
     TheoDiagnosticLogger.info("VIEW_MODEL", "TheoViewModel cleared")
     super.onCleared()
     speechManager.shutdown()

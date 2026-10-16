@@ -132,7 +132,7 @@ class TheoAccessibilityService : AccessibilityService() {
           gravity = Gravity.TOP or Gravity.END
           x = (10 * density).toInt()
           y = (92 * density).toInt()
-          title = "Theo live automation"
+          this.title = "Theo live automation"
         }
         try {
           manager.addView(root, params)

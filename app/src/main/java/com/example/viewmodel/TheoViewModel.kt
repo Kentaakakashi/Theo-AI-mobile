@@ -712,8 +712,60 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           } while (snapshotAttempts < 5)
 
           if (snapshot != null && expectedPackageName != null && snapshot.packageName != expectedPackageName) {
-            finalMessage = "Theo expected the target app package $expectedPackageName but the active screen belongs to ${snapshot.packageName}. Theo stopped rather than inspecting or operating in another app."
-            break
+            // Android App Lock / biometric UI and app-resolution screens can temporarily
+            // become the active window after an explicit app launch. Never interact with
+            // those screens as if they were the target app; wait for the user to finish
+            // the system prompt, then resume only when the exact target package is active.
+            if (stepNumber == 1) {
+              val targetPackage = expectedPackageName
+              val transitionStartedAt = System.currentTimeMillis()
+              val transitionTimeoutMs = 60_000L
+              var observedPackage = snapshot.packageName
+              _uiState.update {
+                it.copy(
+                  currentThinkingStep = "Waiting for Android app selection or unlock",
+                  thinkingSteps = listOf(
+                    "Target app launch requested",
+                    "Waiting for Android chooser / App Lock",
+                    "Will resume only inside the requested app"
+                  )
+                )
+              }
+              TheoDiagnosticLogger.info(
+                "SCREEN_AUTOMATION",
+                "Waiting for target app to become active",
+                "expected=$targetPackage observed=$observedPackage timeoutMs=$transitionTimeoutMs"
+              )
+              while (System.currentTimeMillis() - transitionStartedAt < transitionTimeoutMs) {
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                delay(500)
+                val refreshedService = TheoAccessibilityService.instance ?: continue
+                val refreshed = refreshedService.captureActiveScreen()
+                if (refreshed == null) continue
+                observedPackage = refreshed.packageName
+                if (observedPackage == targetPackage) {
+                  snapshot = refreshed
+                  TheoDiagnosticLogger.info(
+                    "SCREEN_AUTOMATION",
+                    "Target app became active after system prompt",
+                    "expected=$targetPackage elapsedMs=${System.currentTimeMillis() - transitionStartedAt}"
+                  )
+                  break
+                }
+                TheoDiagnosticLogger.debug(
+                  "SCREEN_AUTOMATION",
+                  "Still waiting outside target app; no actions dispatched",
+                  "expected=$targetPackage observed=$observedPackage"
+                )
+              }
+              if (snapshot?.packageName != targetPackage) {
+                finalMessage = "Theo is waiting for $targetPackage, but Android kept showing $observedPackage. Unlock the phone/app or finish the app chooser, then start the task again. Theo did not interact with that other screen."
+                break
+              }
+            } else {
+              finalMessage = "Theo expected the target app package $expectedPackageName but the active screen belongs to ${snapshot.packageName}. Theo stopped rather than inspecting or operating in another app."
+              break
+            }
           }
           if (snapshot == null) {
             val capture = service.captureActiveScreenJpeg()

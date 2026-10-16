@@ -1289,6 +1289,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               )
             }
           } else {
+            pendingPlannedActions.clear()
             lastDispatchedActionWasSend = false
             consecutiveFailures++
             history.add("Step $stepNumber: ${action.kind} on ${action.nodePath ?: "(system)"} failed; read a fresh tree.")

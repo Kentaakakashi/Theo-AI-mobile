@@ -962,7 +962,16 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             }
           } else null
           val notificationContext = if (com.example.service.AutomationTaskVerifier.requestsDeviceContext(task)) {
-            TheoNotificationListenerService.instance?.buildTaskContext(task)
+            val application = getApplication<Application>()
+            val listener = TheoNotificationListenerService.instance
+            when {
+              !TheoNotificationListenerService.isEnabled(application) ->
+                "LIVE DEVICE CONTEXT UNAVAILABLE: Notification access is disabled; do not claim to know current playback or notification contents."
+              listener == null ->
+                "LIVE DEVICE CONTEXT UNAVAILABLE: Notification access is enabled, but Theo's listener is not connected; no live media or notification content is available."
+              else -> listener.buildTaskContext(task)
+                ?: "LIVE DEVICE CONTEXT UNAVAILABLE: No relevant live media metadata or notification previews were available. Do not invent them."
+            }
           } else null
           val learnedWorkflowHint = if (com.example.service.AutomationTaskVerifier.requestedTrack(task) != null) {
             prefs.getString("verified_music_flow_${snapshot.packageName.hashCode().toString(16)}", null)

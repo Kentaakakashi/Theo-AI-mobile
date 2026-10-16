@@ -718,7 +718,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       var consecutiveFailures = 0
       var consecutiveWaits = 0
       var lastSnapshotFingerprint: String? = null
-      var stableSnapshotCount = 0
       var lastDispatchedActionWasSend = false
       // Prevent a planner from repeatedly dispatching the same terminal tap/click when
       // the target app accepts the input but exposes no meaningful tree change.
@@ -855,7 +854,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           val fingerprint = snapshot.elements.joinToString("|") {
             "${it.id}:${it.label}:${it.clickable}:${it.editable}:${it.scrollable}"
           }.hashCode().toString()
-          if (fingerprint == lastSnapshotFingerprint) stableSnapshotCount++ else stableSnapshotCount = 0
           // Never repeat a Send tap when the fresh screen has not visibly changed.
           if (lastDispatchedActionWasSend && fingerprint == lastSnapshotFingerprint) {
             finalMessage = "Theo attempted to send the requested message, but the screen did not visibly change. To prevent a duplicate, Theo stopped without tapping Send again. Check the conversation before retrying."
@@ -866,12 +864,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
 
           _uiState.update { state ->
             state.copy(
-              currentThinkingStep = if (stableSnapshotCount < 1) "Waiting for interface to settle" else "Planning step $stepNumber",
-              thinkingSteps = (state.thinkingSteps + if (stableSnapshotCount < 1) {
-                "Waiting for app transition · sample $stepNumber"
-              } else {
-                "Inspecting accessible UI · step $stepNumber"
-              }).takeLast(6)
+              currentThinkingStep = "Planning step $stepNumber",
+              thinkingSteps = (state.thinkingSteps + "Inspecting accessible UI · step $stepNumber").takeLast(6)
             )
           }
           // The accessibility tree above is a fresh snapshot and action dispatch revalidates

@@ -132,7 +132,6 @@ class TheoAccessibilityService : AccessibilityService() {
           gravity = Gravity.TOP or Gravity.END
           x = (10 * density).toInt()
           y = (92 * density).toInt()
-          this.title = "Theo live automation"
         }
         try {
           manager.addView(root, params)
@@ -217,7 +216,6 @@ class TheoAccessibilityService : AccessibilityService() {
       gravity = Gravity.TOP or Gravity.START
       x = bounds.left.coerceAtLeast(0)
       y = bounds.top.coerceAtLeast(0)
-      title = "Theo tap indicator"
     }
     try {
       windowManager.addView(indicator, params)

@@ -15,6 +15,24 @@ import android.service.notification.StatusBarNotification
  * Optional, Android-authorized context provider. Nothing is stored in preferences or logs.
  * Notification previews are read only on demand for a user task explicitly about notifications.
  */
+enum class PlaybackVerificationStatus {
+  PLAYING,
+  NOT_PLAYING,
+  TRACK_NOT_FOUND,
+  ACCESS_UNAVAILABLE
+}
+
+data class PlaybackVerificationResult(
+  val status: PlaybackVerificationStatus,
+  val requestedTrack: String,
+  val title: String = "",
+  val artist: String = "",
+  val packageName: String = "",
+  val explanation: String
+) {
+  val verified: Boolean get() = status == PlaybackVerificationStatus.PLAYING
+}
+
 class TheoNotificationListenerService : NotificationListenerService() {
   companion object {
     @Volatile var instance: TheoNotificationListenerService? = null
@@ -74,7 +92,135 @@ class TheoNotificationListenerService : NotificationListenerService() {
     return sections.takeIf { it.isNotEmpty() }?.joinToString("\n\n")
   }
 
+  /**
+   * Independently verifies an explicitly requested track using Android media sessions.
+   * This is an on-demand read; results are never stored or logged.
+   */
+  fun verifyRequestedTrack(
+    requestedTrack: String,
+    expectedPackageName: String? = null
+  ): PlaybackVerificationResult {
+    if (requestedTrack.isBlank()) {
+      return PlaybackVerificationResult(
+        PlaybackVerificationStatus.TRACK_NOT_FOUND, requestedTrack,
+        explanation = "Theo could not identify the requested track title from the task."
+      )
+    }
+    if (!isEnabled(this)) {
+      return PlaybackVerificationResult(
+        PlaybackVerificationStatus.ACCESS_UNAVAILABLE, requestedTrack,
+        explanation = "Android Notification access is not enabled for Theo."
+      )
+    }
+    return try {
+      val manager = getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
+        ?: return PlaybackVerificationResult(
+          PlaybackVerificationStatus.ACCESS_UNAVAILABLE, requestedTrack,
+          explanation = "Android did not expose its media-session manager."
+        )
+      val controllers = manager.getActiveSessions(
+        ComponentName(this, TheoNotificationListenerService::class.java)
+      )
+      if (controllers.isEmpty()) {
+        return PlaybackVerificationResult(
+          PlaybackVerificationStatus.TRACK_NOT_FOUND, requestedTrack,
+          explanation = "Android currently exposes no active media sessions."
+        )
+      }
+
+      data class Candidate(
+        val title: String,
+        val artist: String,
+        val packageName: String,
+        val playbackState: Int?
+      )
+
+      val candidates = controllers.mapNotNull { controller ->
+        val metadata = controller.metadata
+        val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE).orEmpty().trim()
+        if (title.isBlank()) null else Candidate(
+          title = title,
+          artist = metadata?.getString(MediaMetadata.METADATA_KEY_ARTIST).orEmpty().trim(),
+          packageName = controller.packageName.orEmpty(),
+          playbackState = controller.playbackState?.state
+        )
+      }
+      val requested = normalizeTrackTitle(requestedTrack)
+      val matching = candidates.filter { candidate ->
+        val actual = normalizeTrackTitle(candidate.title)
+        actual == requested || actual.contains(requested) || requested.contains(actual)
+      }
+      val expected = expectedPackageName?.takeIf { it.isNotBlank() }
+      val selected = if (expected == null) {
+        matching.firstOrNull { it.playbackState == PlaybackState.STATE_PLAYING }
+          ?: matching.firstOrNull()
+      } else {
+        matching.firstOrNull { it.packageName == expected && it.playbackState == PlaybackState.STATE_PLAYING }
+          ?: matching.firstOrNull { it.packageName == expected }
+      }
+
+      if (selected == null) {
+        val otherPlayerMatch = matching.firstOrNull()
+        return PlaybackVerificationResult(
+          PlaybackVerificationStatus.TRACK_NOT_FOUND,
+          requestedTrack,
+          title = otherPlayerMatch?.title.orEmpty(),
+          artist = otherPlayerMatch?.artist.orEmpty(),
+          packageName = otherPlayerMatch?.packageName.orEmpty(),
+          explanation = if (otherPlayerMatch != null && expected != null) {
+            "The requested track appears in a different player (${otherPlayerMatch.packageName}), not the expected app ($expected)."
+          } else {
+            "No active media session exposed a title matching the requested track."
+          }
+        )
+      }
+
+      val status = when (selected.playbackState) {
+        PlaybackState.STATE_PLAYING -> PlaybackVerificationStatus.PLAYING
+        else -> PlaybackVerificationStatus.NOT_PLAYING
+      }
+      val stateDescription = when (selected.playbackState) {
+        PlaybackState.STATE_PAUSED -> "paused"
+        PlaybackState.STATE_BUFFERING -> "buffering"
+        PlaybackState.STATE_CONNECTING -> "connecting"
+        PlaybackState.STATE_NONE, null -> "not reporting active playback"
+        else -> "not confirmed as playing"
+      }
+      PlaybackVerificationResult(
+        status = status,
+        requestedTrack = requestedTrack,
+        title = selected.title,
+        artist = selected.artist,
+        packageName = selected.packageName,
+        explanation = if (status == PlaybackVerificationStatus.PLAYING) {
+          "Android media-session state confirms the requested track is playing."
+        } else {
+          "The requested track is visible in the media session, but it is $stateDescription."
+        }
+      )
+    } catch (error: SecurityException) {
+      PlaybackVerificationResult(
+        PlaybackVerificationStatus.ACCESS_UNAVAILABLE, requestedTrack,
+        explanation = "Android denied media-session access. Recheck Theo's Notification access permission."
+      )
+    } catch (error: Exception) {
+      TheoDiagnosticLogger.warn(
+        "PLAYBACK_VERIFY", "Could not inspect media session", error.javaClass.simpleName
+      )
+      PlaybackVerificationResult(
+        PlaybackVerificationStatus.ACCESS_UNAVAILABLE, requestedTrack,
+        explanation = "Media-session verification failed (${error.javaClass.simpleName})."
+      )
+    }
+  }
+
+  private fun normalizeTrackTitle(value: String): String =
+    value.lowercase(java.util.Locale.ROOT)
+      .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+      .trim()
+
   private fun readPlaybackContext(): String {
+
     return try {
       val manager = getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
         ?: return "Android did not expose a media-session manager."

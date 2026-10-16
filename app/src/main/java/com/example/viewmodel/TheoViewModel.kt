@@ -76,13 +76,6 @@ data class TheoUiState(
   val isScreenAutomationRunning: Boolean = false
 )
 
-private object TaskNeedsNotificationContext {
-  fun matches(task: String): Boolean = Regex(
-    """\b(notifications?|notification shade|what(?:'s| is) playing|now playing|current song|current track|music playback|what song|unread messages|message notifications|recent notifications|read my messages|message previews|who messaged me|who texted me)\b""",
-    RegexOption.IGNORE_CASE
-  ).containsMatchIn(task)
-}
-
 class TheoViewModel(application: Application) : AndroidViewModel(application) {
 
   private val database = TheoDatabase.getDatabase(application)
@@ -315,7 +308,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         )
       }
 
-      val deviceContextRequested = TaskNeedsNotificationContext.matches(text)
+      val deviceContextRequested = com.example.service.AutomationTaskVerifier.requestsDeviceContext(text)
       val requestedDeviceContext = if (deviceContextRequested) {
         val application = getApplication<Application>()
         val listener = TheoNotificationListenerService.instance
@@ -968,7 +961,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               null
             }
           } else null
-          val notificationContext = if (TaskNeedsNotificationContext.matches(task)) {
+          val notificationContext = if (com.example.service.AutomationTaskVerifier.requestsDeviceContext(task)) {
             TheoNotificationListenerService.instance?.buildTaskContext(task)
           } else null
           val learnedWorkflowHint = if (com.example.service.AutomationTaskVerifier.requestedTrack(task) != null) {

@@ -482,12 +482,24 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       return
     }
     viewModelScope.launch {
-      // Give Android App Links time to route to the music app rather than the browser.
-      delay(900)
+      // Wait for the app-link transition or a fresh accessibility event instead of
+      // sleeping a fixed 900 ms. Keep a bounded deadline for apps that emit no events.
       val service = TheoAccessibilityService.instance
-      val snapshot = service?.captureActiveScreen()
-      if (snapshot == null || snapshot.packageName == getApplication<Application>().packageName) {
-        appendAssistantMessage("The music search opened, but Theo couldn't read the destination screen to continue. No playback is claimed.")
+      val ownPackage = getApplication<Application>().packageName
+      val deadline = System.currentTimeMillis() + 1_600L
+      var revision = service?.currentScreenRevision() ?: 0L
+      var snapshot = service?.captureActiveScreen()
+      while (
+        service != null &&
+        (snapshot == null || snapshot.packageName == ownPackage) &&
+        System.currentTimeMillis() < deadline
+      ) {
+        service.awaitScreenChange(revision, timeoutMs = 220L)
+        revision = service.currentScreenRevision()
+        snapshot = service.captureActiveScreen()
+      }
+      if (snapshot == null || snapshot.packageName == ownPackage) {
+        appendAssistantMessage("The music search opened, but Theo couldn't read the destination screen before the bounded transition wait expired. No playback is claimed.")
         return@launch
       }
       runScreenAutomation(

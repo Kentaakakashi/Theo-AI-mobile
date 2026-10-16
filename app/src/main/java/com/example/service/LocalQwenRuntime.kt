@@ -88,8 +88,8 @@ class LocalQwenRuntime(context: Context) {
       Llama.loadModel(
         modelPath = file.absolutePath,
         config = LlamaConfig(
-          contextSize = 4096,
-          threads = 4,
+          contextSize = 2048,
+          threads = 2,
           gpuLayers = 0,
           temperature = 0.2f,
           topP = 0.9f,
@@ -123,8 +123,8 @@ class LocalQwenRuntime(context: Context) {
       Llama.loadModel(
         modelPath = modelFile.absolutePath,
         config = LlamaConfig(
-          contextSize = 4096,
-          threads = 4,
+          contextSize = 2048,
+          threads = 2,
           gpuLayers = 0,
           temperature = 0.7f,
           topP = 0.9f,

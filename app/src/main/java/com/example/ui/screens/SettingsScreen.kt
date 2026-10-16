@@ -624,7 +624,7 @@ fun SettingsScreen(
             fontWeight = FontWeight.Bold
           )
           Text(
-            text = "Optional Android-granted access lets Theo inspect active media-session metadata (track, artist and playback state) and, only for tasks that ask about notifications, read recent notification previews. Message previews can contain private content. Theo does not save or log them, and does not include them in unrelated tasks. Enable this only if you want those features.",
+            text = "Optional Android-granted access lets Theo inspect active media-session metadata (track, artist and playback state) and, only for explicit related requests, read recent notification previews. Previews can contain private content. Theo does not separately cache raw previews or write them to diagnostic logs, and does not include them in unrelated tasks. Theo's answer may be saved in chat history like other replies and may mention relevant details. Enable this only if you want those features.",
             color = TheoTextSecondary,
             fontSize = 11.sp,
             lineHeight = 16.sp

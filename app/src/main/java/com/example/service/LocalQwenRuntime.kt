@@ -109,7 +109,7 @@ class LocalQwenRuntime(context: Context) {
   /** Free native model memory when Theo's view model is permanently cleared. */
   fun release() {
     // Don't free native memory while another coroutine is inside llama.cpp.
-    // If inference is still active, leave cleanup to the next idle point/process exit.
+    // If inference is still active, defer cleanup to process exit rather than risking native use-after-free.
     if (!mutex.tryLock()) return
     try {
       val model = loadedModel ?: return

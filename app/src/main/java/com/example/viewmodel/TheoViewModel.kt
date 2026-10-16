@@ -700,6 +700,10 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       var lastSnapshotFingerprint: String? = null
       var stableSnapshotCount = 0
       var lastDispatchedActionWasSend = false
+      // Prevent a planner from repeatedly dispatching the same terminal tap/click when
+      // the target app accepts the input but exposes no meaningful tree change.
+      var lastDispatchedActionSignature: String? = null
+      var lastDispatchedActionFingerprint: String? = null
       try {
         for (stepNumber in 1..20) {
           kotlinx.coroutines.currentCoroutineContext().ensureActive()
@@ -1010,6 +1014,26 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           } else {
             pathElements.take(4).map { it.label }.filter { it.isNotBlank() }.joinToString(" ")
           }
+          val actionSignature = listOf(
+            action.kind,
+            action.nodePath.orEmpty(),
+            action.text.orEmpty(),
+            action.x?.toString().orEmpty(),
+            action.y?.toString().orEmpty(),
+            targetLabel.lowercase().trim()
+          ).joinToString("|")
+          if (
+            actionSignature == lastDispatchedActionSignature &&
+            fingerprint == lastDispatchedActionFingerprint
+          ) {
+            finalMessage = "Theo stopped because the planner repeated the same action on an unchanged screen. No duplicate action was dispatched. The task may need a different screen state or a manual check."
+            TheoDiagnosticLogger.warn(
+              "SCREEN_AUTOMATION",
+              "Duplicate action prevented on unchanged screen",
+              "step=$stepNumber; action=${action.kind}; target=${targetLabel.take(100)}; fingerprint=$fingerprint"
+            )
+            break
+          }
           val explicitlyRequestedOrdinarySend =
             action.kind == "click" &&
               Regex("""\b(message|reply|send)\b""", RegexOption.IGNORE_CASE).containsMatchIn(task) &&
@@ -1041,6 +1065,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             )
             consecutiveFailures = 0
             lastDispatchedActionWasSend = explicitlyRequestedOrdinarySend
+            lastDispatchedActionSignature = actionSignature
+            lastDispatchedActionFingerprint = fingerprint
             history.add("Step $stepNumber: ${action.kind} on ${action.nodePath ?: "(system)"} dispatched; target=${targetLabel.take(100)}. Reason: ${action.reason.take(120)}")
             _uiState.update { state ->
               state.copy(

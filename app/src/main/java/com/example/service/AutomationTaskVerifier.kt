@@ -12,16 +12,16 @@ internal data class MessageExpectation(
 internal object AutomationTaskVerifier {
   fun requestedTrack(task: String): String? {
     val quoted = Regex(
-      """(?i)\\b(?:song|track)\\s+["“']([^"”']+)["”']"""
+      """(?i)\b(?:song|track)\s+["“']([^"”']+)["”']"""
     ).find(task)?.groupValues?.getOrNull(1)?.trim()
     if (!quoted.isNullOrBlank()) return quoted
 
     val playMatch = Regex(
-      """(?i)\\bplay\\s+(?:(?:the\\s+)?(?:song|track)\\s+)?["“']?(.+?)["”']?(?=\\s+(?:in|on|using|through|via)\\s+|[.!?,]|$)"""
+      """(?i)\bplay\s+(?:(?:the\s+)?(?:song|track)\s+)?["“']?(.+?)["”']?(?=\s+(?:in|on|using|through|via)\s+|[.!?,]|$)"""
     ).find(task)?.groupValues?.getOrNull(1)
     val candidate = playMatch
       ?.trim()
-      ?.removeSurrounding("\\\"")
+      ?.removeSurrounding("\"")
       ?.removeSurrounding("'")
       ?.trimEnd('.', ',', ':')
       ?.trim()
@@ -30,14 +30,14 @@ internal object AutomationTaskVerifier {
 
   fun requestedMessage(task: String): MessageExpectation? {
     val patterns = listOf(
-      Regex("""(?i)\\b(?:send\\s+a\\s+message\\s+to|send\\s+message\\s+to|message\\s+to|message|dm)\\s+(.+?)\\s+saying\\s+(.+?)\\s*$"""),
-      Regex("""(?i)\\bsend\\s+(.+?)\\s+(?:a\\s+)?message\\s+saying\\s+(.+?)\\s*$""")
+      Regex("""(?i)\b(?:send\s+a\s+message\s+to|send\s+message\s+to|message\s+to|message|dm)\s+(.+?)\s+saying\s+(.+?)\s*$"""),
+      Regex("""(?i)\bsend\s+(.+?)\s+(?:a\s+)?message\s+saying\s+(.+?)\s*$""")
     )
     val match = patterns.firstNotNullOfOrNull { it.find(task) } ?: return null
     val recipient = match.groupValues.getOrNull(1)?.trim()
-      ?.removeSurrounding("\\\"")?.removeSurrounding("'")?.trim().orEmpty()
+      ?.removeSurrounding("\"")?.removeSurrounding("'")?.trim().orEmpty()
     val body = match.groupValues.getOrNull(2)?.trim()
-      ?.removeSurrounding("\\\"")?.removeSurrounding("'")
+      ?.removeSurrounding("\"")?.removeSurrounding("'")
       ?.removeSurrounding("“", "”")?.trim().orEmpty()
     if (recipient.isBlank() || body.isBlank()) return null
     return MessageExpectation(recipient, body)

@@ -29,7 +29,7 @@ internal fun parseGeminiApiKeys(input: String): List<String> {
     .distinct()
 }
 
-class TheoAiEngine {
+class TheoAiEngine(private val localQwenRuntime: LocalQwenRuntime? = null) {
 
   private val theoPersonality = """
 You are Theo: a distinct, confident, emotionally perceptive AI companion built into a native Android app. You are the user's best friend in conversation and a badass, reliable assistant when tasks need doing. You have your own voice and honest opinions; you are not a generic corporate chatbot and must never pretend to have human experiences, feelings, memories, or abilities you do not have.
@@ -64,12 +64,6 @@ VOICE OUTPUT
 These rules define your default character, not a script. Stay natural, context-aware, and unmistakably Theo.
 """.trimIndent()
 
-  private val client = OkHttpClient.Builder()
-    .connectTimeout(8, TimeUnit.SECONDS)
-    .readTimeout(15, TimeUnit.SECONDS)
-    .writeTimeout(8, TimeUnit.SECONDS)
-    .build()
-
   // Cloud generation can take longer than local requests, especially during
   // Gemini service load. Keep its timeout separate from the local bridge.
   private val geminiClient = OkHttpClient.Builder()
@@ -77,14 +71,6 @@ These rules define your default character, not a script. Stay natural, context-a
     .readTimeout(45, TimeUnit.SECONDS)
     .writeTimeout(15, TimeUnit.SECONDS)
     .callTimeout(60, TimeUnit.SECONDS)
-    .build()
-
-  // On-device Qwen inference can be slow on phones; don't treat a slow generation as offline.
-  private val localQwenClient = OkHttpClient.Builder()
-    .connectTimeout(10, TimeUnit.SECONDS)
-    .readTimeout(180, TimeUnit.SECONDS)
-    .writeTimeout(30, TimeUnit.SECONDS)
-    .callTimeout(210, TimeUnit.SECONDS)
     .build()
 
   data class EngineResult(
@@ -173,8 +159,8 @@ These rules define your default character, not a script. Stay natural, context-a
 
     val result = when (activeModel) {
       AiModelType.LOCAL_QWEN -> {
-        onProgress("Connecting to local Qwen server")
-        tryCallLocalQwen(prompt, memoryContext, termuxHost, startTime)
+        onProgress("Running Qwen directly on this device")
+        tryCallLocalQwen(prompt, memoryContext, startTime)
       }
       AiModelType.GEMINI_FLASH, AiModelType.GEMINI_PRO -> {
         onProgress("Connecting to Gemini API")
@@ -259,7 +245,7 @@ Choose the next single action.
     val startTime = System.currentTimeMillis()
     val result = try {
       when (activeModel) {
-        AiModelType.LOCAL_QWEN -> tryCallLocalQwen(userPrompt, policy, termuxHost, startTime)
+        AiModelType.LOCAL_QWEN -> tryCallLocalQwen(userPrompt, policy, startTime)
         AiModelType.GEMINI_FLASH, AiModelType.GEMINI_PRO -> {
           val apiKeys = parseGeminiApiKeys(customApiKey)
           if (apiKeys.isEmpty()) {
@@ -372,119 +358,52 @@ Choose the next single action.
     }
   }
 
-  suspend fun testQwenConnection(termuxHost: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
-    TheoDiagnosticLogger.info("QWEN_BRIDGE", "Socket ping started", "host=${termuxHost.substringBefore("/v1")}")
-    try {
-      val url = if (termuxHost.endsWith("/")) "${termuxHost}models" else "$termuxHost/models"
-      val request = Request.Builder()
-        .url(url)
-        .get()
-        .build()
-
-      val response = client.newCall(request).execute()
-      response.use {
-        if (it.isSuccessful) {
-          TheoDiagnosticLogger.info("QWEN_BRIDGE", "Socket ping successful", "HTTP ${it.code}")
-          Pair(true, "Connected to Local Qwen server (HTTP ${it.code})")
-        } else {
-          TheoDiagnosticLogger.warn("QWEN_BRIDGE", "Socket ping failed", "HTTP ${it.code}")
-          Pair(false, "Server responded with code: ${it.code}")
-        }
-      }
-    } catch (e: Exception) {
-      TheoDiagnosticLogger.error("QWEN_BRIDGE", "Socket ping threw an exception", e)
-      Pair(false, "Connection refused: ${e.localizedMessage ?: "Endpoint unreachable"}")
+  /**
+   * Backwards-compatible entry point for Settings while the UI transitions to native model setup.
+   * The legacy host argument is deliberately ignored; no network request is made to localhost.
+   */
+  suspend fun testQwenConnection(ignoredLegacyHost: String = ""): Pair<Boolean, String> {
+    return try {
+      val runtime = localQwenRuntime
+        ?: throw IllegalStateException("Native local Qwen runtime was not configured by Theo.")
+      Pair(true, runtime.prepare())
+    } catch (error: Exception) {
+      TheoDiagnosticLogger.error("LOCAL_QWEN", "Native Qwen preparation failed", error)
+      Pair(false, "Local Qwen setup failed: ${error.localizedMessage ?: error.javaClass.simpleName}")
     }
   }
 
-  private fun tryCallLocalQwen(
+  private suspend fun tryCallLocalQwen(
     prompt: String,
     memoryContext: String,
-    host: String,
     startTime: Long
   ): EngineResult {
+    val runtime = localQwenRuntime ?: return EngineResult(
+      responseText = "Theo's native Qwen runtime is not initialized. Open Settings → On-device Qwen Runtime and tap Download & Load Qwen.",
+      modelBadge = "QWEN REQUIRED",
+      latencyMs = System.currentTimeMillis() - startTime
+    )
     return try {
-      val endpoint = if (host.endsWith("/")) "${host}chat/completions" else "$host/chat/completions"
-      val systemPrompt = "$theoPersonality\n\n$memoryContext"
-
-      val json = JSONObject().apply {
-        put("model", "qwen3-1.7b")
-        val messages = JSONArray().apply {
-          put(JSONObject().apply {
-            put("role", "system")
-            put("content", systemPrompt)
-          })
-          put(JSONObject().apply {
-            put("role", "user")
-            put("content", prompt)
-          })
-        }
-        put("messages", messages)
-        put("temperature", 0.7)
-        put("max_tokens", 512)
-        put("chat_template_kwargs", JSONObject().put("enable_thinking", false))
-      }
-
-      val requestBody = json.toString().toRequestBody("application/json".toMediaType())
-      val request = Request.Builder()
-        .url(endpoint)
-        .post(requestBody)
-        .build()
-
-      val response = localQwenClient.newCall(request).execute()
-
-      response.use { result ->
-        val bodyStr = result.body?.string().orEmpty()
-        val latency = System.currentTimeMillis() - startTime
-        if (!result.isSuccessful) {
-          val detail = try {
-            JSONObject(bodyStr).optJSONObject("error")?.optString("message").orEmpty()
-          } catch (_: Exception) { bodyStr.take(240).replace(Regex("\\s+"), " ") }
-          val suffix = if (detail.isBlank()) "" else ": $detail"
-          TheoDiagnosticLogger.error("QWEN_BRIDGE", "Chat completion returned HTTP ${result.code}", details = detail)
-          return@use EngineResult(
-            responseText = "Local Qwen API rejected the chat request (HTTP ${result.code})$suffix. The server is reachable, but generation failed. Check the model/server response and try again.",
-            modelBadge = "QWEN HTTP ERROR",
-            latencyMs = latency
-          )
-        }
-        val respJson = try {
-          JSONObject(bodyStr)
-        } catch (e: Exception) {
-          TheoDiagnosticLogger.error("QWEN_BRIDGE", "Could not parse chat completion JSON", e)
-          return@use EngineResult(
-            responseText = "Local Qwen returned HTTP ${result.code}, but its response was not valid JSON. Details: ${e.localizedMessage ?: "JSON parse error"}.",
-            modelBadge = "QWEN PARSE ERROR",
-            latencyMs = latency
-          )
-        }
-        val choices = respJson.optJSONArray("choices")
-        val choice = choices?.optJSONObject(0)
-        val message = choice?.optJSONObject("message")
-        val content = message?.optString("content").orEmpty().trim()
-        if (content.isNotBlank()) {
-          EngineResult(content, "LOCAL QWEN 1.7B", latency)
-        } else {
-          val finishReason = choice?.optString("finish_reason").orEmpty().ifBlank { "not provided" }
-          val usage = respJson.optJSONObject("usage")
-          val completionTokens = usage?.optInt("completion_tokens", -1) ?: -1
-          val tokenNote = if (completionTokens >= 0) " Completion tokens: $completionTokens." else ""
-          val explanation = if (finishReason == "length") "Generation hit its token limit before producing final text." else "The server response contained no final text."
-          EngineResult(
-            "Qwen server responded successfully, but Theo received an empty final answer. Finish reason: $finishReason. $explanation$tokenNote Thinking/reasoning text is intentionally not shown as the answer. Try the direct chat-completion test or check llama.cpp chat-template support.",
-            "QWEN EMPTY RESPONSE",
-            latency
-          )
-        }
-      }
-    } catch (e: Exception) {
+      val answer = runtime.generate(
+        prompt = prompt,
+        systemPrompt = "$theoPersonality\n\n$memoryContext",
+        maxTokens = 512
+      )
       val latency = System.currentTimeMillis() - startTime
-      TheoDiagnosticLogger.error("QWEN_BRIDGE", "Local Qwen chat request threw an exception", e, "endpoint=${host.substringBefore("/v1")}")
-      val reason = when (e) {
-        is java.net.SocketTimeoutException -> "Local Qwen took too long to generate a response (timeout)"
-        else -> e.localizedMessage ?: "Local Qwen request failed"
+      TheoDiagnosticLogger.info("LOCAL_QWEN", "On-device generation succeeded", "latencyMs=$latency; chars=${answer.length}")
+      EngineResult(answer, "ON-DEVICE QWEN 1.7B", latency)
+    } catch (error: Exception) {
+      val latency = System.currentTimeMillis() - startTime
+      TheoDiagnosticLogger.error("LOCAL_QWEN", "On-device generation failed", error)
+      val message = when (error) {
+        is OutOfMemoryError -> "Android ran out of memory while loading or running local Qwen. Close other apps and retry; Theo stopped this request."
+        else -> error.localizedMessage ?: error.javaClass.simpleName
       }
-      generateLocalFallback(prompt, reason, latency)
+      EngineResult(
+        responseText = "Theo could not run local Qwen on this attempt: $message. Open Settings → On-device Qwen Runtime, prepare the model, and retry. No cloud fallback or simulated answer was used.",
+        modelBadge = "LOCAL QWEN ERROR",
+        latencyMs = latency
+      )
     }
   }
 
@@ -677,23 +596,6 @@ Choose the next single action.
         latencyMs = latency
       )
     }
-  }
-
-  private fun generateLocalFallback(prompt: String, reason: String, latency: Long): EngineResult {
-    val lowerReason = reason.lowercase()
-    val message = when {
-      lowerReason.contains("timeout") ->
-        "The local Qwen chat request timed out while waiting for generation. The server may still be reachable; try a shorter prompt and retry."
-      lowerReason.contains("failed to connect") || lowerReason.contains("connection refused") || lowerReason.contains("unable to resolve") ->
-        "Theo could not open a connection to the configured local Qwen endpoint. Confirm the server is running at the configured URL."
-      else ->
-        "Theo's local Qwen request failed: $reason. This does not necessarily mean the server is offline; Ping Socket checks only the models endpoint."
-    }
-    return EngineResult(
-      responseText = "$message No Qwen-generated answer was produced.",
-      modelBadge = "QWEN REQUEST ERROR",
-      latencyMs = latency
-    )
   }
 
   private fun detectMemoryRequest(prompt: String): Pair<String, String>? {

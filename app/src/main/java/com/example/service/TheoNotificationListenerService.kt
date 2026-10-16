@@ -146,6 +146,13 @@ class TheoNotificationListenerService : NotificationListenerService() {
         )
       }
       val requested = normalizeTrackTitle(requestedTrack)
+      if (requested.isBlank()) {
+        return PlaybackVerificationResult(
+          PlaybackVerificationStatus.TRACK_NOT_FOUND,
+          requestedTrack,
+          explanation = "The requested track title did not contain searchable letters or numbers."
+        )
+      }
       val matching = candidates.filter { candidate ->
         val actual = normalizeTrackTitle(candidate.title)
         actual == requested || actual.contains(requested) || requested.contains(actual)

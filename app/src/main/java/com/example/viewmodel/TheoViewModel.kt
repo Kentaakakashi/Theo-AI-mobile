@@ -922,6 +922,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             "Planning next screen action",
             "step=$stepNumber; package=${snapshot.packageName}; elements=${snapshot.elements.size}; actionable=$hasActionableControls; visualContextChars=${visualContext?.length ?: 0}; model=${_uiState.value.activeModel}"
           )
+          val plannerStartedAt = System.currentTimeMillis()
           val plan = aiEngine.planScreenAction(
             task = task,
             screen = snapshot,
@@ -941,7 +942,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           TheoDiagnosticLogger.info(
             "SCREEN_AUTOMATION",
             "Screen planner returned",
-            "step=$stepNumber; action=${action?.kind ?: "none"}; reason=${action?.reason?.take(120).orEmpty()}; error=${plan.error?.take(180).orEmpty()}"
+            "step=$stepNumber; latencyMs=${System.currentTimeMillis() - plannerStartedAt}; action=${action?.kind ?: "none"}; reason=${action?.reason?.take(120).orEmpty()}; error=${plan.error?.take(180).orEmpty()}"
           )
           if (action != null) {
             publishAutomationOverlay(
@@ -1124,7 +1125,14 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             detail = "Target: ${targetLabel.ifBlank { action.nodePath ?: "screen control" }} · ${action.reason.take(130)}"
           )
           val revisionBeforeAction = service.currentScreenRevision()
+          val actionStartedAt = System.currentTimeMillis()
           val success = service.performScreenAction(action, snapshot.packageName)
+          val actionDispatchMs = System.currentTimeMillis() - actionStartedAt
+          TheoDiagnosticLogger.debug(
+            "SCREEN_AUTOMATION",
+            "Accessibility action dispatch finished",
+            "step=$stepNumber; action=${action.kind}; success=$success; latencyMs=$actionDispatchMs"
+          )
           if (success) {
             publishAutomationOverlay(
               task = task,
@@ -1152,11 +1160,12 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             }
           }
           if (success) {
+            val settleStartedAt = System.currentTimeMillis()
             val screenChanged = service.awaitScreenChange(revisionBeforeAction, timeoutMs = 420L)
             TheoDiagnosticLogger.debug(
               "SCREEN_AUTOMATION",
               "Action settle wait finished",
-              "step=$stepNumber; screenChanged=$screenChanged; timeoutMs=420"
+              "step=$stepNumber; screenChanged=$screenChanged; waitMs=${System.currentTimeMillis() - settleStartedAt}; maxWaitMs=420"
             )
           } else {
             delay(100L)

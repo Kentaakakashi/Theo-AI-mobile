@@ -184,7 +184,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         dao.insertMessage(
           MessageEntity(
             id = "welcome-msg",
-            text = "Neural Core initialized. Greetings, Operator. I am **Theo**, your native Android AI companion.\n\nConfigure a Gemini API key in Settings or connect your local Qwen server to enable AI responses. Your memories and chat history are stored on this device.",
+            text = "Neural Core initialized. Greetings, Operator. I am **Theo**, your native Android AI companion.\n\nConfigure a Gemini API key in Settings or download Qwen once in the On-device Qwen Runtime section to enable offline AI responses. Your memories and chat history are stored on this device.",
             isUser = false,
             timestamp = System.currentTimeMillis(),
             modelBadge = "THEO CORE v2.4",

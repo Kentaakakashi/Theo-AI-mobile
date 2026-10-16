@@ -10,6 +10,14 @@ internal data class MessageExpectation(
 )
 
 internal object AutomationTaskVerifier {
+  /**
+   * Fetch notification/media context only for explicit, related requests.
+   * General conversation and ordinary send-message tasks never read notification previews.
+   */
+  fun requestsDeviceContext(task: String): Boolean = Regex(
+    """(?i)\\b(notifications?|notification shade|what(?:'s| is) playing|now playing|current song|current track|music playback|what song|unread messages|message notifications|recent notifications|read my messages|message previews|who messaged me|who texted me)\\b"""
+  ).containsMatchIn(task)
+
   fun requestedTrack(task: String): String? {
     val quoted = Regex(
       """(?i)\b(?:song|track)\s+["“']([^"”']+)["”']"""

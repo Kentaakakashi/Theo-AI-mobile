@@ -75,7 +75,7 @@ class TheoNotificationListenerService : NotificationListenerService() {
       RegexOption.IGNORE_CASE
     ).containsMatchIn(task)
     val asksNotifications = Regex(
-      """\b(notifications?|notification shade|unread messages|message notifications|recent notifications|read my messages)\b""",
+      """\b(notifications?|notification shade|unread messages|message notifications|recent notifications|read my messages|message previews|who messaged me|who texted me)\b""",
       RegexOption.IGNORE_CASE
     ).containsMatchIn(task)
     if (!asksPlayback && !asksNotifications) return null

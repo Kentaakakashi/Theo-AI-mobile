@@ -51,10 +51,9 @@ data class TheoUiState(
   val animationIntensity: AnimationIntensity = AnimationIntensity.HIGH,
   val isSpeechEnabled: Boolean = true,
   val currentTab: Int = 0, // 0: Core/Orb, 1: Memory, 2: Activity, 3: Settings
-  val termuxHost: String = "http://127.0.0.1:8080/v1",
   val customApiKey: String = "",
   val groqApiKey: String = "",
-  val qwenStatusMessage: String = "Idle (Tap to ping 127.0.0.1:8080)",
+  val qwenStatusMessage: String = "Not downloaded · requires a one-time ~1.11 GB download.",
   val isTestingQwen: Boolean = false,
   val isTestingGemini: Boolean = false,
   val isTestingGroq: Boolean = false,
@@ -87,7 +86,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
 
   private val database = TheoDatabase.getDatabase(application)
   private val dao = database.theoDao()
-  private val aiEngine = TheoAiEngine()
+  private val localQwenRuntime = LocalQwenRuntime(application)
+  private val aiEngine = TheoAiEngine(localQwenRuntime)
   private val screenVisionAnalyzer = com.example.service.ScreenVisionAnalyzer()
   private val prefs = application.getSharedPreferences("theo_prefs", Context.MODE_PRIVATE)
   private var screenAutomationJob: Job? = null
@@ -96,7 +96,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     TheoUiState(
       customApiKey = prefs.getString("gemini_api_key", "") ?: "",
       groqApiKey = prefs.getString("groq_api_key", "") ?: "",
-      termuxHost = prefs.getString("termux_host", "http://127.0.0.1:8080/v1") ?: "http://127.0.0.1:8080/v1",
+      qwenStatusMessage = if (localQwenRuntime.isDownloaded()) "Model downloaded · tap Download & Load to initialize native Qwen." else "Not downloaded · requires a one-time ~1.11 GB download.",
       activeModel = try {
         AiModelType.valueOf(prefs.getString("active_model", AiModelType.GEMINI_FLASH.name) ?: AiModelType.GEMINI_FLASH.name)
       } catch (e: Exception) {
@@ -300,7 +300,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           prompt = text,
           activeModel = stateAtSubmission.activeModel,
           customApiKey = stateAtSubmission.customApiKey,
-          termuxHost = stateAtSubmission.termuxHost,
+          termuxHost = "",
           memories = currentMemories,
           onStreamChunk = { chunk ->
             _uiState.update { current -> current.copy(streamingText = current.streamingText + chunk) }
@@ -895,7 +895,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             history = history,
             activeModel = _uiState.value.activeModel,
             customApiKey = _uiState.value.customApiKey,
-            termuxHost = _uiState.value.termuxHost,
+            termuxHost = "",
             sensitiveActionsAuthorized = sensitiveAuthorized,
             visualContext = visualContext,
             deviceContext = notificationContext
@@ -1210,16 +1210,25 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   fun testQwenConnection() {
-    TheoDiagnosticLogger.info("QWEN_BRIDGE", "Ping requested from Settings")
-    _uiState.update { it.copy(isTestingQwen = true, qwenStatusMessage = "Pinging socket...") }
+    if (_uiState.value.isTestingQwen) return
+    TheoDiagnosticLogger.info("LOCAL_QWEN", "Native model preparation requested from Settings")
+    _uiState.update { it.copy(isTestingQwen = true, qwenStatusMessage = "Preparing native Qwen runtime…") }
     viewModelScope.launch {
-      val (success, message) = aiEngine.testQwenConnection(_uiState.value.termuxHost)
-      TheoDiagnosticLogger.info("QWEN_BRIDGE", "Ping result displayed", "success=$success, result=$message")
-      _uiState.update {
-        it.copy(
-          isTestingQwen = false,
-          qwenStatusMessage = message
-        )
+      try {
+        val message = localQwenRuntime.prepare { progress ->
+          _uiState.update { it.copy(qwenStatusMessage = progress) }
+        }
+        TheoDiagnosticLogger.info("LOCAL_QWEN", "Native model preparation completed", message)
+        _uiState.update { it.copy(qwenStatusMessage = message) }
+      } catch (cancelled: CancellationException) {
+        _uiState.update { it.copy(qwenStatusMessage = "Local Qwen preparation cancelled.") }
+        throw cancelled
+      } catch (error: Throwable) {
+        TheoDiagnosticLogger.error("LOCAL_QWEN", "Native model preparation failed", error)
+        val message = error.localizedMessage ?: error.javaClass.simpleName
+        _uiState.update { it.copy(qwenStatusMessage = "Failed to prepare local Qwen: $message") }
+      } finally {
+        _uiState.update { it.copy(isTestingQwen = false) }
       }
     }
   }
@@ -1228,15 +1237,16 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     model: AiModelType,
     intensity: AnimationIntensity,
     apiKey: String,
-    termuxHost: String,
+    ignoredLegacyHost: String,
     groqKey: String = _uiState.value.groqApiKey
   ) {
+    // Legacy callers still supply the removed host argument, but it is never persisted or used.
     prefs.edit()
       .putString("active_model", model.name)
       .putString("anim_intensity", intensity.name)
       .putString("gemini_api_key", apiKey)
       .putString("groq_api_key", groqKey)
-      .putString("termux_host", termuxHost)
+      .remove("termux_host")
       .apply()
 
     _uiState.update {
@@ -1246,7 +1256,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         customApiKey = apiKey,
         groqApiKey = groqKey,
         groqStatusMessage = if (groqKey != it.groqApiKey) "Not tested yet" else it.groqStatusMessage,
-        termuxHost = termuxHost,
         geminiStatusMessage = if (apiKey != it.customApiKey) "Not tested yet" else it.geminiStatusMessage
       )
     }
@@ -1256,5 +1265,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     TheoDiagnosticLogger.info("VIEW_MODEL", "TheoViewModel cleared")
     super.onCleared()
     speechManager.shutdown()
+    localQwenRuntime.release()
   }
 }

@@ -48,7 +48,7 @@ data class ScreenAction(
   val reason: String = ""
 )
 
-internal data class ScreenPlanResult(val action: ScreenAction? = null, val error: String? = null)
+internal data class ScreenPlanResult(val action: ScreenAction? = null, val error: String? = null, val actions: List<ScreenAction> = emptyList())
 
 internal data class ScreenAutomationRequest(val appName: String?, val task: String) {
   companion object {
@@ -74,6 +74,26 @@ internal data class ScreenAutomationRequest(val appName: String?, val task: Stri
 internal object ScreenActionParser {
   private val nodePathPattern = Regex("^\\d+(?:\\.\\d+){0,12}$")
 
+  /**
+   * A response may contain one action or a short candidate batch. Batches are only syntax
+   * parsed here; the ViewModel revalidates every later action against a fresh screen.
+   */
+  fun parsePlan(rawResponse: String): List<ScreenAction>? {
+    val start = rawResponse.indexOf('{')
+    val end = rawResponse.lastIndexOf('}')
+    if (start < 0 || end <= start) return null
+    val root = try { JSONObject(rawResponse.substring(start, end + 1)) } catch (_: Exception) { return null }
+    val batch = root.optJSONArray("actions") ?: return parse(rawResponse)?.let(::listOf)
+    if (batch.length() !in 2..3) return null
+    val parsed = mutableListOf<ScreenAction>()
+    for (index in 0 until batch.length()) {
+      val item = batch.optJSONObject(index) ?: return null
+      val action = parse(item.toString()) ?: return null
+      parsed += action
+    }
+    return parsed
+  }
+
   fun parse(rawResponse: String): ScreenAction? {
     val start = rawResponse.indexOf('{')
     val end = rawResponse.lastIndexOf('}')
@@ -89,12 +109,12 @@ internal object ScreenActionParser {
     val reason = json.optString("reason").trim().take(300)
 
     return when (kind) {
-      "click" -> if (node != null && nodePathPattern.matches(node)) ScreenAction("click", nodePath = node, reason = reason) else null
+      "click" -> if (node != null && nodePathPattern.matches(node)) ScreenAction("click", nodePath = node, targetLabel = targetLabel, reason = reason) else null
       "tap" -> if (x in 0..1000 && y in 0..1000 && targetLabel.isNotBlank()) {
         ScreenAction("tap", x = x, y = y, targetLabel = targetLabel, reason = reason)
       } else null
-      "type" -> if (node != null && nodePathPattern.matches(node) && text != null) ScreenAction("type", nodePath = node, text = text, reason = reason) else null
-      "scroll" -> if (node != null && nodePathPattern.matches(node) && direction in setOf("forward", "backward")) ScreenAction("scroll", nodePath = node, direction = direction, reason = reason) else null
+      "type" -> if (node != null && nodePathPattern.matches(node) && text != null) ScreenAction("type", nodePath = node, text = text, targetLabel = targetLabel, reason = reason) else null
+      "scroll" -> if (node != null && nodePathPattern.matches(node) && direction in setOf("forward", "backward")) ScreenAction("scroll", nodePath = node, direction = direction, targetLabel = targetLabel, reason = reason) else null
       "back" -> ScreenAction("back", reason = reason)
       "wait" -> ScreenAction("wait", reason = reason)
       "done", "finished" -> ScreenAction("done", reason = reason)

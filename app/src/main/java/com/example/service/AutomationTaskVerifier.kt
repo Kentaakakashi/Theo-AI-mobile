@@ -23,7 +23,7 @@ internal object AutomationTaskVerifier {
       ?.trim()
       ?.removeSurrounding("\"")
       ?.removeSurrounding("'")
-      ?.replace(Regex("""(?i)\\s+(?:please|now)$"""), "")
+      ?.replace(Regex("""(?i)\s+(?:please|now)$"""), "")
       ?.trimEnd('.', ',', ':')
       ?.trim()
     return candidate?.takeIf { it.isNotBlank() && !it.equals("music", ignoreCase = true) }

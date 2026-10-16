@@ -182,7 +182,9 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                  text = model.description,
+                  text = if (model == AiModelType.LOCAL_QWEN) {
+                    "Qwen3-1.7B runs inside Theo on this phone. Download the model once below; no Termux server or host URL is needed."
+                  } else model.description,
                   color = TheoTextSecondary,
                   fontSize = 11.sp,
                   lineHeight = 15.sp
@@ -195,8 +197,72 @@ fun SettingsScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
-      // Local Qwen is being migrated to an in-app inference runtime.
-      // The old Termux-host URL and socket-ping controls are intentionally removed.
+      Spacer(modifier = Modifier.height(8.dp))
+
+      // Native on-device Qwen model setup: the model weights are downloaded once,
+      // then loaded directly by llama.cpp inside this app (no localhost server).
+      SettingsSectionHeader(icon = Icons.Default.PhoneAndroid, title = "On-device Qwen Runtime")
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .clip(RoundedCornerShape(12.dp))
+          .background(TheoSurfaceGlass)
+          .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+          .padding(14.dp)
+      ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+          Text(
+            text = "Download and load Qwen3-1.7B Q4_K_M for private, offline text generation. The first download is about 1.11 GB and needs enough free storage. Inference runs on the phone's CPU; performance and memory use depend on the device. The model is not bundled in the APK.",
+            color = TheoTextSecondary,
+            fontSize = 12.sp,
+            lineHeight = 17.sp
+          )
+          Button(
+            onClick = onTestQwen,
+            enabled = !uiState.isTestingQwen,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceCard)
+          ) {
+            if (uiState.isTestingQwen) {
+              CircularProgressIndicator(
+                modifier = Modifier.size(15.dp),
+                strokeWidth = 2.dp,
+                color = TheoCyan
+              )
+              Spacer(modifier = Modifier.width(7.dp))
+              Text("Preparing local Qwen…", color = TheoCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            } else {
+              Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = null,
+                tint = TheoCyan,
+                modifier = Modifier.size(15.dp)
+              )
+              Spacer(modifier = Modifier.width(7.dp))
+              Text(
+                if (uiState.qwenStatusMessage.startsWith("Ready")) "Verify / Load Qwen" else "Download & Load Qwen (~1.1 GB)",
+                color = TheoCyan,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+              )
+            }
+          }
+          Text(
+            text = uiState.qwenStatusMessage,
+            color = when {
+              uiState.qwenStatusMessage.startsWith("Ready") -> TheoOnlineGreen
+              uiState.isTestingQwen -> TheoCyan
+              uiState.qwenStatusMessage.contains("failed", ignoreCase = true) ||
+                uiState.qwenStatusMessage.contains("error", ignoreCase = true) -> TheoWarningAmber
+              else -> TheoTextMuted
+            },
+            fontFamily = FontFamily.Monospace,
+            fontSize = 10.sp,
+            lineHeight = 14.sp
+          )
+        }
+      }
+
       Spacer(modifier = Modifier.height(20.dp))
 
       // Section 3: Gemini Cloud API Keys
@@ -341,7 +407,7 @@ fun SettingsScreen(
                   updatedKeys.add(cleanKey)
                 }
                 apiKeyInput = updatedKeys.distinct().joinToString("\n")
-                onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput, groqApiKeyInput)
+                onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, "", groqApiKeyInput)
                 apiKeyDraft = ""
                 editingApiKeyIndex = null
               },
@@ -405,7 +471,7 @@ fun SettingsScreen(
             value = groqApiKeyInput,
             onValueChange = {
               groqApiKeyInput = it
-              onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, termuxHostInput, it)
+              onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, "", it)
             },
             label = { Text("Groq API key") },
             placeholder = { Text("gsk_…") },
@@ -470,7 +536,7 @@ fun SettingsScreen(
               .border(1.dp, if (isSelected) TheoViolet else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
               .clickable {
                 selectedIntensity = intensity
-                onSaveSettings(selectedModel, intensity, apiKeyInput, termuxHostInput, groqApiKeyInput)
+                onSaveSettings(selectedModel, intensity, apiKeyInput, "", groqApiKeyInput)
               }
               .padding(12.dp)
           ) {

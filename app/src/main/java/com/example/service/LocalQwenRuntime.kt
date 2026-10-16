@@ -99,7 +99,7 @@ class LocalQwenRuntime(context: Context) {
     }
     val result = Llama.complete(
       model = model,
-      prompt = prompt.trimEnd() + "\\n/no_think",
+      prompt = prompt.trimEnd() + "\n/no_think",
       systemPrompt = systemPrompt,
       maxTokens = maxTokens.coerceIn(16, 768)
     )

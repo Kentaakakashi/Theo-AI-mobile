@@ -25,3 +25,18 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+## llama-android / llama.cpp
+
+Repository: https://github.com/ffmpegkit-maintained/llama-android  
+Artifact: `dev.ffmpegkit-maintained:llama-android:0.1.1`  
+License: MIT License  
+Use: Provides the in-process native llama.cpp Android runtime used to load and run the downloaded GGUF model. The library's upstream third-party notices apply to its bundled native dependencies.
+
+## Qwen3-1.7B Q4_K_M model
+
+Source: https://huggingface.co/unsloth/Qwen3-1.7B-GGUF  
+File: `Qwen3-1.7B-Q4_K_M.gguf`  
+Model license: Apache License 2.0 (Qwen3; see the upstream model and Qwen3 license metadata).  
+Use: Downloaded on first user request into Theo's private app storage; model weights are not bundled in the APK. Theo validates the GGUF file signature and expected SHA-256 before loading it.

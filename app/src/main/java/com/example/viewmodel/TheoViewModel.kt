@@ -300,7 +300,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
           prompt = text,
           activeModel = stateAtSubmission.activeModel,
           customApiKey = stateAtSubmission.customApiKey,
-          termuxHost = "",
           memories = currentMemories,
           onStreamChunk = { chunk ->
             _uiState.update { current -> current.copy(streamingText = current.streamingText + chunk) }
@@ -895,7 +894,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             history = history,
             activeModel = _uiState.value.activeModel,
             customApiKey = _uiState.value.customApiKey,
-            termuxHost = "",
             sensitiveActionsAuthorized = sensitiveAuthorized,
             visualContext = visualContext,
             deviceContext = notificationContext
@@ -1209,7 +1207,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     }
   }
 
-  fun testQwenConnection() {
+  fun prepareLocalQwen() {
     if (_uiState.value.isTestingQwen) return
     TheoDiagnosticLogger.info("LOCAL_QWEN", "Native model preparation requested from Settings")
     _uiState.update { it.copy(isTestingQwen = true, qwenStatusMessage = "Preparing native Qwen runtime…") }
@@ -1237,10 +1235,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     model: AiModelType,
     intensity: AnimationIntensity,
     apiKey: String,
-    ignoredLegacyHost: String,
     groqKey: String = _uiState.value.groqApiKey
   ) {
-    // Legacy callers still supply the removed host argument, but it is never persisted or used.
     prefs.edit()
       .putString("active_model", model.name)
       .putString("anim_intensity", intensity.name)

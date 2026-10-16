@@ -249,7 +249,7 @@ Choose the next single action.
           if (apiKeys.isEmpty()) {
             return@withContext ScreenPlanResult(error = "No Gemini API key is configured. Add one in Theo Settings before automating a screen.")
           }
-          tryCallGemini(userPrompt, policy, apiKeys, activeModel, startTime, {}, {})
+          tryCallGemini(userPrompt, policy, apiKeys, activeModel, startTime, {}, {}, maxOutputTokens = 192, systemPromptOverride = policy)
         }
       }
     } catch (e: Exception) {
@@ -403,7 +403,9 @@ Choose the next single action.
     modelType: AiModelType,
     startTime: Long,
     onStreamChunk: (String) -> Unit,
-    onProgress: (String) -> Unit
+    onProgress: (String) -> Unit,
+    maxOutputTokens: Int = 1024,
+    systemPromptOverride: String? = null
   ): EngineResult {
     var lastAttemptStartedAt = startTime
     var lastHeadersLatencyMs: Long? = null
@@ -415,8 +417,7 @@ Choose the next single action.
       val modelConfig = geminiModelConfiguration(modelType)
       val modelName = modelConfig.modelId
       val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:streamGenerateContent?alt=sse"
-
-      val systemInstruction = "$theoPersonality\n\n$memoryContext"
+      val systemInstruction = systemPromptOverride ?: "$theoPersonality\n\n$memoryContext"
 
       val json = JSONObject().apply {
         // Keep the user message separate from Theo's system instructions. Explicitly
@@ -432,7 +433,7 @@ Choose the next single action.
           }
         ))
         put("generationConfig", JSONObject().apply {
-          put("maxOutputTokens", 1024)
+          put("maxOutputTokens", maxOutputTokens.coerceIn(64, 1024))
           put("thinkingConfig", JSONObject().put("thinkingLevel", modelConfig.thinkingLevel))
         })
       }

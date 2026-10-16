@@ -139,6 +139,21 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     prefs.edit().remove("termux_host").apply()
     TheoAccessibilityService.overlayStopHandler = { stopScreenAutomation() }
     TheoDiagnosticLogger.info("VIEW_MODEL", "TheoViewModel initialized", "model=${_uiState.value.activeModel}")
+    val interruptedAt = prefs.getLong("screen_automation_started_at", 0L)
+    val wasRunning = prefs.getBoolean("screen_automation_in_progress", false)
+    if (wasRunning && interruptedAt > 0L) {
+      prefs.edit()
+        .putBoolean("screen_automation_in_progress", false)
+        .remove("screen_automation_started_at")
+        .remove("screen_automation_target_package")
+        .apply()
+      viewModelScope.launch {
+        appendAssistantMessage(
+          "Theo detected a screen task interrupted by Android or an app/process restart. I did not replay it automatically because the last tap may already have taken effect. Check the target app, then start the task again if needed.",
+          badge = "TASK INTERRUPTED"
+        )
+      }
+    }
     refreshTelemetry()
     seedWelcomeIfEmpty()
   }
@@ -678,6 +693,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       "taskChars=${task.length}; expectedPackage=${expectedPackageName ?: "(any external app)"}; model=${_uiState.value.activeModel}"
     )
     screenAutomationJob = viewModelScope.launch {
+      prefs.edit()
+        .putBoolean("screen_automation_in_progress", true)
+        .putLong("screen_automation_started_at", System.currentTimeMillis())
+        .putString("screen_automation_target_package", expectedPackageName.orEmpty())
+        .apply()
       TheoDiagnosticLogger.info("SCREEN_AUTOMATION", "Automation coroutine started", "task=${task.take(140)}")
       _uiState.update { state ->
         state.copy(
@@ -854,12 +874,9 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               }).takeLast(6)
             )
           }
-          // Give a newly opened screen another beat to finish its transition before asking
-          // the model to judge it. The retry is bounded by the overall action-step limit.
-          if (stableSnapshotCount < 1) {
-            delay(700)
-            continue
-          }
+          // The accessibility tree above is a fresh snapshot and action dispatch revalidates
+          // the package and control capabilities. Do not burn an extra full planner iteration
+          // and 700 ms merely because the tree changed; action settling is event-driven below.
           // Accessibility-first is both faster and more reliable for native controls.
           // Only pay for a screenshot + cloud vision call when this screen exposes no
           // actionable controls; don't send every screen to a second API on every step.
@@ -951,10 +968,56 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               continue
             }
             "done" -> {
-              finalMessage = if (Regex("\\b(play|playing|playback|music)\\b", RegexOption.IGNORE_CASE).containsMatchIn(task)) {
-                "Theo's configured AI provider judged the task complete from the visible accessibility tree. Playback itself could not be independently verified."
+              val requestedTrack = requestedPlaybackTrack(task)
+              if (requestedTrack != null) {
+                publishAutomationOverlay(
+                  task = task,
+                  status = "Verifying playback · checking Android media session",
+                  detail = "Looking for \"$requestedTrack\" in the expected player. Theo will not repeat the final tap while checking."
+                )
+                val verificationStartedAt = System.currentTimeMillis()
+                var verification: com.example.service.PlaybackVerificationResult? = null
+                val notificationAccessGranted = TheoNotificationListenerService.isEnabled(getApplication<Application>())
+                val verificationDeadline = verificationStartedAt + 4_500L
+                while (System.currentTimeMillis() < verificationDeadline) {
+                  kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                  val listener = TheoNotificationListenerService.instance
+                  if (listener != null) {
+                    verification = listener.verifyRequestedTrack(requestedTrack, snapshot.packageName)
+                    if (verification?.verified == true) break
+                    if (verification?.status == com.example.service.PlaybackVerificationStatus.ACCESS_UNAVAILABLE) break
+                  } else if (!notificationAccessGranted) {
+                    verification = com.example.service.PlaybackVerificationResult(
+                      status = com.example.service.PlaybackVerificationStatus.ACCESS_UNAVAILABLE,
+                      requestedTrack = requestedTrack,
+                      explanation = "Enable Theo's Notification access in Android Settings to let Theo inspect media-session playback state."
+                    )
+                    break
+                  }
+                  delay(350L)
+                }
+                finalMessage = if (verification?.verified == true) {
+                  val trackLabel = listOf(verification?.title, verification?.artist)
+                    .filterNotNull().filter { it.isNotBlank() }.joinToString(" — ")
+                  "Verified playing: \"${trackLabel.ifBlank { requestedTrack }}\". Android reports playback active in ${verification?.packageName ?: snapshot.packageName}."
+                } else {
+                  val reason = verification?.explanation
+                    ?: "Android did not expose a matching active media session within 4.5 seconds."
+                  "Theo completed the screen steps, but could not verify that \"$requestedTrack\" is playing. $reason Check the player before retrying; Theo will not repeat the final tap automatically."
+                }
+                publishAutomationOverlay(
+                  task = task,
+                  status = if (verification?.verified == true) "Playback confirmed" else "Playback unverified",
+                  detail = finalMessage,
+                  autoHideMs = 9_000L
+                )
+                TheoDiagnosticLogger.info(
+                  "PLAYBACK_VERIFY",
+                  "Requested track verification finished",
+                  "verified=${verification?.verified == true}; status=${verification?.status ?: "NO_RESULT"}; elapsedMs=${System.currentTimeMillis() - verificationStartedAt}"
+                )
               } else {
-                "Theo's configured AI provider judged the task complete from the visible accessibility tree. Review the target app to verify the final state."
+                finalMessage = "Theo's configured AI provider judged the task complete from the visible accessibility tree. Review the target app to verify the final state."
               }
               break
             }
@@ -1109,6 +1172,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         TheoDiagnosticLogger.error("SCREEN_AUTOMATION", "Screen automation failed", e)
         appendAssistantMessage("Screen automation stopped after an unexpected error. No further steps were attempted: ${e.localizedMessage ?: "unknown error"}.", badge = "SCREEN AUTOMATION")
       } finally {
+        prefs.edit()
+          .putBoolean("screen_automation_in_progress", false)
+          .remove("screen_automation_started_at")
+          .remove("screen_automation_target_package")
+          .apply()
         TheoDiagnosticLogger.info(
           "SCREEN_AUTOMATION",
           "Automation coroutine finished",
@@ -1127,6 +1195,23 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         }
       }
     }
+  }
+
+  /**
+   * Resolve a track title from explicit music automation instructions only.
+   * Quoted song/track names take priority to avoid guessing from the surrounding task.
+   */
+  private fun requestedPlaybackTrack(task: String): String? {
+    val quoted = Regex(
+      """(?i)\\b(?:song|track)\\s+["“']([^"”']+)["”']"""
+    ).find(task)?.groupValues?.getOrNull(1)?.trim()
+    if (!quoted.isNullOrBlank()) return quoted
+
+    val playMatch = Regex(
+      """(?i)\\bplay\\s+(?:(?:the\\s+)?(?:song|track)\\s+)?["“']?(.+?)["”']?(?=\\s+(?:in|on|using|through|via)\\s+|[.!?,]|$)"""
+    ).find(task)?.groupValues?.getOrNull(1)
+    return playMatch?.trim()?.trim('"', '“', '”', '\'', '.', ',', ':')
+      ?.takeIf { it.isNotBlank() && !it.equals("music", ignoreCase = true) }
   }
 
   private fun publishAutomationOverlay(

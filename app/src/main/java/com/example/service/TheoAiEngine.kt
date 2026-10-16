@@ -85,7 +85,6 @@ These rules define your default character, not a script. Stay natural, context-a
     prompt: String,
     activeModel: AiModelType,
     customApiKey: String,
-    termuxHost: String,
     memories: List<MemoryItem>,
     onStreamChunk: (String) -> Unit = {},
     onProgress: (String) -> Unit = {}
@@ -198,7 +197,6 @@ These rules define your default character, not a script. Stay natural, context-a
     history: List<String>,
     activeModel: AiModelType,
     customApiKey: String,
-    termuxHost: String,
     sensitiveActionsAuthorized: Boolean,
     visualContext: String? = null,
     deviceContext: String? = null
@@ -355,21 +353,6 @@ Choose the next single action.
       }
     } catch (e: Exception) {
       Pair(false, "Groq connection failed: ${e.localizedMessage ?: e.javaClass.simpleName}")
-    }
-  }
-
-  /**
-   * Backwards-compatible entry point for Settings while the UI transitions to native model setup.
-   * The legacy host argument is deliberately ignored; no network request is made to localhost.
-   */
-  suspend fun testQwenConnection(ignoredLegacyHost: String = ""): Pair<Boolean, String> {
-    return try {
-      val runtime = localQwenRuntime
-        ?: throw IllegalStateException("Native local Qwen runtime was not configured by Theo.")
-      Pair(true, runtime.prepare())
-    } catch (error: Exception) {
-      TheoDiagnosticLogger.error("LOCAL_QWEN", "Native Qwen preparation failed", error)
-      Pair(false, "Local Qwen setup failed: ${error.localizedMessage ?: error.javaClass.simpleName}")
     }
   }
 

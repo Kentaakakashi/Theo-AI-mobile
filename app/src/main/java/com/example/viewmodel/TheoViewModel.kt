@@ -135,6 +135,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   init {
+    // Clear the obsolete host URL on upgrade; local inference no longer uses a Termux bridge.
+    prefs.edit().remove("termux_host").apply()
     TheoAccessibilityService.overlayStopHandler = { stopScreenAutomation() }
     TheoDiagnosticLogger.info("VIEW_MODEL", "TheoViewModel initialized", "model=${_uiState.value.activeModel}")
     refreshTelemetry()

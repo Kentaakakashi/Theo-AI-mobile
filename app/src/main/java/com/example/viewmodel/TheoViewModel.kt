@@ -695,6 +695,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       "taskChars=${task.length}; expectedPackage=${expectedPackageName ?: "(any external app)"}; model=${_uiState.value.activeModel}"
     )
     screenAutomationJob = viewModelScope.launch {
+      val automationStartedAt = System.currentTimeMillis()
       screenAutomationPaused = false
       TheoAccessibilityService.instance?.setAutomationPaused(false)
       prefs.edit()
@@ -1216,9 +1217,19 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         if (finalMessage.isBlank()) {
           finalMessage = "Theo reached the 20-step safety limit. The task may be incomplete; review the target app."
         }
+        val finalOverlayStatus = when {
+          pausedForReview -> "Paused for your confirmation"
+          finalMessage.startsWith("Verified playing", ignoreCase = true) ||
+            finalMessage.startsWith("Already playing and independently verified", ignoreCase = true) -> "Playback confirmed"
+          finalMessage.startsWith("Theo completed the screen steps, but could not verify", ignoreCase = true) -> "Playback unverified"
+          finalMessage.startsWith("The current conversation visibly contains", ignoreCase = true) -> "Message text visible · delivery unverified"
+          finalMessage.contains("does not independently show both", ignoreCase = true) -> "Message unverified · no duplicate sent"
+          finalMessage.contains("judged the task complete", ignoreCase = true) -> "Task steps finished · verify result"
+          else -> "Task ended"
+        }
         publishAutomationOverlay(
           task = task,
-          status = if (pausedForReview) "Paused for your confirmation" else if (finalMessage.contains("complete", true)) "Task steps finished · verify result" else "Task ended",
+          status = finalOverlayStatus,
           detail = finalMessage,
           autoHideMs = 9_000L
         )
@@ -1247,7 +1258,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         TheoDiagnosticLogger.info(
           "SCREEN_AUTOMATION",
           "Automation coroutine finished",
-          "task=${task.take(100)}; finalMessage=${finalMessage.take(180)}; pausedForReview=$pausedForReview"
+          "task=${task.take(100)}; durationMs=${System.currentTimeMillis() - automationStartedAt}; finalMessage=${finalMessage.take(180)}; pausedForReview=$pausedForReview"
         )
         _uiState.update { state ->
           state.copy(

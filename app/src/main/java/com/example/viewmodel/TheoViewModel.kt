@@ -839,7 +839,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             // become the active window after an explicit app launch. Never interact with
             // those screens as if they were the target app; wait for the user to finish
             // the system prompt, then resume only when the exact target package is active.
-            run {
+            if (true) {
               val targetPackage = expectedPackageName
               val transitionStartedAt = System.currentTimeMillis()
               // System App Lock and biometric prompts can appear after any action.

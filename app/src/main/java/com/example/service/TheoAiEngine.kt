@@ -375,15 +375,20 @@ Choose the next single action.
       val latency = System.currentTimeMillis() - startTime
       TheoDiagnosticLogger.info("LOCAL_QWEN", "On-device generation succeeded", "latencyMs=$latency; chars=${answer.length}")
       EngineResult(answer, "ON-DEVICE QWEN 1.7B", latency)
+    } catch (error: OutOfMemoryError) {
+      localQwenRuntime.release()
+      val latency = System.currentTimeMillis() - startTime
+      TheoDiagnosticLogger.error("LOCAL_QWEN", "Device ran out of memory during native Qwen inference", error)
+      EngineResult(
+        responseText = "Android ran out of memory while running local Qwen. Theo released the loaded model and stopped safely; close other apps and try preparing Qwen again.",
+        modelBadge = "LOCAL QWEN ERROR",
+        latencyMs = latency
+      )
     } catch (error: Exception) {
       val latency = System.currentTimeMillis() - startTime
       TheoDiagnosticLogger.error("LOCAL_QWEN", "On-device generation failed", error)
-      val message = when (error) {
-        is OutOfMemoryError -> "Android ran out of memory while loading or running local Qwen. Close other apps and retry; Theo stopped this request."
-        else -> error.localizedMessage ?: error.javaClass.simpleName
-      }
       EngineResult(
-        responseText = "Theo could not run local Qwen on this attempt: $message. Open Settings → On-device Qwen Runtime, prepare the model, and retry. No cloud fallback or simulated answer was used.",
+        responseText = "Theo could not run local Qwen on this attempt: ${error.localizedMessage ?: error.javaClass.simpleName}. Open Settings → On-device Qwen Runtime, prepare the model, and retry. No cloud fallback or simulated answer was used.",
         modelBadge = "LOCAL QWEN ERROR",
         latencyMs = latency
       )

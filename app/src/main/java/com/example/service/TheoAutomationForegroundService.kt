@@ -11,7 +11,6 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import com.example.MainActivity
 
 /**
  * Keeps the process at foreground-service priority during user-started screen automation.
@@ -70,6 +69,7 @@ class TheoAutomationForegroundService : Service() {
     manager.createNotificationChannel(channel)
   }
 
+  @Suppress("DEPRECATION")
   private fun buildNotification(): Notification {
     val stopIntent = Intent(this, TheoAutomationForegroundService::class.java)
       .setAction(ACTION_STOP)
@@ -82,7 +82,6 @@ class TheoAutomationForegroundService : Service() {
     val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       Notification.Builder(this, CHANNEL_ID)
     } else {
-      @Suppress("DEPRECATION")
       Notification.Builder(this)
     }
     return builder

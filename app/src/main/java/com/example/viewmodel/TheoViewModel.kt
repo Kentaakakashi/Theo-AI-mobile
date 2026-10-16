@@ -1390,11 +1390,6 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   ): Boolean {
     if (actions.size !in 2..3) return false
     if (ActionSafetyPolicy.requiresConfirmation("screen:current|task:$task")) return false
-    if (Regex(
-        """(?i)\\b(send|message|dm|reply|comment|post|publish|delete|remove|buy|purchase|pay|payment|checkout|order|transfer|share|upload|install|uninstall|permission|password|passcode|otp|verification code)\\b"""
-      ).containsMatchIn(task)
-    ) return false
-
     return actions.all { action ->
       if (action.kind !in setOf("click", "type", "scroll")) return@all false
       if (action.nodePath.isNullOrBlank() || action.targetLabel.isBlank()) return@all false

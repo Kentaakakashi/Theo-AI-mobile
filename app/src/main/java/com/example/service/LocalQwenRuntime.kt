@@ -26,7 +26,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
- * Native Qwen model manager. GGUF weights live in shared Downloads/Theo/models/qwen,
+ * Native Qwen model manager. GGUF weights live in shared Download/qwen-model,
  * outside app-private storage so uninstalling Theo does not delete the model.
  * llama.cpp loads and runs inference in-process, without Termux or a localhost server.
  */
@@ -34,7 +34,7 @@ class LocalQwenRuntime(context: Context) {
   private val appContext = context.applicationContext
   private val persistentModelDir = File(
     Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-    "Theo/models/qwen"
+    "qwen-model"
   )
   private val modelFile = File(persistentModelDir, "Qwen3-1.7B-Q4_K_M.gguf")
   private val partialFile = File(persistentModelDir, "Qwen3-1.7B-Q4_K_M.gguf.partial")
@@ -69,7 +69,7 @@ class LocalQwenRuntime(context: Context) {
       ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       runCatching { appContext.startActivity(intent) }
       throw IllegalStateException(
-        "Allow Theo to manage files in Android Settings, then return to Theo and tap Download & Load again. The model will be stored in Downloads/Theo/models/qwen and survive app reinstall."
+        "Allow Theo to manage files in Android Settings, then return to Theo and tap Download & Load again. The model will be stored in Download/qwen-model and survive app reinstall."
       )
     }
   }
@@ -161,7 +161,7 @@ class LocalQwenRuntime(context: Context) {
       !hasGgufHeader(legacyPrivateModelFile)
     ) return@withContext
 
-    onStatus("Moving your existing Qwen model into persistent Downloads storage…")
+    onStatus("Moving your existing Qwen model into persistent Download/qwen-model storage…")
     persistentModelDir.mkdirs()
     val migrationFile = File(persistentModelDir, "Qwen3-1.7B-Q4_K_M.gguf.migrating")
     migrationFile.delete()

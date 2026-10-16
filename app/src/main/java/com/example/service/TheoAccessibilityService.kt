@@ -33,6 +33,7 @@ class TheoAccessibilityService : AccessibilityService() {
       private set
     private const val MAX_NODES = 120
     private const val MAX_DEPTH = 12
+    @Volatile var overlayStopHandler: (() -> Unit)? = null
 
     fun isEnabled(context: Context): Boolean {
       val expected = ComponentName(context, TheoAccessibilityService::class.java).flattenToString()
@@ -47,6 +48,129 @@ class TheoAccessibilityService : AccessibilityService() {
   }
 
   private val overlayHandler = Handler(Looper.getMainLooper())
+  private var automationOverlay: View? = null
+  private var overlayStatusView: android.widget.TextView? = null
+  private var overlayDetailView: android.widget.TextView? = null
+  private var overlayHideRunnable: Runnable? = null
+
+  /** Small floating status card shown only during explicitly requested automation. */
+  fun showAutomationOverlay(title: String, status: String, detail: String, autoHideMs: Long = 0L) {
+    overlayHandler.post {
+      val manager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: return@post
+      overlayHideRunnable?.let(overlayHandler::removeCallbacks)
+      overlayHideRunnable = null
+      var card = automationOverlay
+      if (card == null) {
+        val density = resources.displayMetrics.density
+        val root = android.widget.LinearLayout(this).apply {
+          orientation = android.widget.LinearLayout.VERTICAL
+          setPadding((14 * density).toInt(), (12 * density).toInt(), (14 * density).toInt(), (12 * density).toInt())
+          background = GradientDrawable().apply {
+            setColor(Color.rgb(18, 23, 38))
+            setStroke((1.5f * density).toInt().coerceAtLeast(1), Color.rgb(0, 229, 255))
+            cornerRadius = 18 * density
+          }
+          elevation = 20 * density
+        }
+        val heading = android.widget.TextView(this).apply {
+          text = "◈ THEO · LIVE TASK"
+          setTextColor(Color.rgb(0, 229, 255))
+          textSize = 12f
+          typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+        val taskView = android.widget.TextView(this).apply {
+          setTextColor(Color.WHITE)
+          textSize = 14f
+          typeface = android.graphics.Typeface.DEFAULT_BOLD
+          maxLines = 2
+        }
+        val statusText = android.widget.TextView(this).apply {
+          setTextColor(Color.rgb(190, 202, 225))
+          textSize = 12f
+          setPadding(0, (6 * density).toInt(), 0, 0)
+          maxLines = 3
+        }
+        val detailText = android.widget.TextView(this).apply {
+          setTextColor(Color.rgb(135, 151, 180))
+          textSize = 11f
+          setPadding(0, (5 * density).toInt(), 0, (8 * density).toInt())
+          maxLines = 4
+        }
+        val buttons = android.widget.LinearLayout(this).apply {
+          orientation = android.widget.LinearLayout.HORIZONTAL
+          gravity = Gravity.END
+        }
+        val close = android.widget.Button(this).apply {
+          text = "Hide"
+          isAllCaps = false
+          setOnClickListener { hideAutomationOverlay() }
+        }
+        val stop = android.widget.Button(this).apply {
+          text = "Stop task"
+          isAllCaps = false
+          setTextColor(Color.WHITE)
+          setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(165, 48, 70)))
+          setOnClickListener {
+            hideAutomationOverlay()
+            overlayStopHandler?.invoke()
+          }
+        }
+        buttons.addView(close, android.widget.LinearLayout.LayoutParams(-2, (42 * density).toInt()))
+        buttons.addView(stop, android.widget.LinearLayout.LayoutParams(-2, (42 * density).toInt()))
+        root.addView(heading)
+        root.addView(taskView)
+        root.addView(statusText)
+        root.addView(detailText)
+        root.addView(buttons)
+        val params = WindowManager.LayoutParams(
+          (300 * density).toInt(),
+          WindowManager.LayoutParams.WRAP_CONTENT,
+          WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+          WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+          PixelFormat.TRANSLUCENT
+        ).apply {
+          gravity = Gravity.TOP or Gravity.END
+          x = (10 * density).toInt()
+          y = (92 * density).toInt()
+          title = "Theo live automation"
+        }
+        try {
+          manager.addView(root, params)
+          automationOverlay = root
+          overlayStatusView = statusText
+          overlayDetailView = detailText
+          root.tag = taskView
+          card = root
+        } catch (error: Exception) {
+          TheoDiagnosticLogger.warn("SCREEN_AUTOMATION", "Live overlay could not be displayed", error.javaClass.simpleName)
+          return@post
+        }
+      }
+      val taskText = card?.tag as? android.widget.TextView
+      taskText?.text = title
+      overlayStatusView?.text = status
+      overlayDetailView?.text = detail
+      if (autoHideMs > 0L) {
+        val target = automationOverlay
+        overlayHideRunnable = Runnable {
+          if (automationOverlay === target) hideAutomationOverlay()
+        }
+        overlayHandler.postDelayed(overlayHideRunnable!!, autoHideMs)
+      }
+    }
+  }
+
+  fun hideAutomationOverlay() {
+    overlayHandler.post {
+      overlayHideRunnable?.let(overlayHandler::removeCallbacks)
+      overlayHideRunnable = null
+      val card = automationOverlay ?: return@post
+      runCatching { (getSystemService(WINDOW_SERVICE) as? WindowManager)?.removeView(card) }
+      automationOverlay = null
+      overlayStatusView = null
+      overlayDetailView = null
+    }
+  }
 
   override fun onServiceConnected() {
     super.onServiceConnected()
@@ -123,6 +247,7 @@ class TheoAccessibilityService : AccessibilityService() {
   override fun onInterrupt() = Unit
 
   override fun onDestroy() {
+    hideAutomationOverlay()
     if (instance === this) instance = null
     super.onDestroy()
   }

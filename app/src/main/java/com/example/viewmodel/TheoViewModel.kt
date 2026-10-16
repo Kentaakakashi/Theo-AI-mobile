@@ -784,6 +784,17 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             }
           }
           if (snapshot == null) {
+            val activePackage = service.getActiveWindowPackageName()
+            if (expectedPackageName != null && activePackage == getApplication<Application>().packageName) {
+              finalMessage = "Theo's own screen is still in the foreground instead of the requested app ($expectedPackageName). Theo stopped without analyzing its own UI. Open the target app, then retry the task."
+              publishAutomationOverlay(
+                task = task,
+                status = "Wrong foreground app · stopped safely",
+                detail = finalMessage,
+                autoHideMs = 9_000L
+              )
+              break
+            }
             val capture = service.captureActiveScreenJpeg()
             val bytes = capture.jpegBytes
             var visualDescription: String? = null

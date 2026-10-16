@@ -222,7 +222,7 @@ Use the context only to answer this request. If it does not contain the requeste
     // allowed when no actionable accessibility node exists.
 
     val policy = """
-You are Theo's Android screen-action planner. You return one structured action; you do not execute it.
+You are Theo's Android screen-action planner. You propose candidate actions; Android execution is separate and revalidates each action.
 Return exactly one JSON object and no Markdown. Prefer one action, but for short predictable non-sensitive native UI flows you may return a batch of 2–3 actions as {"actions":[{"action":"click","node":"0.1","target":"Search","reason":"..."},{"action":"type","node":"0.2","target":"Search field","text":"exact user-provided text","reason":"..."}]}.
 {"action":"click|tap|type|scroll|back|wait|done|clarify","node":"0.1","x":500,"y":500,"target":"visible control label for coordinate tap","text":"optional text","direction":"forward|backward","reason":"short reason"}
 Use only node paths in the current accessibility tree for semantic click/type/scroll actions. Never invent node IDs, apps, packages, UI state, or success. If the visual description includes labeled controls with normalized center coordinates and the accessibility tree exposes NO actionable controls, you may return {"action":"tap","x":500,"y":500,"target":"visible control label","reason":"..."} using the provided coordinate (0-1000 grid). Coordinate taps are a fallback for custom-drawn/canvas UI, not a first choice. Never guess coordinates from a label alone, never tap an unlabeled/ambiguous target, and never use coordinate taps for sensitive actions.
@@ -258,7 +258,7 @@ Prefer accessible node IDs whenever available. Use a coordinate tap only under t
 RECENT ACTION HISTORY:
 ${history.takeLast(6).joinToString("\n").ifBlank { "(none)" }}
 
-Choose the next single action.
+Choose the next single action, or a 2–3 action candidate batch only when all strict batch rules above are satisfied.
 """.trimIndent()
 
     val startTime = System.currentTimeMillis()

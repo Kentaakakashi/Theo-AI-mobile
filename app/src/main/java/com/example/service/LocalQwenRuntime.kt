@@ -135,29 +135,31 @@ class LocalQwenRuntime(context: Context) {
         var downloaded = 0L
         var lastReportedMb = -1L
         body.byteStream().use { input ->
-          FileOutputStream(partialFile).buffered(256 * 1024).use { output ->
-            val buffer = ByteArray(256 * 1024)
-            while (true) {
-              currentCoroutineContext().ensureActive()
-              val count = input.read(buffer)
-              if (count < 0) break
-              output.write(buffer, 0, count)
-              digest.update(buffer, 0, count)
-              downloaded += count
-              val downloadedMb = downloaded / (1024L * 1024L)
-              if (downloadedMb != lastReportedMb && (downloadedMb % 8L == 0L || (total != null && downloaded == total))) {
-                lastReportedMb = downloadedMb
-                val progress = if (total != null) {
-                  val percent = (downloaded * 100L / total).coerceIn(0L, 100L)
-                  "Downloading Qwen model · $percent% · ${formatMb(downloaded)} / ${formatMb(total)}"
-                } else {
-                  "Downloading Qwen model · ${formatMb(downloaded)} received"
+          FileOutputStream(partialFile).use { rawOutput ->
+            rawOutput.buffered(256 * 1024).use { output ->
+              val buffer = ByteArray(256 * 1024)
+              while (true) {
+                currentCoroutineContext().ensureActive()
+                val count = input.read(buffer)
+                if (count < 0) break
+                output.write(buffer, 0, count)
+                digest.update(buffer, 0, count)
+                downloaded += count
+                val downloadedMb = downloaded / (1024L * 1024L)
+                if (downloadedMb != lastReportedMb && (downloadedMb % 8L == 0L || (total != null && downloaded == total))) {
+                  lastReportedMb = downloadedMb
+                  val progress = if (total != null) {
+                    val percent = (downloaded * 100L / total).coerceIn(0L, 100L)
+                    "Downloading Qwen model · $percent% · ${formatMb(downloaded)} / ${formatMb(total)}"
+                  } else {
+                    "Downloading Qwen model · ${formatMb(downloaded)} received"
+                  }
+                  onStatus(progress)
                 }
-                onStatus(progress)
               }
+              output.flush()
+              rawOutput.fd.sync()
             }
-            output.flush()
-            output.fd.sync()
           }
         }
         if (downloaded < MINIMUM_MODEL_BYTES) throw IOException("Downloaded Qwen file is too small ($downloaded bytes).")

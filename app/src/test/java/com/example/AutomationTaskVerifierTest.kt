@@ -2,6 +2,7 @@ package com.example
 
 import com.example.service.AutomationTaskVerifier
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -45,6 +46,15 @@ class AutomationTaskVerifierTest {
     assertNull(AutomationTaskVerifier.requestedMessage("send a message"))
     assertNull(AutomationTaskVerifier.requestedMessage("message Kenta"))
     assertNull(AutomationTaskVerifier.requestedMessage("play Creep"))
+  }
+
+  @Test
+  fun notificationAndPlaybackContextIsFetchedOnlyForExplicitRelatedRequests() {
+    assertTrue(AutomationTaskVerifier.requestsDeviceContext("What's playing right now?"))
+    assertTrue(AutomationTaskVerifier.requestsDeviceContext("Who messaged me?"))
+    assertTrue(AutomationTaskVerifier.requestsDeviceContext("Read my messages"))
+    assertFalse(AutomationTaskVerifier.requestsDeviceContext("Tell me a joke"))
+    assertFalse(AutomationTaskVerifier.requestsDeviceContext("Message Kenta saying Hi"))
   }
 
   @Test

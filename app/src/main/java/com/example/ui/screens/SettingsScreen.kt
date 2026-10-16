@@ -75,7 +75,7 @@ import com.example.viewmodel.TheoUiState
 @Composable
 fun SettingsScreen(
   uiState: TheoUiState,
-  onSaveSettings: (AiModelType, AnimationIntensity, String, String, String) -> Unit,
+  onSaveSettings: (AiModelType, AnimationIntensity, String, String) -> Unit,
   onTestQwen: () -> Unit,
   onTestGemini: () -> Unit,
   onTestGroq: () -> Unit,
@@ -139,7 +139,7 @@ fun SettingsScreen(
               .border(1.dp, if (isSelected) TheoCyan else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
               .clickable {
                 selectedModel = model
-                onSaveSettings(model, selectedIntensity, apiKeyInput, "", groqApiKeyInput)
+                onSaveSettings(model, selectedIntensity, apiKeyInput, groqApiKeyInput)
               }
               .padding(12.dp)
           ) {
@@ -366,7 +366,7 @@ fun SettingsScreen(
                     apiKeyInput = updatedKeys.joinToString("\n")
                     editingApiKeyIndex = null
                     apiKeyDraft = ""
-                    onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, "", groqApiKeyInput)
+                    onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, groqApiKeyInput)
                   },
                   contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                   colors = ButtonDefaults.buttonColors(containerColor = TheoErrorRed.copy(alpha = 0.16f))
@@ -407,7 +407,7 @@ fun SettingsScreen(
                   updatedKeys.add(cleanKey)
                 }
                 apiKeyInput = updatedKeys.distinct().joinToString("\n")
-                onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, "", groqApiKeyInput)
+                onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, groqApiKeyInput)
                 apiKeyDraft = ""
                 editingApiKeyIndex = null
               },
@@ -471,7 +471,7 @@ fun SettingsScreen(
             value = groqApiKeyInput,
             onValueChange = {
               groqApiKeyInput = it
-              onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, "", it)
+              onSaveSettings(selectedModel, selectedIntensity, apiKeyInput, it)
             },
             label = { Text("Groq API key") },
             placeholder = { Text("gsk_…") },
@@ -536,7 +536,7 @@ fun SettingsScreen(
               .border(1.dp, if (isSelected) TheoViolet else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
               .clickable {
                 selectedIntensity = intensity
-                onSaveSettings(selectedModel, intensity, apiKeyInput, "", groqApiKeyInput)
+                onSaveSettings(selectedModel, intensity, apiKeyInput, groqApiKeyInput)
               }
               .padding(12.dp)
           ) {

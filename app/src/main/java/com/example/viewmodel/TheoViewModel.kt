@@ -1034,7 +1034,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 finalMessage = if (verification?.verified == true) {
                   val workflowSteps = history.mapNotNull { entry ->
-                    Regex("""(?i)\\bStep\\s+\\d+:\\s*(click|type|scroll|tap|back)\\b""")
+                    Regex("""(?i)\bStep\s+\d+:\s*(click|type|scroll|tap|back)\b""")
                       .find(entry)?.groupValues?.getOrNull(1)?.lowercase(java.util.Locale.ROOT)
                   }.take(8)
                   if (workflowSteps.isNotEmpty()) {

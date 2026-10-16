@@ -50,11 +50,11 @@ class LocalQwenRuntime(context: Context) {
     requireSupportedAbi()
     val file = ensureDownloaded(onStatus)
     val readyModel = loadedModel ?: run {
-      onStatus("Loading Qwen3-1.7B into memory · CPU mode · 2K context…")
+      onStatus("Loading Qwen3-1.7B into memory · CPU mode · 4K context…")
       Llama.loadModel(
         modelPath = file.absolutePath,
         config = LlamaConfig(
-          contextSize = 2048,
+          contextSize = 4096,
           threads = 4,
           gpuLayers = 0,
           temperature = 0.2f,
@@ -88,7 +88,7 @@ class LocalQwenRuntime(context: Context) {
       Llama.loadModel(
         modelPath = modelFile.absolutePath,
         config = LlamaConfig(
-          contextSize = 2048,
+          contextSize = 4096,
           threads = 4,
           gpuLayers = 0,
           temperature = 0.7f,

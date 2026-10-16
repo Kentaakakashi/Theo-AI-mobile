@@ -3,6 +3,7 @@ package com.example.viewmodel
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.app.KeyguardManager
 import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -791,6 +792,30 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             finalMessage = "Theo's Accessibility Service is enabled in Android Settings but is not connected yet. Return to Theo and retry."
             break
           }
+          // A device lock can steal the active window at ANY point. Wait for the owner to unlock.
+          val keyguard = getApplication<Application>().getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+          if (keyguard?.isKeyguardLocked == true) {
+            val unlockStartedAt = System.currentTimeMillis()
+            val unlockTimeoutMs = 120_000L
+            publishAutomationOverlay(task, "Waiting for device unlock", "Android is locked. Unlock your phone normally; Theo will resume only after Android reports it unlocked.")
+            _uiState.update { state ->
+              state.copy(currentThinkingStep = "Waiting for you to unlock Android",
+                thinkingSteps = (state.thinkingSteps + "Device locked · waiting for owner unlock").takeLast(6))
+            }
+            TheoDiagnosticLogger.info("SCREEN_AUTOMATION", "Device keyguard detected; waiting for manual unlock", "timeoutMs=$unlockTimeoutMs")
+            while (keyguard.isKeyguardLocked && System.currentTimeMillis() - unlockStartedAt < unlockTimeoutMs) {
+              kotlinx.coroutines.currentCoroutineContext().ensureActive()
+              delay(500L)
+            }
+            if (keyguard.isKeyguardLocked) {
+              finalMessage = "Theo paused because the phone stayed locked for 2 minutes. Unlock the phone and start the task again; Theo did not try to bypass the lock screen."
+              break
+            }
+            TheoDiagnosticLogger.info("SCREEN_AUTOMATION", "Device unlocked; re-reading target screen", "elapsedMs=${System.currentTimeMillis() - unlockStartedAt}")
+            pendingPlannedActions.clear()
+            history.add("Step $stepNumber: device was locked; user unlocked it. Discarded stale plans and re-read the screen.")
+          }
+
           var snapshot: com.example.service.ScreenSnapshot? = null
           var snapshotAttempts = 0
           // App launch intents often expose a splash screen or an empty tree first.
@@ -814,15 +839,16 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             // become the active window after an explicit app launch. Never interact with
             // those screens as if they were the target app; wait for the user to finish
             // the system prompt, then resume only when the exact target package is active.
-            if (stepNumber == 1) {
+            run {
               val targetPackage = expectedPackageName
               val transitionStartedAt = System.currentTimeMillis()
-              val transitionTimeoutMs = 10_000L
+              // System App Lock and biometric prompts can appear after any action.
+              val transitionTimeoutMs = 120_000L
               var observedPackage = snapshot.packageName
               publishAutomationOverlay(
                 task = task,
-                status = "Waiting for app selection / unlock",
-                detail = "Expected: $targetPackage · Currently showing: $observedPackage. Theo will not click this screen."
+                status = "Waiting for app unlock / return",
+                detail = "Expected: $targetPackage · Currently showing: $observedPackage. Unlock the Android prompt; Theo will not click this screen."
               )
               _uiState.update {
                 it.copy(
@@ -862,11 +888,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                 )
               }
               if (snapshot?.packageName != targetPackage) {
-                finalMessage = "Theo is waiting for $targetPackage, but Android kept showing $observedPackage. Unlock the phone/app or finish the app chooser, then start the task again. Theo did not interact with that other screen."
+                finalMessage = "Theo waited 2 minutes for $targetPackage, but Android kept showing $observedPackage. Unlock the phone/app or finish the app chooser, then start the task again. Theo did not interact with that other screen."
                 break
               }
             } else {
-              finalMessage = "Theo expected the target app package $expectedPackageName but the active screen belongs to ${snapshot.packageName}. Theo stopped rather than inspecting or operating in another app."
+              finalMessage = "Theo waited for the target app, but the active screen still belongs to ${snapshot.packageName}. Theo stopped rather than inspecting or operating in another app."
               break
             }
           }
@@ -906,6 +932,10 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
             }
             break
           }
+          // Keep a short observation trail so the planner can reason about transitions.
+          val observedLabels = snapshot.elements.map { it.label.trim() }
+            .filter { it.isNotBlank() }.distinct().take(35)
+          history.add("Step $stepNumber screen observation: package=${snapshot.packageName}; visible labels=${observedLabels.joinToString(" | ").take(1_400)}")
           val fingerprint = snapshot.elements.joinToString("|") {
             "${it.id}:${it.label}:${it.clickable}:${it.editable}:${it.scrollable}"
           }.hashCode().toString()

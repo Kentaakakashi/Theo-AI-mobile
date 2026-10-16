@@ -124,6 +124,8 @@ dependencies {
   implementation(libs.logging.interceptor)
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
+  // Prebuilt llama.cpp JNI runtime for direct, on-device GGUF inference (arm64-v8a).
+  implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")
   // implementation(libs.play.services.location)
   implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)

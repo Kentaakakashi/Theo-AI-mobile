@@ -1048,7 +1048,23 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                   "verified=${verification?.verified == true}; status=${verification?.status ?: "NO_RESULT"}; elapsedMs=${System.currentTimeMillis() - verificationStartedAt}"
                 )
               } else {
-                finalMessage = "Theo's configured AI provider judged the task complete from the visible accessibility tree. Review the target app to verify the final state."
+                val requestedMessage = requestedMessageForTask(task)
+                if (requestedMessage != null) {
+                  val visibleLabels = snapshot.elements
+                    .filterNot { it.editable }
+                    .map { it.label }
+                    .filter { it.isNotBlank() }
+                  val visibleText = normalizeVerificationText(visibleLabels.joinToString(" "))
+                  val recipientVisible = visibleText.contains(normalizeVerificationText(requestedMessage.first))
+                  val bodyVisible = visibleText.contains(normalizeVerificationText(requestedMessage.second))
+                  finalMessage = if (recipientVisible && bodyVisible) {
+                    "The current conversation visibly contains the requested recipient and message text. Theo did not tap Send again. The app's delivery status is not independently exposed, so delivery is not being claimed."
+                  } else {
+                    "Theo's planner marked the message task complete, but the current accessible screen does not independently show both the requested recipient and message text. To prevent a duplicate, Theo did not press Send again. Check the conversation before retrying."
+                  }
+                } else {
+                  finalMessage = "Theo's configured AI provider judged the task complete from the visible accessibility tree. Review the target app to verify the final state."
+                }
               }
               break
             }
@@ -1247,6 +1263,22 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       }
     }
   }
+
+  private fun requestedMessageForTask(task: String): Pair<String, String>? {
+    val match = Regex(
+      """(?i)\b(?:message|dm)\s+(.+?)\s+saying\s+(.+?)\s*$"""
+    ).find(task) ?: return null
+    val recipient = match.groupValues.getOrNull(1)?.trim()
+      ?.removeSurrounding("\"")?.removeSurrounding("'")?.trim().orEmpty()
+    val body = match.groupValues.getOrNull(2)?.trim()
+      ?.removeSurrounding("\"")?.removeSurrounding("'")
+      ?.removeSurrounding("“", "”")?.trim().orEmpty()
+    if (recipient.isBlank() || body.isBlank()) return null
+    return recipient to body
+  }
+
+  private fun normalizeVerificationText(value: String): String =
+    value.lowercase(java.util.Locale.ROOT).replace(Regex("\\s+"), " ").trim()
 
   /**
    * Resolve a track title from explicit music automation instructions only.

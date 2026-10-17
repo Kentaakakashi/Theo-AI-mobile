@@ -107,7 +107,7 @@ fun MemoryMatrixScreen(
   Box(
     modifier = modifier
       .fillMaxSize()
-      .background(Brush.verticalGradient(colors = listOf(Color(0xFF0A1423), TheoDarkBackground, Color(0xFF07101D))))
+      .background(Color.Transparent)
       .hudScanlines()
       .statusBarsPadding()
       .navigationBarsPadding()
@@ -128,16 +128,16 @@ fun MemoryMatrixScreen(
           Text(
             text = "Memory",
             color = TheoTextPrimary,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 2.sp
+            fontSize = 26.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = (-0.5).sp
           )
           Text(
-            text = "${memories.size} PERSISTENT REGISTERS ENCODED",
+            text = "${memories.size} saved memories · available across chats",
             color = TheoCyan,
             fontFamily = FontFamily.SansSerif,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Normal
           )
         }
 
@@ -214,7 +214,7 @@ fun MemoryMatrixScreen(
           cursorBrush = SolidColor(TheoCyan),
           decorationBox = { innerTextField ->
             if (searchQuery.isEmpty()) {
-              Text("Search key or value in matrix...", color = TheoTextMuted, fontSize = 13.sp)
+              Text("Search memories...", color = TheoTextMuted, fontSize = 13.sp)
             }
             innerTextField()
           }

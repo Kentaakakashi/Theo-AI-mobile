@@ -102,10 +102,11 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
       LazyColumn(
         modifier = Modifier
           .fillMaxSize()
-          .clip(RoundedCornerShape(10.dp))
-          .background(Color(0xFF080D13))
-          .neonBorder(RoundedCornerShape(10.dp), strokeWidth = 1.dp)
-          .padding(8.dp),
+          .clip(RoundedCornerShape(18.dp))
+          .background(TheoSurfaceGlass)
+          .liquidGlassSurface(RoundedCornerShape(18.dp), tint = Color(0x72101829), gloss = 0.12f, refraction = 8.dp, blurRadius = 6.dp)
+          .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(18.dp))
+          .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
       ) {
         items(entries, key = { it.id }) { entry -> ConsoleEntry(entry) }
@@ -121,7 +122,7 @@ private fun StatChip(label: String, value: String, color: Color, modifier: Modif
     modifier
       .clip(RoundedCornerShape(8.dp))
       .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(8.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
       .neonBorder(RoundedCornerShape(8.dp), strokeWidth = 1.dp)
       .padding(horizontal = 10.dp, vertical = 8.dp)
   ) {

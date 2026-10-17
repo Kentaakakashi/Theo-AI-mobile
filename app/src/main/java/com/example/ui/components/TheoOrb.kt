@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -36,6 +37,9 @@ import com.example.ui.theme.TheoIceBlue
 import com.example.ui.theme.TheoMagenta
 import com.example.ui.theme.TheoViolet
 import com.example.ui.theme.TheoWarningAmber
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Native Compose adaptation of VoiceOrbs' Glass Orb visual language.
@@ -139,6 +143,28 @@ fun TheoOrb(
         center = Offset(cx, cy)
       )
 
+      // Floating elliptical orbit: the thin glass ring stays behind the sphere.
+      if (!lowMotion) {
+        rotate(rotation * 0.58f, pivot = Offset(cx, cy)) {
+          drawOval(
+            brush = Brush.sweepGradient(
+              colors = listOf(
+                Color.Transparent,
+                auraColor.copy(alpha = 0.30f),
+                Color.White.copy(alpha = 0.78f),
+                ribbonColor.copy(alpha = 0.48f),
+                Color.Transparent,
+                Color.Transparent
+              ),
+              center = Offset(cx, cy)
+            ),
+            topLeft = Offset(cx - r * 1.18f, cy - r * 0.43f),
+            size = Size(r * 2.36f, r * 0.86f),
+            style = Stroke(width = size.minDimension * 0.009f)
+          )
+        }
+      }
+
       // Deep translucent body. The center remains almost black, like the reference.
       drawCircle(
         brush = Brush.radialGradient(
@@ -217,6 +243,47 @@ fun TheoOrb(
         color = ribbonColor.copy(alpha = 0.13f),
         style = Stroke(width = size.minDimension * 0.046f)
       )
+
+      // An animated glass capsule travels around the sphere like the reference orb's orbit.
+      if (!lowMotion) {
+        val phase = rotation * (PI / 180.0)
+        val capsuleCenter = Offset(
+          cx + cos(phase).toFloat() * r * 1.15f,
+          cy + sin(phase).toFloat() * r * 0.43f
+        )
+        drawCircle(
+          brush = Brush.radialGradient(
+            colors = listOf(Color.White.copy(alpha = 0.70f), auraColor.copy(alpha = 0.48f), Color.Transparent),
+            center = capsuleCenter,
+            radius = size.minDimension * 0.095f
+          ),
+          radius = size.minDimension * 0.095f,
+          center = capsuleCenter
+        )
+        rotate(rotation + 90f, pivot = capsuleCenter) {
+          drawRoundRect(
+            brush = Brush.linearGradient(
+              colors = listOf(
+                Color.White.copy(alpha = 0.94f),
+                auraColor.copy(alpha = 0.92f),
+                ribbonColor.copy(alpha = 0.48f),
+                Color.Transparent
+              ),
+              start = Offset(capsuleCenter.x - size.minDimension * 0.055f, capsuleCenter.y),
+              end = Offset(capsuleCenter.x + size.minDimension * 0.055f, capsuleCenter.y)
+            ),
+            topLeft = Offset(
+              capsuleCenter.x - size.minDimension * 0.055f,
+              capsuleCenter.y - size.minDimension * 0.017f
+            ),
+            size = Size(size.minDimension * 0.11f, size.minDimension * 0.034f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(
+              size.minDimension * 0.018f,
+              size.minDimension * 0.018f
+            )
+          )
+        }
+      }
 
       // Floating softbox highlight on the upper-left quadrant.
       drawCircle(

@@ -38,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
@@ -51,6 +52,7 @@ import com.example.ui.components.TheoComposer
 import com.example.ui.components.TheoHeader
 import com.example.ui.components.TheoOrb
 import com.example.ui.components.hudScanlines
+import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoSurfaceBorder
@@ -92,7 +94,7 @@ fun CoreAssistantScreen(
   Box(
     modifier = modifier
       .fillMaxSize()
-      .background(TheoDarkBackground)
+      .background(Brush.verticalGradient(colors = listOf(Color(0xFF0A1423), TheoDarkBackground, Color(0xFF07101D))))
       .hudScanlines()
   ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -153,6 +155,7 @@ fun CoreAssistantScreen(
               modifier = Modifier
                 .clip(RoundedCornerShape(20.dp))
                 .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
                 .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(20.dp))
                 .padding(horizontal = 12.dp, vertical = 5.dp)
             ) {
@@ -195,6 +198,7 @@ fun CoreAssistantScreen(
                 .padding(vertical = 4.dp, horizontal = 12.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
                 .border(1.dp, TheoViolet.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
                 .padding(12.dp),
               horizontalAlignment = Alignment.Start
@@ -275,6 +279,7 @@ fun CoreAssistantScreen(
                 modifier = Modifier
                   .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
                   .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
                   .border(1.dp, TheoCyan.copy(alpha = 0.45f), RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
                   .padding(horizontal = 14.dp, vertical = 12.dp)
               ) {
@@ -353,6 +358,7 @@ fun CoreAssistantScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .background(TheoSurfaceDeep)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceDeep, gloss = 0.06f)
                 .padding(10.dp)
             ) {
               val screenRequest = ScreenAutomationRequest.parse(actionTag)

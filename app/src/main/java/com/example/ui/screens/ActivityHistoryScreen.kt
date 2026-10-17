@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.ActivityEntity
 import com.example.ui.components.hudScanlines
 import com.example.ui.components.neonBorder
+import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoOnlineGreen
@@ -65,7 +67,7 @@ fun ActivityHistoryScreen(
   Box(
     modifier = modifier
       .fillMaxSize()
-      .background(TheoDarkBackground)
+      .background(Brush.verticalGradient(colors = listOf(Color(0xFF0A1423), TheoDarkBackground, Color(0xFF07101D))))
       .hudScanlines()
       .statusBarsPadding()
       .navigationBarsPadding()
@@ -106,6 +108,7 @@ fun ActivityHistoryScreen(
               .size(36.dp)
               .clip(CircleShape)
               .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
               .testTag("clear_activity_btn")
           ) {
             Icon(
@@ -175,6 +178,7 @@ private fun ActivityTimelineItem(activity: ActivityEntity) {
       .fillMaxWidth()
       .clip(RoundedCornerShape(12.dp))
       .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
       .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
       .padding(12.dp)
   ) {

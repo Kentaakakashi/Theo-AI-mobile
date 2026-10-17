@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
@@ -59,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.MemoryEntity
 import com.example.ui.components.hudScanlines
 import com.example.ui.components.neonBorder
+import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoErrorRed
@@ -105,7 +107,7 @@ fun MemoryMatrixScreen(
   Box(
     modifier = modifier
       .fillMaxSize()
-      .background(TheoDarkBackground)
+      .background(Brush.verticalGradient(colors = listOf(Color(0xFF0A1423), TheoDarkBackground, Color(0xFF07101D))))
       .hudScanlines()
       .statusBarsPadding()
       .navigationBarsPadding()
@@ -164,6 +166,7 @@ fun MemoryMatrixScreen(
           .padding(top = 10.dp)
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(10.dp)
       ) {
@@ -191,6 +194,7 @@ fun MemoryMatrixScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceCard)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceCard, gloss = 0.08f)
           .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
           .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -389,6 +393,7 @@ private fun MemoryCardItem(
       .fillMaxWidth()
       .clip(RoundedCornerShape(12.dp))
       .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
       .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
       .padding(12.dp)
       .testTag("memory_item_card")

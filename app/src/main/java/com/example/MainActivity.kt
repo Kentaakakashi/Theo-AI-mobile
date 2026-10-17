@@ -53,6 +53,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.wexpa.liquidglass.GlassStyle
+import com.wexpa.liquidglass.LiquidGlassState
+import com.wexpa.liquidglass.liquidGlass
+import com.wexpa.liquidglass.liquidGlassSource
+import com.wexpa.liquidglass.rememberLiquidGlassState
 import com.example.ui.screens.ActivityHistoryScreen
 import com.example.ui.screens.CoreAssistantScreen
 import com.example.ui.screens.DiagnosticConsoleScreen
@@ -62,6 +67,7 @@ import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoSurfaceBorder
+import com.example.ui.theme.TheoSurfaceBorderSubtle
 import com.example.ui.theme.TheoSurfaceCard
 import com.example.ui.theme.TheoSurfaceGlass
 import com.example.ui.theme.TheoTextMuted
@@ -103,6 +109,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun TheoMainContent(viewModel: TheoViewModel) {
+  val glassState = rememberLiquidGlassState(background = TheoDarkBackground)
   val uiState by viewModel.uiState.collectAsState()
   val messages by viewModel.messages.collectAsState()
   val memories by viewModel.memories.collectAsState()
@@ -119,6 +126,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
     bottomBar = {
       TheoBottomNavigation(
         currentTab = uiState.currentTab,
+        glassState = glassState,
         onTabSelected = { viewModel.setTab(it) }
       )
     }
@@ -127,6 +135,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
       modifier = Modifier
         .fillMaxSize()
         .padding(bottom = paddingValues.calculateBottomPadding())
+        .liquidGlassSource(glassState)
     ) {
       AnimatedContent(
         targetState = uiState.currentTab,
@@ -197,6 +206,7 @@ data class NavTabItem(
 @Composable
 fun TheoBottomNavigation(
   currentTab: Int,
+  glassState: LiquidGlassState,
   onTabSelected: (Int) -> Unit
 ) {
   val tabs = listOf(
@@ -225,10 +235,17 @@ fun TheoBottomNavigation(
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .clip(RoundedCornerShape(22.dp))
-        .background(TheoSurfaceGlass)
-        .border(1.dp, TheoSurfaceBorder, RoundedCornerShape(22.dp))
-        .padding(horizontal = 6.dp, vertical = 4.dp),
+        .liquidGlass(
+          state = glassState,
+          shape = RoundedCornerShape(26.dp),
+          style = GlassStyle.Chrome.copy(
+            tint = Color(0x30121D31),
+            fallbackSurface = Color(0xE8101727)
+          )
+        )
+        .clip(RoundedCornerShape(26.dp))
+        .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(26.dp))
+        .padding(horizontal = 6.dp, vertical = 5.dp),
       horizontalArrangement = Arrangement.SpaceAround,
       verticalAlignment = Alignment.CenterVertically
     ) {

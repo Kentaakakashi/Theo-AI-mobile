@@ -64,14 +64,14 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
   Column(
     modifier
       .fillMaxSize()
-      .background(Brush.verticalGradient(colors = listOf(Color(0xFF0A1423), TheoDarkBackground, Color(0xFF07101D))))
+      .background(Color.Transparent)
       .hudScanlines()
       .padding(horizontal = 14.dp, vertical = 10.dp)
   ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
       Column(Modifier.weight(1f)) {
-        Text("Diagnostics", color = TheoTextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Black, letterSpacing = 1.4.sp)
-        Text("// System events and automation traces", color = TheoCyan, fontFamily = FontFamily.Monospace, fontSize = 9.sp)
+        Text("Diagnostics", color = TheoTextPrimary, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp)
+        Text("Recent model, app and automation events", color = TheoTextSecondary, fontFamily = FontFamily.SansSerif, fontSize = 11.sp)
       }
       Icon(Icons.Default.Terminal, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(28.dp))
     }
@@ -94,7 +94,7 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
       }
     }
     Spacer(Modifier.height(8.dp))
-    Text("LOCAL CONSOLE • newest entries at bottom • max 500 entries", color = TheoTextMuted, fontFamily = FontFamily.Monospace, fontSize = 9.sp)
+    Text("Newest entries appear at the bottom · 500 event limit", color = TheoTextMuted, fontFamily = FontFamily.SansSerif, fontSize = 10.sp)
     Spacer(Modifier.height(6.dp))
     if (entries.isEmpty()) {
       Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No events yet. App lifecycle and engine activity will appear here.", color = TheoTextMuted, fontSize = 12.sp) }

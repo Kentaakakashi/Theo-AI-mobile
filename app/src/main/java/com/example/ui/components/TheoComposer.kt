@@ -86,7 +86,7 @@ fun TheoComposer(
         .fillMaxWidth()
         .heightIn(min = 58.dp)
         .clip(RoundedCornerShape(34.dp))
-        .background(TheoSurfaceGlass)
+        .background(Color.Transparent)
         .liquidGlassSurface(
           shape = RoundedCornerShape(34.dp),
           tint = Color(0x8E101A2B),

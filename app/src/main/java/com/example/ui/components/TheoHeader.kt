@@ -122,7 +122,13 @@ fun TheoHeader(
           )
           Spacer(modifier = Modifier.width(5.dp))
           Text(
-            text = when (assistantState) {\n            AssistantState.IDLE -> "Ready"\n            AssistantState.LISTENING -> "Listening"\n            AssistantState.THINKING -> "Thinking"\n            AssistantState.SPEAKING -> "Speaking"\n            AssistantState.OFFLINE -> "Offline"\n          },
+            text = when (assistantState) {
+            AssistantState.IDLE -> "Ready"
+            AssistantState.LISTENING -> "Listening"
+            AssistantState.THINKING -> "Thinking"
+            AssistantState.SPEAKING -> "Speaking"
+            AssistantState.OFFLINE -> "Offline"
+          },
             color = TheoTextSecondary,
             fontFamily = FontFamily.Monospace,
             fontSize = 9.sp,

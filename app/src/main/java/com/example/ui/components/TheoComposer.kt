@@ -111,6 +111,7 @@ fun TheoComposer(
           modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
             .background(TheoSurfaceCard.copy(alpha = 0.8f))
+            .liquidGlassSurface(RoundedCornerShape(16.dp), tint = TheoSurfaceCard.copy(alpha = 0.48f), gloss = 0.08f)
             .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(16.dp))
             .clickable(enabled = assistantState != AssistantState.THINKING) {
               if (action == "Remember fact") {
@@ -137,7 +138,7 @@ fun TheoComposer(
         .fillMaxWidth()
         .clip(RoundedCornerShape(24.dp))
         .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(24.dp), tint = TheoSurfaceGlass, gloss = 0.14f)
         .neonBorder(RoundedCornerShape(24.dp))
         .padding(horizontal = 6.dp, vertical = 4.dp),
       verticalAlignment = Alignment.CenterVertically

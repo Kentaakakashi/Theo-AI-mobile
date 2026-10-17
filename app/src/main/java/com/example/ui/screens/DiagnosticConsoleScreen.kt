@@ -103,7 +103,7 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
         modifier = Modifier
           .fillMaxSize()
           .clip(RoundedCornerShape(18.dp))
-          .background(TheoSurfaceGlass)
+          .background(Color.Transparent)
           .liquidGlassSurface(RoundedCornerShape(18.dp), tint = Color(0x72101829), gloss = 0.12f, refraction = 8.dp, blurRadius = 6.dp)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(18.dp))
           .padding(10.dp),
@@ -121,7 +121,7 @@ private fun StatChip(label: String, value: String, color: Color, modifier: Modif
   Column(
     modifier
       .clip(RoundedCornerShape(8.dp))
-      .background(TheoSurfaceGlass)
+      .background(Color.Transparent)
                 .liquidGlassSurface(RoundedCornerShape(8.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
       .neonBorder(RoundedCornerShape(8.dp), strokeWidth = 1.dp)
       .padding(horizontal = 10.dp, vertical = 8.dp)

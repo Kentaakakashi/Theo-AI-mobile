@@ -67,7 +67,7 @@ fun ActivityHistoryScreen(
   Box(
     modifier = modifier
       .fillMaxSize()
-      .background(Brush.verticalGradient(colors = listOf(Color(0xFF0A1423), TheoDarkBackground, Color(0xFF07101D))))
+      .background(Color.Transparent)
       .hudScanlines()
       .statusBarsPadding()
       .navigationBarsPadding()
@@ -88,16 +88,16 @@ fun ActivityHistoryScreen(
           Text(
             text = "Activity",
             color = TheoTextPrimary,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 2.sp
+            fontSize = 26.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = (-0.5).sp
           )
           Text(
-            text = "${activities.size} events recorded",
+            text = "${activities.size} recent events",
             color = TheoCyan,
             fontFamily = FontFamily.SansSerif,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Normal
           )
         }
 
@@ -139,7 +139,7 @@ fun ActivityHistoryScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-              text = "No neural events logged yet.",
+              text = "Nothing here yet",
               color = TheoTextMuted,
               fontSize = 13.sp
             )

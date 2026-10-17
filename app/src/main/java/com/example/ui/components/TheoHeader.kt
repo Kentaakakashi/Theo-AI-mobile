@@ -148,6 +148,7 @@ fun TheoHeader(
           modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
             .border(1.dp, TheoSurfaceBorder, RoundedCornerShape(12.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
@@ -194,6 +195,7 @@ fun TheoHeader(
             .size(34.dp)
             .clip(CircleShape)
             .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
             .border(1.dp, TheoSurfaceBorder, CircleShape)
             .testTag("open_settings_button")
         ) {

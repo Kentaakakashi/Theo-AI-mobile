@@ -54,6 +54,7 @@ import com.example.ui.theme.TheoSurfaceBorderSubtle
 import com.example.ui.theme.TheoSurfaceGlass
 import com.example.ui.theme.TheoTextMuted
 import com.example.ui.theme.TheoTextPrimary
+import com.example.ui.theme.TheoTextSecondary
 
 @Composable
 fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {

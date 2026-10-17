@@ -25,7 +25,7 @@ Base: `feature/screen-aware-automation`
 - Automation, accessibility service, AI providers, local Qwen runtime and persistence are intentionally untouched.
 - Keep shader use restrained on a 6 GB phone. Avoid applying high-cost blur to every row or chat bubble.
 - The orb changes motion by assistant state. True microphone-amplitude and TTS-amplitude driving still needs a signal from the audio pipeline; state animation alone is not amplitude-reactive.
-- Validate compile and unit tests in GitHub Actions, then inspect it on the actual device before claiming the visual result is final. Current surfaces emulate liquid glass with native Compose gradients and rim lighting; real backdrop refraction is not yet active.
+- Validate compile and unit tests in GitHub Actions, then inspect it on the actual device before claiming the visual result is final. The navigation surface uses the real Backdrop shader. Secondary panels use lightweight native Compose gradients and rim lighting to keep scrolling smooth on mid-range phones.
 
 ## Reference projects
 

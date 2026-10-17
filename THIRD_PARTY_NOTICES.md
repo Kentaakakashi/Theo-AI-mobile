@@ -50,7 +50,7 @@ Use: Studied as a primary reference for optical refraction, shape, and restraine
 
 ## Liquid-glass component and interaction references
 
-- https://github.com/Kyant0/AndroidLiquidGlass — Apache-2.0. Studied for backdrop composition, restrained lensing, refraction and touch-response principles. No source files from this repository are copied into Theo in this change.
+- https://github.com/Kyant0/AndroidLiquidGlass — Apache-2.0. Runtime dependency: `io.github.kyant0:backdrop:1.0.0`, used for true backdrop sampling, blur/lens refraction and optical highlights on the floating navigation surface. The upstream LICENSE and notices apply.
 - https://github.com/amunozdev/voiceorbs — MIT. The native `TheoOrb` is an independent Jetpack Compose reimplementation inspired by the Glass Orb's visual direction and assistant-state behavior; its React/CSS source is not bundled.
 - https://github.com/Abdullajon1881/LiquidGlass — studied for optical material and interaction ideas.
 - https://github.com/styropyr0/PrismalAGSL — studied for shader rendering ideas.

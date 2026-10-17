@@ -217,7 +217,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -287,7 +287,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -343,7 +343,7 @@ fun SettingsScreen(
                   .fillMaxWidth()
                   .clip(RoundedCornerShape(8.dp))
                   .background(TheoSurfaceDeep)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceDeep, gloss = 0.06f)
+                .liquidGlassSurface(RoundedCornerShape(8.dp), tint = TheoSurfaceDeep, gloss = 0.06f)
                   .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(8.dp))
                   .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -470,7 +470,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -548,7 +548,7 @@ fun SettingsScreen(
               .clip(RoundedCornerShape(12.dp))
               .background(if (isSelected) TheoSurfaceGlass else TheoSurfaceCard)
               .liquidGlassSurface(RoundedCornerShape(12.dp), tint = if (isSelected) TheoSurfaceGlass else TheoSurfaceCard, gloss = if (isSelected) 0.14f else 0.06f)
-              .border(1.dp, if (isSelected) TheoViolet else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+              .border(1.dp, if (isSelected) TheoViolet.copy(alpha = 0.30f) else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
               .clickable {
                 selectedIntensity = intensity
                 onSaveSettings(selectedModel, intensity, apiKeyInput, groqApiKeyInput)
@@ -585,7 +585,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -629,7 +629,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -665,7 +665,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -722,7 +722,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {

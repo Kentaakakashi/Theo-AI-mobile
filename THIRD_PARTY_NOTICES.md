@@ -40,3 +40,21 @@ Source: https://huggingface.co/unsloth/Qwen3-1.7B-GGUF
 File: `Qwen3-1.7B-Q4_K_M.gguf`  
 Model license: Apache License 2.0 (Qwen3; see the upstream model and Qwen3 license metadata).  
 Use: Downloaded on first user request into Theo's private app storage; model weights are not bundled in the APK. Theo validates the GGUF file signature and expected SHA-256 before loading it.
+
+
+## Liquid-glass UI material
+
+Repository: https://github.com/shayann07/liquidglass  
+Artifact: `dev.shayxo.liquidglass:liquidglass:0.1.0`  
+License: Apache License 2.0  
+Use: The published shader-based Compose material is used for the floating navigation surface. The library's own license and notice are available in its upstream repository.
+
+## Liquid-glass component and interaction references
+
+- https://github.com/Kyant0/AndroidLiquidGlass — Apache-2.0. Studied for backdrop composition, restrained lensing, refraction and touch-response principles. No source files from this repository are copied into Theo in this change.
+- https://github.com/amunozdev/voiceorbs — MIT. The native `TheoOrb` is an independent Jetpack Compose reimplementation inspired by the Glass Orb's visual direction and assistant-state behavior; its React/CSS source is not bundled.
+- https://github.com/Abdullajon1881/LiquidGlass — studied for optical material and interaction ideas.
+- https://github.com/styropyr0/PrismalAGSL — studied for shader rendering ideas.
+- https://github.com/talhaluxury/JARVISAssistant — studied for assistant-home layout ideas.
+
+The additional repositories above are design/technical references only; no code from them is included by this update.

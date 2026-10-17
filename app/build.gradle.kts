@@ -83,6 +83,8 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
 dependencies {
+  // Kyant0 Backdrop 1.0.0: SDK 36-compatible shader refraction, blur and optical highlights (Apache-2.0).
+  implementation("io.github.kyant0:backdrop:1.0.0")
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
   // implementation(libs.accompanist.permissions)

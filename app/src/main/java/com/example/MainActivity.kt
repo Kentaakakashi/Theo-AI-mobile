@@ -53,6 +53,15 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.Shadow
 import com.example.ui.components.liquidGlassSurface
 import com.example.ui.screens.ActivityHistoryScreen
 import com.example.ui.screens.CoreAssistantScreen
@@ -63,7 +72,6 @@ import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoSurfaceBorder
-import com.example.ui.theme.TheoSurfaceBorderSubtle
 import com.example.ui.theme.TheoSurfaceCard
 import com.example.ui.theme.TheoSurfaceGlass
 import com.example.ui.theme.TheoTextMuted
@@ -105,6 +113,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun TheoMainContent(viewModel: TheoViewModel) {
+  val glassBackdrop = rememberLayerBackdrop()
   val uiState by viewModel.uiState.collectAsState()
   val messages by viewModel.messages.collectAsState()
   val memories by viewModel.memories.collectAsState()
@@ -121,6 +130,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
     bottomBar = {
       TheoBottomNavigation(
         currentTab = uiState.currentTab,
+        backdrop = glassBackdrop,
         onTabSelected = { viewModel.setTab(it) }
       )
     }
@@ -129,6 +139,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
       modifier = Modifier
         .fillMaxSize()
         .padding(bottom = paddingValues.calculateBottomPadding())
+        .layerBackdrop(glassBackdrop)
     ) {
       AnimatedContent(
         targetState = uiState.currentTab,
@@ -199,6 +210,7 @@ data class NavTabItem(
 @Composable
 fun TheoBottomNavigation(
   currentTab: Int,
+  backdrop: Backdrop,
   onTabSelected: (Int) -> Unit
 ) {
   val tabs = listOf(
@@ -227,23 +239,30 @@ fun TheoBottomNavigation(
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .clip(RoundedCornerShape(26.dp))
-        .background(
-          Brush.verticalGradient(
-            colors = listOf(
-              Color(0xA83D5A80),
-              Color(0xDA101A2B),
-              Color(0xB8213049)
+        .drawBackdrop(
+          backdrop = backdrop,
+          shape = { RoundedCornerShape(26.dp) },
+          effects = {
+            vibrancy()
+            blur(10.dp.toPx())
+            lens(
+              refractionHeight = 22.dp.toPx(),
+              refractionAmount = 28.dp.toPx(),
+              depthEffect = true,
+              chromaticAberration = true
             )
-          )
+          },
+          highlight = { Highlight.Default.copy(alpha = 0.88f) },
+          shadow = { Shadow.Default },
+          onDrawSurface = { drawRect(Color(0x4A101827)) }
         )
-        .liquidGlassSurface(RoundedCornerShape(26.dp), tint = TheoSurfaceGlass, gloss = 0.16f)
+        .clip(RoundedCornerShape(26.dp))
         .border(
           1.dp,
           Brush.linearGradient(
             colors = listOf(
-              Color.White.copy(alpha = 0.36f),
-              TheoCyan.copy(alpha = 0.35f),
+              Color.White.copy(alpha = 0.38f),
+              TheoCyan.copy(alpha = 0.34f),
               Color.White.copy(alpha = 0.08f)
             )
           ),

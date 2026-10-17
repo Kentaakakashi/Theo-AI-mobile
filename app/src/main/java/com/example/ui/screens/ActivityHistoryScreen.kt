@@ -107,7 +107,7 @@ fun ActivityHistoryScreen(
             modifier = Modifier
               .size(36.dp)
               .clip(CircleShape)
-              .background(TheoSurfaceGlass)
+              .background(Color.Transparent)
                 .liquidGlassSurface(CircleShape, tint = TheoSurfaceGlass, gloss = 0.12f)
               .testTag("clear_activity_btn")
           ) {
@@ -177,7 +177,7 @@ private fun ActivityTimelineItem(activity: ActivityEntity) {
     modifier = Modifier
       .fillMaxWidth()
       .clip(RoundedCornerShape(12.dp))
-      .background(TheoSurfaceGlass)
+      .background(Color.Transparent)
                 .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
       .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
       .padding(12.dp)

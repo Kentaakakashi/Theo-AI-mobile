@@ -166,7 +166,7 @@ fun MemoryMatrixScreen(
           .padding(top = 10.dp)
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(10.dp)
       ) {
@@ -194,7 +194,7 @@ fun MemoryMatrixScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceCard)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceCard, gloss = 0.08f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceCard, gloss = 0.08f)
           .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
           .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -244,9 +244,9 @@ fun MemoryMatrixScreen(
           Box(
             modifier = Modifier
               .clip(RoundedCornerShape(12.dp))
-              .background(if (isSelected) TheoCyan.copy(alpha = 0.2f) else TheoSurfaceCard)
+              .background(if (isSelected) TheoCyan.copy(alpha = 0.09f) else TheoSurfaceCard)
               .liquidGlassSurface(RoundedCornerShape(12.dp), tint = if (isSelected) Color(0xFF123047) else TheoSurfaceCard, gloss = 0.08f)
-              .border(1.dp, if (isSelected) TheoCyan else Color.Transparent, RoundedCornerShape(12.dp))
+              .border(1.dp, if (isSelected) TheoCyan.copy(alpha = 0.32f) else Color.Transparent, RoundedCornerShape(12.dp))
               .clickable { onCategorySelect(cat) }
               .padding(horizontal = 12.dp, vertical = 6.dp)
           ) {
@@ -394,7 +394,7 @@ private fun MemoryCardItem(
       .fillMaxWidth()
       .clip(RoundedCornerShape(12.dp))
       .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
       .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
       .padding(12.dp)
       .testTag("memory_item_card")

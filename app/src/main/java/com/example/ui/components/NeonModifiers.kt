@@ -15,15 +15,15 @@ import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoViolet
 
 /**
- * Draws a lightweight multi-pass gradient border with a subtle neon halo.
+ * Compatibility name retained for existing call sites.
  *
- * This is deliberately implemented with Compose drawing primitives only, so it
- * doesn't need platform Canvas effects or any additional dependencies.
+ * The former multi-pass neon halo made glass surfaces look like outlined sci-fi cards.
+ * This now draws one quiet, cool hairline with a restrained white/cyan highlight.
  */
 fun Modifier.neonBorder(
   shape: Shape,
-  colors: List<Color> = listOf(TheoCyan, TheoViolet, TheoCyan),
-  strokeWidth: Dp = 1.dp
+  colors: List<Color> = listOf(TheoCyan, Color(0x99FFFFFF), TheoViolet),
+  strokeWidth: Dp = 0.8.dp
 ): Modifier = drawWithCache {
   val outline = shape.createOutline(size, layoutDirection, this)
   val borderPath = when (outline) {
@@ -31,42 +31,32 @@ fun Modifier.neonBorder(
     is Outline.Rounded -> Path().apply { addRoundRect(outline.roundRect) }
     is Outline.Generic -> outline.path
   }
-  val gradientColors = colors.ifEmpty { listOf(TheoCyan, TheoViolet) }
+  val palette = colors.ifEmpty { listOf(Color.White.copy(alpha = 0.25f), TheoCyan.copy(alpha = 0.4f)) }
+  val brush = Brush.sweepGradient(palette.map { it.copy(alpha = it.alpha * 0.58f) })
   val widthPx = strokeWidth.toPx().coerceAtLeast(0.5f)
-  val haloBrush = Brush.sweepGradient(gradientColors.map { it.copy(alpha = it.alpha * 0.10f) })
-  val glowBrush = Brush.sweepGradient(gradientColors.map { it.copy(alpha = it.alpha * 0.24f) })
-  val borderBrush = Brush.sweepGradient(gradientColors)
 
   onDrawWithContent {
     drawContent()
-    drawPath(borderPath, brush = haloBrush, style = Stroke(width = widthPx * 4.0f))
-    drawPath(borderPath, brush = glowBrush, style = Stroke(width = widthPx * 2.1f))
-    drawPath(borderPath, brush = borderBrush, style = Stroke(width = widthPx))
+    // A subtle top-lit edge rather than a three-pass glow.
+    drawPath(
+      borderPath,
+      brush = brush,
+      style = Stroke(width = widthPx)
+    )
+    drawLine(
+      color = Color.White.copy(alpha = 0.10f),
+      start = Offset(size.width * 0.22f, widthPx / 2f),
+      end = Offset(size.width * 0.78f, widthPx / 2f),
+      strokeWidth = widthPx
+    )
   }
 }
 
 /**
- * Adds a faint, static HUD scanline texture over a component's content.
- * Lines are spaced to keep the effect inexpensive on lower-end devices.
+ * The old repeating scanline overlay fought the glossy material and reduced text clarity.
+ * Keep the API for existing screens, but deliberately remove the texture in the glass redesign.
  */
 fun Modifier.hudScanlines(
   spacing: Dp = 5.dp,
   color: Color = TheoCyan.copy(alpha = 0.035f)
-): Modifier = drawWithCache {
-  val stepPx = spacing.toPx().coerceAtLeast(2f)
-  val lineWidthPx = 0.5.dp.toPx()
-
-  onDrawWithContent {
-    drawContent()
-    var y = 0f
-    while (y < size.height) {
-      drawLine(
-        color = color,
-        start = Offset(0f, y),
-        end = Offset(size.width, y),
-        strokeWidth = lineWidthPx
-      )
-      y += stepPx
-    }
-  }
-}
+): Modifier = this

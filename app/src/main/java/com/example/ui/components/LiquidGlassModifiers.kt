@@ -1,7 +1,5 @@
 package com.example.ui.components
 
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -107,16 +105,3 @@ fun Modifier.liquidGlassSurface(
     }
   }
 }
-
-/** Legacy API retained for existing call sites; glass optics now own the edge, not neon. */
-fun Modifier.neonBorder(
-  shape: Shape,
-  colors: List<Color> = listOf(TheoCyan, Color.White.copy(alpha = 0.28f)),
-  strokeWidth: Dp = 0.8.dp
-): Modifier = this
-
-/** HUD scan lines were removed from the new interface language. */
-fun Modifier.hudScanlines(
-  spacing: Dp = 5.dp,
-  color: Color = TheoCyan.copy(alpha = 0.035f)
-): Modifier = this

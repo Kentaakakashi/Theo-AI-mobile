@@ -45,6 +45,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.example.ui.components.TheoThinkingCapsule
+import com.example.ui.components.neonBorder
 import com.example.data.MessageEntity
 import com.example.service.ScreenAutomationRequest
 import com.example.ui.components.ChatMessageBubble
@@ -83,23 +88,20 @@ fun CoreAssistantScreen(
 ) {
   val listState = rememberLazyListState()
 
-  // Auto-scroll to latest message on receive
-  LaunchedEffect(messages.size, uiState.streamingText, uiState.assistantState) {
-    val thinkingItemCount = if (uiState.assistantState == com.example.model.AssistantState.THINKING) 1 else 0
-    val streamingItemCount = if (uiState.streamingText.isNotBlank()) 1 else 0
-    // Index 0 is the orb; these counts select the latest visible list item.
-    val lastIndex = messages.size + thinkingItemCount + streamingItemCount
-    if (lastIndex > 0) listState.animateScrollToItem(lastIndex)
+  LaunchedEffect(messages.size, uiState.streamingText) {
+    if (messages.isNotEmpty() || uiState.streamingText.isNotBlank()) {
+      val lastMessageIndex = (messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)
+        .coerceAtLeast(0)
+      listState.animateScrollToItem(lastMessageIndex)
+    }
   }
 
   Box(
     modifier = modifier
       .fillMaxSize()
-      .background(Brush.verticalGradient(colors = listOf(Color(0xFF0A1423), TheoDarkBackground, Color(0xFF07101D))))
-      .hudScanlines()
+      .background(Color.Transparent)
   ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-      // 1. Top HUD Header
+    Column(Modifier.fillMaxSize()) {
       TheoHeader(
         assistantState = uiState.assistantState,
         activeModel = uiState.activeModel,
@@ -109,198 +111,130 @@ fun CoreAssistantScreen(
         onOpenSettings = onOpenSettings
       )
 
-      // 2. Center Chat & Orb Area
-      LazyColumn(
-        state = listState,
-        modifier = Modifier
-          .weight(1f)
-          .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-      ) {
-        // Centerpiece Orb Header item
-        item(key = "centerpiece_orb") {
-          Column(
-            modifier = Modifier
-              .fillMaxWidth()
-              .padding(top = 10.dp, bottom = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-          ) {
-            TheoOrb(
-              state = uiState.assistantState,
-              intensity = uiState.animationIntensity,
-              sizeDp = 180.dp,
-              onClick = onOrbClick
+      if (messages.isEmpty()) {
+        TheoHomeStage(
+          uiState = uiState,
+          onOrbClick = onOrbClick,
+          onSendMessage = onSendMessage,
+          onInputChange = onInputChange,
+          modifier = Modifier.weight(1f).fillMaxWidth()
+        )
+      } else {
+        // Conversation mode: keep the assistant identity visible while the transcript scrolls.
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 5.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(TheoSurfaceGlass)
+            .liquidGlassSurface(
+              shape = RoundedCornerShape(22.dp),
+              tint = Color(0x68131E32),
+              gloss = 0.14f,
+              refraction = 8.dp,
+              blurRadius = 6.dp
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+            .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(22.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          TheoOrb(
+            state = uiState.assistantState,
+            intensity = uiState.animationIntensity,
+            sizeDp = 46.dp,
+            onClick = onOrbClick
+          )
+          Spacer(Modifier.width(10.dp))
+          Column(modifier = Modifier.weight(1f)) {
             Text(
-              text = "Hey, I'm Theo",
-              color = TheoTextSecondary,
-              fontSize = 15.sp,
-              fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-              text = "How can I help you today?",
+              text = "Your conversation",
               color = TheoTextPrimary,
-              fontSize = 27.sp,
-              lineHeight = 32.sp,
-              fontWeight = FontWeight.SemiBold,
-              textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-              modifier = Modifier.padding(horizontal = 24.dp)
+              fontSize = 13.sp,
+              fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
-                .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(20.dp))
-                .padding(horizontal = 12.dp, vertical = 5.dp)
-            ) {
-              Box(
-                modifier = Modifier
-                  .size(6.dp)
-                  .clip(RoundedCornerShape(50))
-                  .background(TheoCyan)
-              )
-              Spacer(modifier = Modifier.width(7.dp))
-              Text(
-                text = when (uiState.assistantState) {
-                  com.example.model.AssistantState.IDLE -> "Ready when you are"
-                  com.example.model.AssistantState.LISTENING -> "Listening to you"
-                  com.example.model.AssistantState.THINKING -> "Thinking it through"
-                  com.example.model.AssistantState.SPEAKING -> "Speaking"
-                  com.example.model.AssistantState.OFFLINE -> "Assistant offline"
-                },
-                color = TheoTextSecondary,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium
-              )
-            }
+            Text(
+              text = when (uiState.assistantState) {
+                com.example.model.AssistantState.IDLE -> "Theo is here with you"
+                com.example.model.AssistantState.LISTENING -> "Listening for your next command"
+                com.example.model.AssistantState.THINKING -> "Working on your request"
+                com.example.model.AssistantState.SPEAKING -> "Replying to you"
+                com.example.model.AssistantState.OFFLINE -> "Check the active AI provider"
+              },
+              color = TheoTextSecondary,
+              fontSize = 11.sp
+            )
           }
-        }
-
-        // Messages list
-        items(messages, key = { it.id }) { message ->
-          ChatMessageBubble(
-            message = message,
-            onExecuteAction = onExecuteAction
+          Text(
+            text = messages.size.toString(),
+            color = TheoTextMuted,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold
           )
         }
 
-        if (uiState.assistantState == com.example.model.AssistantState.THINKING) {
-          item(key = "thinking_process_viewer") {
-            Column(
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 12.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
-                .border(1.dp, TheoViolet.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
-                .padding(12.dp),
-              horizontalAlignment = Alignment.Start
-            ) {
-              Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                  imageVector = Icons.Default.AutoAwesome,
-                  contentDescription = null,
-                  tint = TheoViolet,
-                  modifier = Modifier.size(15.dp)
-                )
-                Spacer(modifier = Modifier.width(7.dp))
+        LazyColumn(
+          state = listState,
+          modifier = Modifier.weight(1f).fillMaxWidth(),
+          verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+          items(messages, key = { it.id }) { message ->
+            ChatMessageBubble(message = message, onExecuteAction = onExecuteAction)
+          }
+
+          if (uiState.streamingText.isNotBlank()) {
+            item(key = "live_gemini_stream") {
+              Column(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(vertical = 4.dp, horizontal = 12.dp)
+              ) {
                 Text(
-                  text = "THINKING PROCESS",
-                  color = TheoViolet,
-                  fontFamily = FontFamily.Monospace,
-                  fontSize = 10.sp,
-                  fontWeight = FontWeight.Bold
+                  text = "Theo is replying",
+                  color = TheoTextSecondary,
+                  fontSize = 11.sp,
+                  fontWeight = FontWeight.Medium,
+                  modifier = Modifier.padding(start = 8.dp, bottom = 5.dp)
                 )
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                  text = "LIVE",
-                  color = TheoCyan,
-                  fontFamily = FontFamily.Monospace,
-                  fontSize = 9.sp,
-                  fontWeight = FontWeight.Bold
-                )
-              }
-              Spacer(modifier = Modifier.height(8.dp))
-              uiState.thinkingSteps.forEachIndexed { index, step ->
-                Row(
-                  modifier = Modifier.padding(vertical = 3.dp),
-                  verticalAlignment = Alignment.Top
+                Box(
+                  modifier = Modifier
+                    .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp))
+                    .background(TheoSurfaceGlass)
+                    .liquidGlassSurface(
+                      shape = RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp),
+                      tint = Color(0x8A101C2E),
+                      gloss = 0.12f
+                    )
+                    .padding(horizontal = 15.dp, vertical = 13.dp)
                 ) {
-                  Icon(
-                    imageVector = if (index < uiState.thinkingSteps.lastIndex) Icons.Default.CheckCircle else Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = if (index < uiState.thinkingSteps.lastIndex) TheoCyan else TheoViolet,
-                    modifier = Modifier.padding(top = 1.dp).size(13.dp)
-                  )
-                  Spacer(modifier = Modifier.width(8.dp))
                   Text(
-                    text = step,
-                    color = if (index == uiState.thinkingSteps.lastIndex) TheoTextPrimary else TheoTextSecondary,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp,
-                    fontWeight = if (index == uiState.thinkingSteps.lastIndex) FontWeight.SemiBold else FontWeight.Normal
+                    text = uiState.streamingText,
+                    color = TheoTextPrimary,
+                    fontSize = 14.sp,
+                    lineHeight = 21.sp
                   )
                 }
               }
-              Text(
-                text = "Live app progress, not a verbatim private chain-of-thought.",
-                color = TheoTextMuted,
-                fontSize = 9.sp,
-                modifier = Modifier.padding(top = 6.dp)
-              )
             }
           }
-        }
-
-        if (uiState.streamingText.isNotBlank()) {
-          item(key = "live_gemini_stream") {
-            Column(
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 12.dp),
-              horizontalAlignment = Alignment.Start
-            ) {
-              Text(
-                text = "GEMINI · LIVE RESPONSE",
-                color = TheoCyan,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-              )
-              Box(
-                modifier = Modifier
-                  .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
-                  .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
-                  .border(1.dp, TheoCyan.copy(alpha = 0.45f), RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
-                  .padding(horizontal = 14.dp, vertical = 12.dp)
-              ) {
-                Text(
-                  text = uiState.streamingText,
-                  color = TheoTextPrimary,
-                  fontSize = 14.sp,
-                  lineHeight = 21.sp
-                )
-              }
-            }
-          }
-        }
-
-        item {
-          Spacer(modifier = Modifier.height(12.dp))
+          item { Spacer(Modifier.height(8.dp)) }
         }
       }
 
-      // 3. Anchored Message Composer
+      AnimatedVisibility(
+        visible = uiState.assistantState == com.example.model.AssistantState.THINKING ||
+          uiState.assistantState == com.example.model.AssistantState.LISTENING ||
+          uiState.assistantState == com.example.model.AssistantState.SPEAKING,
+        enter = fadeIn() + androidx.compose.animation.slideInVertically { it / 3 },
+        exit = fadeOut()
+      ) {
+        TheoThinkingCapsule(
+          assistantState = uiState.assistantState,
+          thinkingSteps = uiState.thinkingSteps,
+          modelLabel = uiState.activeModel.shortBadge,
+          modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+      }
+
       TheoComposer(
         inputText = uiState.inputText,
         assistantState = uiState.assistantState,

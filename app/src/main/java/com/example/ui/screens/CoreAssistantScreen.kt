@@ -50,6 +50,7 @@ import com.example.ui.components.ChatMessageBubble
 import com.example.ui.components.TheoComposer
 import com.example.ui.components.TheoHeader
 import com.example.ui.components.TheoOrb
+import com.example.ui.components.hudScanlines
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoSurfaceBorder
@@ -92,6 +93,7 @@ fun CoreAssistantScreen(
     modifier = modifier
       .fillMaxSize()
       .background(TheoDarkBackground)
+      .hudScanlines()
   ) {
     Column(modifier = Modifier.fillMaxSize()) {
       // 1. Top HUD Header

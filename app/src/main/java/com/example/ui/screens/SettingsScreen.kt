@@ -56,6 +56,8 @@ import com.example.model.AiModelType
 import com.example.model.AnimationIntensity
 import com.example.service.DeviceActionHandler
 import com.example.service.parseGeminiApiKeys
+import com.example.ui.components.hudScanlines
+import com.example.ui.components.neonBorder
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoErrorRed
@@ -98,6 +100,7 @@ fun SettingsScreen(
     modifier = modifier
       .fillMaxSize()
       .background(TheoDarkBackground)
+      .hudScanlines()
       .statusBarsPadding()
       .navigationBarsPadding()
   ) {
@@ -136,7 +139,10 @@ fun SettingsScreen(
               .fillMaxWidth()
               .clip(RoundedCornerShape(12.dp))
               .background(if (isSelected) TheoSurfaceGlass else TheoSurfaceCard)
-              .border(1.dp, if (isSelected) TheoCyan else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+              .then(
+                if (isSelected) Modifier.neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
+                else Modifier.border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+              )
               .clickable {
                 selectedModel = model
                 onSaveSettings(model, selectedIntensity, apiKeyInput, groqApiKeyInput)

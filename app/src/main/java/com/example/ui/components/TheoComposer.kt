@@ -137,7 +137,7 @@ fun TheoComposer(
         .fillMaxWidth()
         .clip(RoundedCornerShape(24.dp))
         .background(TheoSurfaceGlass)
-        .border(1.dp, TheoSurfaceBorder, RoundedCornerShape(24.dp))
+        .neonBorder(RoundedCornerShape(24.dp))
         .padding(horizontal = 6.dp, vertical = 4.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {

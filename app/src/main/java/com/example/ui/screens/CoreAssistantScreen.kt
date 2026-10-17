@@ -131,27 +131,48 @@ fun CoreAssistantScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Subtitle state pill
+            Text(
+              text = "Hey, I'm Theo",
+              color = TheoTextSecondary,
+              fontSize = 15.sp,
+              fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+              text = "How can I help you today?",
+              color = TheoTextPrimary,
+              fontSize = 27.sp,
+              lineHeight = 32.sp,
+              fontWeight = FontWeight.SemiBold,
+              textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+              modifier = Modifier.padding(horizontal = 24.dp)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
             Row(
               verticalAlignment = Alignment.CenterVertically,
               modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(20.dp))
                 .background(TheoSurfaceGlass)
-                .border(1.dp, TheoSurfaceBorder, RoundedCornerShape(12.dp))
-                .padding(horizontal = 10.dp, vertical = 3.dp)
+                .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(20.dp))
+                .padding(horizontal = 12.dp, vertical = 5.dp)
             ) {
-              Icon(
-                imageVector = Icons.Default.AutoAwesome,
-                contentDescription = null,
-                tint = TheoCyan,
-                modifier = Modifier.size(11.dp)
+              Box(
+                modifier = Modifier
+                  .size(6.dp)
+                  .clip(RoundedCornerShape(50))
+                  .background(TheoCyan)
               )
-              Spacer(modifier = Modifier.width(5.dp))
+              Spacer(modifier = Modifier.width(7.dp))
               Text(
-                text = "TAP CORE TO SPEAK",
+                text = when (uiState.assistantState) {
+                  com.example.model.AssistantState.IDLE -> "Ready when you are"
+                  com.example.model.AssistantState.LISTENING -> "Listening to you"
+                  com.example.model.AssistantState.THINKING -> "Thinking it through"
+                  com.example.model.AssistantState.SPEAKING -> "Speaking"
+                  com.example.model.AssistantState.OFFLINE -> "Assistant offline"
+                },
                 color = TheoTextSecondary,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
               )
             }

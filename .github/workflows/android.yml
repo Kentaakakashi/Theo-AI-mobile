@@ -1,4 +1,5 @@
 name: Build Theo Android APK
+# Trigger a fresh build for the branch's current code.
 
 on:
   push:

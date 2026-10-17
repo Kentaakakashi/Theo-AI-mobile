@@ -40,6 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.ActivityEntity
+import com.example.ui.components.hudScanlines
+import com.example.ui.components.neonBorder
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoOnlineGreen
@@ -64,6 +66,7 @@ fun ActivityHistoryScreen(
     modifier = modifier
       .fillMaxSize()
       .background(TheoDarkBackground)
+      .hudScanlines()
       .statusBarsPadding()
       .navigationBarsPadding()
   ) {
@@ -172,7 +175,7 @@ private fun ActivityTimelineItem(activity: ActivityEntity) {
       .fillMaxWidth()
       .clip(RoundedCornerShape(12.dp))
       .background(TheoSurfaceGlass)
-      .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+      .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
       .padding(12.dp)
   ) {
     Row(verticalAlignment = Alignment.Top) {

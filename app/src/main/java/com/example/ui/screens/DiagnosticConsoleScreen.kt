@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.sp
 import com.example.service.TheoDiagnosticLogger
 import com.example.service.TheoLogEntry
 import com.example.service.TheoLogLevel
+import com.example.ui.components.hudScanlines
+import com.example.ui.components.neonBorder
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoErrorRed
@@ -57,7 +59,13 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
   val clipboard = LocalClipboardManager.current
   val errors = entries.count { it.level == TheoLogLevel.ERROR }
   val warnings = entries.count { it.level == TheoLogLevel.WARN }
-  Column(modifier.fillMaxSize().background(TheoDarkBackground).padding(horizontal = 14.dp, vertical = 10.dp)) {
+  Column(
+    modifier
+      .fillMaxSize()
+      .background(TheoDarkBackground)
+      .hudScanlines()
+      .padding(horizontal = 14.dp, vertical = 10.dp)
+  ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
       Column(Modifier.weight(1f)) {
         Text("DIAGNOSTIC CONSOLE", color = TheoTextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Black, letterSpacing = 1.4.sp)
@@ -90,7 +98,12 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
       Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No events yet. App lifecycle and engine activity will appear here.", color = TheoTextMuted, fontSize = 12.sp) }
     } else {
       LazyColumn(
-        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)).background(Color(0xFF080D13)).border(1.dp, TheoSurfaceBorder, RoundedCornerShape(10.dp)).padding(8.dp),
+        modifier = Modifier
+          .fillMaxSize()
+          .clip(RoundedCornerShape(10.dp))
+          .background(Color(0xFF080D13))
+          .neonBorder(RoundedCornerShape(10.dp), strokeWidth = 1.dp)
+          .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
       ) {
         items(entries, key = { it.id }) { entry -> ConsoleEntry(entry) }
@@ -102,7 +115,13 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
 
 @Composable
 private fun StatChip(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
-  Column(modifier.clip(RoundedCornerShape(8.dp)).background(TheoSurfaceGlass).border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 8.dp)) {
+  Column(
+    modifier
+      .clip(RoundedCornerShape(8.dp))
+      .background(TheoSurfaceGlass)
+      .neonBorder(RoundedCornerShape(8.dp), strokeWidth = 1.dp)
+      .padding(horizontal = 10.dp, vertical = 8.dp)
+  ) {
     Text(label, color = TheoTextMuted, fontFamily = FontFamily.Monospace, fontSize = 9.sp)
     Text(value, color = color, fontFamily = FontFamily.Monospace, fontSize = 17.sp, fontWeight = FontWeight.Bold)
   }

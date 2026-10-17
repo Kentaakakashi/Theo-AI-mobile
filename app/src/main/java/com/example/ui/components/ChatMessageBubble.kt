@@ -93,10 +93,10 @@ fun ChatMessageBubble(
                   )
                 )
               )
-              .border(
-                1.dp,
-                TheoViolet.copy(alpha = 0.35f),
-                RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+              .neonBorder(
+                RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
+                colors = listOf(TheoViolet, Color(0xFFA855F7), TheoViolet),
+                strokeWidth = 1.dp
               )
               .padding(horizontal = 14.dp, vertical = 10.dp)
               .testTag("user_chat_bubble")
@@ -170,9 +170,7 @@ fun ChatMessageBubble(
             modifier = Modifier
               .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
               .background(TheoSurfaceGlass)
-              .border(
-                1.dp,
-                TheoSurfaceBorder,
+              .neonBorder(
                 RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
               )
               .padding(horizontal = 14.dp, vertical = 12.dp)

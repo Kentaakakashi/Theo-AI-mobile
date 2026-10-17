@@ -57,6 +57,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.MemoryEntity
+import com.example.ui.components.hudScanlines
+import com.example.ui.components.neonBorder
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoErrorRed
@@ -104,6 +106,7 @@ fun MemoryMatrixScreen(
     modifier = modifier
       .fillMaxSize()
       .background(TheoDarkBackground)
+      .hudScanlines()
       .statusBarsPadding()
       .navigationBarsPadding()
   ) {
@@ -188,7 +191,7 @@ fun MemoryMatrixScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceCard)
-          .border(1.dp, TheoSurfaceBorder, RoundedCornerShape(12.dp))
+          .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
           .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
@@ -386,7 +389,7 @@ private fun MemoryCardItem(
       .fillMaxWidth()
       .clip(RoundedCornerShape(12.dp))
       .background(TheoSurfaceGlass)
-      .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+      .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
       .padding(12.dp)
       .testTag("memory_item_card")
   ) {

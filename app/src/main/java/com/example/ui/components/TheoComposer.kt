@@ -64,12 +64,12 @@ fun TheoComposer(
   modifier: Modifier = Modifier
 ) {
   val quickActions = listOf(
-    "🧠 Remember fact",
-    "📋 Plan my day",
-    "⚡ Open Settings",
-    "📷 Open Camera",
-    "⏰ Set Alarm",
-    "🔋 Battery Status"
+    "Remember fact",
+    "Plan my day",
+    "Open Settings",
+    "Open Camera",
+    "Set alarm",
+    "Battery status"
   )
 
   Column(
@@ -98,12 +98,12 @@ fun TheoComposer(
     ) {
       quickActions.forEach { action ->
         val promptText = when (action) {
-          "🧠 Remember fact" -> "Remember that: "
-          "📋 Plan my day" -> "Plan my day with optimal productivity"
-          "⚡ Open Settings" -> "Open settings"
-          "📷 Open Camera" -> "Open camera"
-          "⏰ Set Alarm" -> "Set alarm for morning routine"
-          "🔋 Battery Status" -> "Check battery and system diagnostics"
+          "Remember fact" -> "Remember that: "
+          "Plan my day" -> "Plan my day with optimal productivity"
+          "Open Settings" -> "Open settings"
+          "Open Camera" -> "Open camera"
+          "Set alarm" -> "Set alarm for morning routine"
+          "Battery status" -> "Check battery and system diagnostics"
           else -> action
         }
 
@@ -113,7 +113,7 @@ fun TheoComposer(
             .background(TheoSurfaceCard.copy(alpha = 0.8f))
             .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(16.dp))
             .clickable(enabled = assistantState != AssistantState.THINKING) {
-              if (action.startsWith("🧠")) {
+              if (action == "Remember fact") {
                 onInputChange(promptText)
               } else {
                 onSend(promptText)
@@ -124,7 +124,7 @@ fun TheoComposer(
           Text(
             text = action,
             color = TheoTextSecondary,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium
           )
         }
@@ -180,7 +180,7 @@ fun TheoComposer(
         decorationBox = { innerTextField ->
           if (inputText.isEmpty()) {
             Text(
-              text = "Command Theo or inquire...",
+              text = "Ask Theo anything...",
               color = TheoTextMuted,
               fontSize = 14.sp
             )

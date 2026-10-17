@@ -42,12 +42,11 @@ Model license: Apache License 2.0 (Qwen3; see the upstream model and Qwen3 licen
 Use: Downloaded on first user request into Theo's private app storage; model weights are not bundled in the APK. Theo validates the GGUF file signature and expected SHA-256 before loading it.
 
 
-## Liquid-glass UI material
+## Liquid-glass UI design references
 
 Repository: https://github.com/shayann07/liquidglass  
-Artifact: `dev.shayxo.liquidglass:liquidglass:0.1.0`  
 License: Apache License 2.0  
-Use: The published shader-based Compose material is used for the floating navigation surface. The library's own license and notice are available in its upstream repository.
+Use: Studied as a primary reference for optical refraction, shape, and restrained edge lighting. The published `0.1.0` artifact was evaluated but not retained as a dependency because it requires compile SDK 37 and the current Android SDK runner could not install that platform. No source code from this repository is included.
 
 ## Liquid-glass component and interaction references
 

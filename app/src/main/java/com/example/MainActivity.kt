@@ -12,82 +12,35 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Timeline
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.Shadow
+import com.builditcode.glass.LocalBackdropLayerManager
+import com.builditcode.glass.layeredBackdropSource
+import com.builditcode.glass.rememberBackdropManager
+import com.example.service.TheoDiagnosticLogger
 import com.example.ui.components.LocalTheoGlassBackdrop
-import com.example.ui.components.liquidGlassSurface
+import com.example.ui.components.THEO_DOCK_BACKDROP_LAYER
 import com.example.ui.screens.ActivityHistoryScreen
 import com.example.ui.screens.CoreAssistantScreen
 import com.example.ui.screens.DiagnosticConsoleScreen
-import com.example.service.TheoDiagnosticLogger
 import com.example.ui.screens.MemoryMatrixScreen
 import com.example.ui.screens.SettingsScreen
-import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
-import com.example.ui.theme.TheoSurfaceBorder
-import com.example.ui.theme.TheoSurfaceCard
-import com.example.ui.theme.TheoSurfaceGlass
-import com.example.ui.theme.TheoTextMuted
-import com.example.ui.theme.TheoTextPrimary
 import com.example.ui.theme.TheoTheme
-import com.example.ui.theme.TheoViolet
 import com.example.viewmodel.TheoViewModel
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 
 class MainActivity : ComponentActivity() {
 
@@ -122,7 +75,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun TheoMainContent(viewModel: TheoViewModel) {
-  val screenBackdrop = rememberLayerBackdrop()
   val ambientBackdrop = rememberLayerBackdrop(onDraw = {
     val glowA = Offset(size.width * 0.88f, size.height * 0.18f)
     val glowB = Offset(size.width * 0.08f, size.height * 0.70f)
@@ -146,6 +98,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
       center = glowB
     )
   })
+  val dockBackdropManager = rememberBackdropManager(defaultScaleFactor = 0.5f, defaultDebounceMs = 16L)
   val uiState by viewModel.uiState.collectAsState()
   val messages by viewModel.messages.collectAsState()
   val memories by viewModel.memories.collectAsState()
@@ -156,25 +109,23 @@ fun TheoMainContent(viewModel: TheoViewModel) {
     viewModel.setTab(0)
   }
 
-  Scaffold(
-    modifier = Modifier.fillMaxSize(),
-    containerColor = TheoDarkBackground,
-    bottomBar = {
-      TheoBottomNavigation(
-        currentTab = uiState.currentTab,
-        backdrop = screenBackdrop,
-        onTabSelected = { viewModel.setTab(it) }
-      )
-    }
-  ) { paddingValues ->
-    CompositionLocalProvider(LocalTheoGlassBackdrop provides ambientBackdrop) {
+  CompositionLocalProvider(
+    LocalBackdropLayerManager provides dockBackdropManager,
+    LocalTheoGlassBackdrop provides ambientBackdrop
+  ) {
     Box(
       modifier = Modifier
         .fillMaxSize()
-        .padding(bottom = paddingValues.calculateBottomPadding())
-        .layerBackdrop(screenBackdrop)
-        .layerBackdrop(ambientBackdrop)
+        .background(TheoDarkBackground)
     ) {
+      // Keep the captured scene full-height beneath the floating dock. A Scaffold bottomBar
+      // shortens the source area and leaves the glass dock trying to refract an empty strip.
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .layeredBackdropSource(THEO_DOCK_BACKDROP_LAYER)
+          .layerBackdrop(ambientBackdrop)
+      ) {
       Canvas(Modifier.fillMaxSize()) {
         val glowA = Offset(size.width * 0.88f, size.height * 0.18f)
         val glowB = Offset(size.width * 0.08f, size.height * 0.70f)
@@ -199,6 +150,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
         )
       }
       AnimatedContent(
+        modifier = Modifier.fillMaxSize().padding(bottom = 108.dp),
         targetState = uiState.currentTab,
         transitionSpec = { fadeIn() togetherWith fadeOut() },
         label = "TabContentAnimation"
@@ -255,151 +207,11 @@ fun TheoMainContent(viewModel: TheoViewModel) {
         }
       }
     }
-    }
-  }
-}
-
-data class NavTabItem(
-  val label: String,
-  val icon: ImageVector,
-  val testTag: String
-)
-
-@Composable
-fun TheoBottomNavigation(
-  currentTab: Int,
-  backdrop: Backdrop,
-  onTabSelected: (Int) -> Unit
-) {
-  val tabs = listOf(
-    NavTabItem("Home", Icons.Default.AutoAwesome, "nav_core_tab"),
-    NavTabItem("Memory", Icons.Default.Storage, "nav_memory_tab"),
-    NavTabItem("Activity", Icons.Default.Timeline, "nav_activity_tab"),
-    NavTabItem("Logs", Icons.Default.Terminal, "nav_logs_tab"),
-    NavTabItem("Settings", Icons.Default.Settings, "nav_settings_tab")
-  )
-
-  BoxWithConstraints(
-    modifier = Modifier
-      .fillMaxWidth()
-      .windowInsetsPadding(WindowInsets.navigationBars)
-      .padding(horizontal = 14.dp, vertical = 7.dp),
-    contentAlignment = Alignment.Center
-  ) {
-    val itemWidth = maxWidth / tabs.size
-    val indicatorX by animateDpAsState(
-      targetValue = itemWidth * currentTab,
-      animationSpec = spring(dampingRatio = 0.78f, stiffness = 420f),
-      label = "LiquidTabIndicatorOffset"
-    )
-
-    Box(
-      modifier = Modifier
-        .fillMaxWidth()
-        .height(68.dp)
-        .drawBackdrop(
-          backdrop = backdrop,
-          shape = { RoundedCornerShape(30.dp) },
-          effects = {
-            vibrancy()
-            blur(13.dp.toPx())
-            lens(
-              refractionHeight = 18.dp.toPx(),
-              refractionAmount = 23.dp.toPx(),
-              depthEffect = true,
-              chromaticAberration = false
-            )
-          },
-          highlight = { Highlight.Default.copy(alpha = 0.82f) },
-          shadow = { Shadow.Default },
-          onDrawSurface = { drawRect(Color(0x64101829)) }
-        )
-        .clip(RoundedCornerShape(30.dp))
-        .border(
-          1.dp,
-          Brush.linearGradient(
-            colors = listOf(
-              Color.White.copy(alpha = 0.34f),
-              TheoCyan.copy(alpha = 0.28f),
-              Color.White.copy(alpha = 0.075f)
-            )
-          ),
-          RoundedCornerShape(30.dp)
-        )
-    ) {
-      // A second lens rides beneath the selected destination, echoing Backdrop's liquid-tab demo.
-      Box(
-        modifier = Modifier
-          .offset(x = indicatorX)
-          .width(itemWidth)
-          .fillMaxHeight()
-          .padding(4.dp)
-          .drawBackdrop(
-            backdrop = backdrop,
-            shape = { RoundedCornerShape(25.dp) },
-            effects = {
-              vibrancy()
-              blur(7.dp.toPx())
-              lens(
-                refractionHeight = 23.dp.toPx(),
-                refractionAmount = 28.dp.toPx(),
-                depthEffect = true,
-                chromaticAberration = true
-              )
-            },
-            highlight = { Highlight.Default.copy(alpha = 0.95f) },
-            shadow = { Shadow.Default },
-            onDrawSurface = {
-              drawRect(
-                Brush.verticalGradient(
-                  listOf(Color(0x662C5276), Color(0x5522314D), Color(0x48202940))
-                )
-              )
-            }
-          )
-          .border(
-            1.dp,
-            Brush.linearGradient(
-              listOf(Color.White.copy(alpha = 0.30f), TheoCyan.copy(alpha = 0.24f), Color.Transparent)
-            ),
-            RoundedCornerShape(25.dp)
-          )
+      TheoBottomNavigation(
+        currentTab = uiState.currentTab,
+        onTabSelected = { viewModel.setTab(it) },
+        modifier = Modifier.align(Alignment.BottomCenter)
       )
-
-      Row(
-        modifier = Modifier.fillMaxSize(),
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        tabs.forEachIndexed { index, tabItem ->
-          val selected = currentTab == index
-          Column(
-            modifier = Modifier
-              .weight(1f)
-              .fillMaxHeight()
-              .clickable { onTabSelected(index) }
-              .testTag(tabItem.testTag)
-              .padding(vertical = 7.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-          ) {
-            Icon(
-              imageVector = tabItem.icon,
-              contentDescription = tabItem.label,
-              tint = if (selected) TheoCyan else TheoTextMuted,
-              modifier = Modifier.size(if (selected) 21.dp else 19.dp)
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-              text = tabItem.label,
-              color = if (selected) TheoTextPrimary else TheoTextMuted,
-              fontSize = 9.sp,
-              fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-              letterSpacing = 0.sp,
-              maxLines = 1
-            )
-          }
-        }
-      }
     }
   }
 }

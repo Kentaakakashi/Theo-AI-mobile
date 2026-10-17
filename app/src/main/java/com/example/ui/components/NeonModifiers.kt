@@ -5,9 +5,10 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.drawOutline
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.TheoCyan
@@ -25,6 +26,11 @@ fun Modifier.neonBorder(
   strokeWidth: Dp = 1.dp
 ): Modifier = drawWithCache {
   val outline = shape.createOutline(size, layoutDirection, this)
+  val borderPath = when (outline) {
+    is Outline.Rectangle -> Path().apply { addRect(outline.rect) }
+    is Outline.Rounded -> Path().apply { addRoundRect(outline.roundRect) }
+    is Outline.Generic -> outline.path
+  }
   val gradientColors = colors.ifEmpty { listOf(TheoCyan, TheoViolet) }
   val widthPx = strokeWidth.toPx().coerceAtLeast(0.5f)
   val haloBrush = Brush.sweepGradient(gradientColors.map { it.copy(alpha = it.alpha * 0.10f) })
@@ -33,9 +39,9 @@ fun Modifier.neonBorder(
 
   onDrawWithContent {
     drawContent()
-    drawOutline(outline, brush = haloBrush, style = Stroke(width = widthPx * 4.0f))
-    drawOutline(outline, brush = glowBrush, style = Stroke(width = widthPx * 2.1f))
-    drawOutline(outline, brush = borderBrush, style = Stroke(width = widthPx))
+    drawPath(borderPath, brush = haloBrush, style = Stroke(width = widthPx * 4.0f))
+    drawPath(borderPath, brush = glowBrush, style = Stroke(width = widthPx * 2.1f))
+    drawPath(borderPath, brush = borderBrush, style = Stroke(width = widthPx))
   }
 }
 

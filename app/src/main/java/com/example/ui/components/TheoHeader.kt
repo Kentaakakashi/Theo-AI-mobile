@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,8 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,16 +36,12 @@ import com.example.model.AiModelType
 import com.example.model.AssistantState
 import com.example.service.DeviceActionHandler
 import com.example.ui.theme.TheoCyan
-import com.example.ui.theme.TheoIceBlue
-import com.example.ui.theme.TheoOnlineGreen
-import com.example.ui.theme.TheoSurfaceBorder
-import com.example.ui.theme.TheoSurfaceCard
+import com.example.ui.theme.TheoSurfaceBorderSubtle
 import com.example.ui.theme.TheoSurfaceGlass
 import com.example.ui.theme.TheoTextMuted
 import com.example.ui.theme.TheoTextPrimary
 import com.example.ui.theme.TheoTextSecondary
 import com.example.ui.theme.TheoViolet
-import com.example.ui.theme.TheoWarningAmber
 
 @Composable
 fun TheoHeader(
@@ -60,188 +53,131 @@ fun TheoHeader(
   onOpenSettings: () -> Unit,
   modifier: Modifier = Modifier
 ) {
-  Box(
+  val stateColor = when (assistantState) {
+    AssistantState.IDLE -> Color(0xFF72E7BA)
+    AssistantState.LISTENING -> TheoCyan
+    AssistantState.THINKING -> TheoViolet
+    AssistantState.SPEAKING -> TheoCyan
+    AssistantState.OFFLINE -> Color(0xFFFF8295)
+  }
+  val stateLabel = when (assistantState) {
+    AssistantState.IDLE -> "Ready"
+    AssistantState.LISTENING -> "Listening"
+    AssistantState.THINKING -> "Thinking"
+    AssistantState.SPEAKING -> "Speaking"
+    AssistantState.OFFLINE -> "Offline"
+  }
+
+  Row(
     modifier = modifier
       .fillMaxWidth()
-      .background(
-        Brush.verticalGradient(
-          colors = listOf(
-            Color(0xF0070D19),
-            Color(0xB80A1424),
-            Color.Transparent
+      .statusBarsPadding()
+      .padding(horizontal = 16.dp, vertical = 7.dp)
+      .clip(RoundedCornerShape(26.dp))
+      .background(TheoSurfaceGlass)
+      .liquidGlassSurface(
+        shape = RoundedCornerShape(26.dp),
+        tint = Color(0x7610182A),
+        gloss = 0.20f,
+        refraction = 10.dp,
+        blurRadius = 8.dp
+      )
+      .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(26.dp))
+      .padding(start = 11.dp, end = 7.dp, top = 9.dp, bottom = 9.dp),
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Box(
+      modifier = Modifier
+        .size(40.dp)
+        .clip(CircleShape)
+        .background(
+          Brush.radialGradient(
+            colors = listOf(Color(0xFF4DB8FF), Color(0xFF544CBA), Color(0xFF11182D))
           )
         )
-      )
-      .statusBarsPadding()
-      .padding(horizontal = 16.dp, vertical = 8.dp)
-  ) {
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically
+        .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape),
+      contentAlignment = Alignment.Center
     ) {
-      // Left: Theo Brand identity & HUD label
-      Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Text(
-            text = "THEO",
-            color = TheoTextPrimary,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 2.sp
-          )
-          Spacer(modifier = Modifier.width(6.dp))
-          Text(
-            text = "PERSONAL AI",
-            color = TheoCyan,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.35.sp
-          )
-        }
+      Icon(
+        imageVector = Icons.Default.GraphicEq,
+        contentDescription = null,
+        tint = Color.White,
+        modifier = Modifier.size(21.dp)
+      )
+    }
 
-        // Subtitle status pulse
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          modifier = Modifier.padding(top = 2.dp)
-        ) {
-          val statusDotColor = when (assistantState) {
-            AssistantState.IDLE -> TheoOnlineGreen
-            AssistantState.LISTENING -> TheoCyan
-            AssistantState.THINKING -> TheoViolet
-            AssistantState.SPEAKING -> TheoIceBlue
-            AssistantState.OFFLINE -> TheoWarningAmber
-          }
-
-          Box(
-            modifier = Modifier
-              .size(6.dp)
-              .clip(CircleShape)
-              .background(statusDotColor)
-          )
-          Spacer(modifier = Modifier.width(5.dp))
-          Text(
-            text = when (assistantState) {
-            AssistantState.IDLE -> "Ready"
-            AssistantState.LISTENING -> "Listening"
-            AssistantState.THINKING -> "Thinking"
-            AssistantState.SPEAKING -> "Speaking"
-            AssistantState.OFFLINE -> "Offline"
-          },
-            color = TheoTextSecondary,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.5.sp
-          )
-        }
-      }
-
-      // Right: Telemetry pill & controls
-      Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-      ) {
-        // Model Pill
+    Spacer(Modifier.width(10.dp))
+    Column(modifier = Modifier.weight(1f)) {
+      Text(
+        text = "Theo",
+        color = TheoTextPrimary,
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = (-0.4).sp
+      )
+      Spacer(Modifier.width(2.dp))
+      Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
           modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
-            .border(1.dp, TheoSurfaceBorder, RoundedCornerShape(12.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-        ) {
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-              imageVector = Icons.Default.Memory,
-              contentDescription = "Active Model",
-              tint = if (activeModel == AiModelType.LOCAL_QWEN) TheoWarningAmber else TheoCyan,
-              modifier = Modifier.size(12.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-              text = activeModel.shortBadge,
-              color = TheoTextPrimary,
-              fontFamily = FontFamily.Monospace,
-              fontSize = 9.sp,
-              fontWeight = FontWeight.Bold
-            )
-          }
-        }
-
-        // Speech Toggle
-        IconButton(
-          onClick = onToggleSpeech,
-          modifier = Modifier
-            .size(34.dp)
+            .size(6.dp)
             .clip(CircleShape)
-            .background(if (isSpeechEnabled) TheoSurfaceGlass else Color(0x331E293B))
-            .border(1.dp, if (isSpeechEnabled) TheoCyan.copy(alpha = 0.4f) else Color.Transparent, CircleShape)
-            .testTag("toggle_speech_button")
-        ) {
-          Icon(
-            imageVector = if (isSpeechEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
-            contentDescription = "Toggle Audio Voice",
-            tint = if (isSpeechEnabled) TheoCyan else TheoTextMuted,
-            modifier = Modifier.size(16.dp)
-          )
-        }
-
-        // Settings
-        IconButton(
-          onClick = onOpenSettings,
-          modifier = Modifier
-            .size(34.dp)
-            .clip(CircleShape)
-            .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
-            .border(1.dp, TheoSurfaceBorder, CircleShape)
-            .testTag("open_settings_button")
-        ) {
-          Icon(
-            imageVector = Icons.Default.Settings,
-            contentDescription = "Assistant Settings",
-            tint = TheoTextSecondary,
-            modifier = Modifier.size(16.dp)
-          )
-        }
+            .background(stateColor)
+        )
+        Spacer(Modifier.width(5.dp))
+        Text(
+          text = "$stateLabel · ${activeModel.shortBadge}",
+          color = TheoTextSecondary,
+          fontSize = 10.sp,
+          fontWeight = FontWeight.Medium,
+          maxLines = 1
+        )
       }
     }
 
-    // Telemetry ticker bar
-    telemetry?.let {
-      Row(
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+    if (telemetry != null) {
+      Column(
+        modifier = Modifier.padding(end = 4.dp),
+        horizontalAlignment = Alignment.End
       ) {
-        TelemetryTickerItem(label = "PWR", value = "${it.batteryPct}%" + if (it.isCharging) "⚡" else "")
-        TelemetryTickerItem(label = "RAM", value = "${it.freeRamMb}MB")
-        TelemetryTickerItem(label = "STORAGE", value = "${it.freeStorageGb}GB")
+        Text(
+          text = "${telemetry.batteryPct}%${if (telemetry.isCharging) " ⚡" else ""}",
+          color = TheoTextPrimary,
+          fontSize = 10.sp,
+          fontWeight = FontWeight.SemiBold
+        )
+        Text("battery", color = TheoTextMuted, fontSize = 8.sp)
       }
     }
-  }
-}
 
-@Composable
-private fun TelemetryTickerItem(label: String, value: String) {
-  Row(verticalAlignment = Alignment.CenterVertically) {
-    Text(
-      text = "$label: ",
-      color = TheoTextMuted,
-      fontFamily = FontFamily.Monospace,
-      fontSize = 9.sp,
-      fontWeight = FontWeight.Normal
-    )
-    Text(
-      text = value,
-      color = TheoCyan,
-      fontFamily = FontFamily.Monospace,
-      fontSize = 9.sp,
-      fontWeight = FontWeight.SemiBold
-    )
+    IconButton(
+      onClick = onToggleSpeech,
+      modifier = Modifier
+        .padding(start = 2.dp)
+        .size(36.dp)
+        .clip(CircleShape)
+        .background(if (isSpeechEnabled) Color.White.copy(alpha = 0.07f) else Color.Transparent)
+    ) {
+      Icon(
+        imageVector = if (isSpeechEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+        contentDescription = if (isSpeechEnabled) "Disable spoken responses" else "Enable spoken responses",
+        tint = if (isSpeechEnabled) TheoCyan else TheoTextMuted,
+        modifier = Modifier.size(18.dp)
+      )
+    }
+
+    IconButton(
+      onClick = onOpenSettings,
+      modifier = Modifier
+        .size(36.dp)
+        .clip(CircleShape)
+        .background(Color.White.copy(alpha = 0.06f))
+    ) {
+      Icon(
+        imageVector = Icons.Default.Settings,
+        contentDescription = "Settings",
+        tint = TheoTextSecondary,
+        modifier = Modifier.size(18.dp)
+      )
+    }
   }
 }

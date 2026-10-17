@@ -13,6 +13,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -176,6 +178,51 @@ fun TheoThinkingCapsule(
           fontWeight = FontWeight.Bold,
           letterSpacing = 0.45.sp
         )
+      }
+    }
+
+    if (assistantState == AssistantState.THINKING && thinkingSteps.isNotEmpty()) {
+      Spacer(Modifier.height(7.dp))
+      Row(
+        modifier = Modifier
+          .fillMaxWidth()
+          .horizontalScroll(rememberScrollState())
+          .padding(horizontal = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        thinkingSteps.takeLast(3).forEachIndexed { index, step ->
+          val isCurrent = index == thinkingSteps.takeLast(3).lastIndex
+          Row(
+            modifier = Modifier
+              .clip(CircleShape)
+              .background(
+                if (isCurrent) Color(0x5738BDF8) else Color.White.copy(alpha = 0.035f)
+              )
+              .border(
+                1.dp,
+                if (isCurrent) TheoCyan.copy(alpha = 0.30f) else Color.White.copy(alpha = 0.06f),
+                CircleShape
+              )
+              .padding(horizontal = 9.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Box(
+              modifier = Modifier
+                .size(5.dp)
+                .clip(CircleShape)
+                .background(if (isCurrent) TheoCyan else TheoTextMuted.copy(alpha = 0.65f))
+            )
+            Spacer(Modifier.width(5.dp))
+            Text(
+              text = step.replace("_", " ").take(26),
+              color = if (isCurrent) TheoTextPrimary else TheoTextMuted,
+              fontSize = 9.sp,
+              maxLines = 1,
+              fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal
+            )
+          }
+        }
       }
     }
 

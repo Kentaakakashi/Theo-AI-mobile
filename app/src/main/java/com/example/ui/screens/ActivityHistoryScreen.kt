@@ -86,16 +86,16 @@ fun ActivityHistoryScreen(
       ) {
         Column {
           Text(
-            text = "SYNAPSE ACTIVITY",
+            text = "Activity",
             color = TheoTextPrimary,
             fontSize = 18.sp,
             fontWeight = FontWeight.Black,
             letterSpacing = 2.sp
           )
           Text(
-            text = "// ${activities.size} TELEMETRY EVENTS RECORDED",
+            text = "${activities.size} events recorded",
             color = TheoCyan,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = FontFamily.SansSerif,
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold
           )
@@ -216,7 +216,7 @@ private fun ActivityTimelineItem(activity: ActivityEntity) {
           Text(
             text = activity.type,
             color = tintColor,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = FontFamily.SansSerif,
             fontSize = 9.sp,
             fontWeight = FontWeight.Bold
           )
@@ -236,7 +236,7 @@ private fun ActivityTimelineItem(activity: ActivityEntity) {
         Text(
           text = timeStr,
           color = TheoTextMuted,
-          fontFamily = FontFamily.Monospace,
+          fontFamily = FontFamily.SansSerif,
           fontSize = 9.sp
         )
       }

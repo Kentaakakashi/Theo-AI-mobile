@@ -126,16 +126,16 @@ fun MemoryMatrixScreen(
       ) {
         Column {
           Text(
-            text = "MEMORY MATRIX",
+            text = "Memory",
             color = TheoTextPrimary,
             fontSize = 18.sp,
             fontWeight = FontWeight.Black,
             letterSpacing = 2.sp
           )
           Text(
-            text = "// ${memories.size} PERSISTENT REGISTERS ENCODED",
+            text = "${memories.size} PERSISTENT REGISTERS ENCODED",
             color = TheoCyan,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = FontFamily.SansSerif,
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold
           )
@@ -253,7 +253,7 @@ fun MemoryMatrixScreen(
             Text(
               text = cat,
               color = if (isSelected) TheoCyan else TheoTextMuted,
-              fontFamily = FontFamily.Monospace,
+              fontFamily = FontFamily.SansSerif,
               fontSize = 11.sp,
               fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             )
@@ -287,7 +287,7 @@ fun MemoryMatrixScreen(
             Text(
               text = "Say \"Remember that: [key] is [value]\" or tap + above.",
               color = TheoCyan,
-              fontFamily = FontFamily.Monospace,
+              fontFamily = FontFamily.SansSerif,
               fontSize = 11.sp
             )
           }
@@ -416,7 +416,7 @@ private fun MemoryCardItem(
           Text(
             text = memory.category.uppercase(),
             color = TheoViolet,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = FontFamily.SansSerif,
             fontSize = 9.sp,
             fontWeight = FontWeight.Bold
           )
@@ -458,7 +458,7 @@ private fun MemoryCardItem(
       Text(
         text = "ENCODED: $dateStr",
         color = TheoTextMuted,
-        fontFamily = FontFamily.Monospace,
+        fontFamily = FontFamily.SansSerif,
         fontSize = 8.sp
       )
     }

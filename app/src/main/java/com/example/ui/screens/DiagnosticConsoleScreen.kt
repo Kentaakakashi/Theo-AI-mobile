@@ -70,8 +70,8 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
   ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
       Column(Modifier.weight(1f)) {
-        Text("DIAGNOSTIC CONSOLE", color = TheoTextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Black, letterSpacing = 1.4.sp)
-        Text("// STARTUP TRACE · ERRORS · ENGINE EVENTS", color = TheoCyan, fontFamily = FontFamily.Monospace, fontSize = 9.sp)
+        Text("Diagnostics", color = TheoTextPrimary, fontSize = 17.sp, fontWeight = FontWeight.Black, letterSpacing = 1.4.sp)
+        Text("// System events and automation traces", color = TheoCyan, fontFamily = FontFamily.Monospace, fontSize = 9.sp)
       }
       Icon(Icons.Default.Terminal, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(28.dp))
     }

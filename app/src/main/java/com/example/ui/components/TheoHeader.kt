@@ -92,12 +92,12 @@ fun TheoHeader(
           )
           Spacer(modifier = Modifier.width(6.dp))
           Text(
-            text = "// SOLAR CORE",
+            text = "PERSONAL AI",
             color = TheoCyan,
             fontFamily = FontFamily.Monospace,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.sp
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 0.35.sp
           )
         }
 
@@ -122,7 +122,7 @@ fun TheoHeader(
           )
           Spacer(modifier = Modifier.width(5.dp))
           Text(
-            text = assistantState.label,
+            text = when (assistantState) {\n            AssistantState.IDLE -> "Ready"\n            AssistantState.LISTENING -> "Listening"\n            AssistantState.THINKING -> "Thinking"\n            AssistantState.SPEAKING -> "Speaking"\n            AssistantState.OFFLINE -> "Offline"\n          },
             color = TheoTextSecondary,
             fontFamily = FontFamily.Monospace,
             fontSize = 9.sp,

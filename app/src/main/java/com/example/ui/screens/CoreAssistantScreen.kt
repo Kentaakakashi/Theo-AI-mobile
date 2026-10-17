@@ -126,7 +126,7 @@ fun CoreAssistantScreen(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp)
             .clip(RoundedCornerShape(22.dp))
-            .background(TheoSurfaceGlass)
+            .background(Color.Transparent)
             .liquidGlassSurface(
               shape = RoundedCornerShape(22.dp),
               tint = Color(0x68131E32),
@@ -198,7 +198,7 @@ fun CoreAssistantScreen(
                 Box(
                   modifier = Modifier
                     .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp))
-                    .background(TheoSurfaceGlass)
+                    .background(Color.Transparent)
                     .liquidGlassSurface(
                       shape = RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp),
                       tint = Color(0x8A101C2E),
@@ -292,7 +292,7 @@ fun CoreAssistantScreen(
               modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
-                .background(TheoSurfaceDeep)
+                .background(Color.Transparent)
                 .liquidGlassSurface(RoundedCornerShape(8.dp), tint = TheoSurfaceDeep, gloss = 0.06f)
                 .padding(10.dp)
             ) {

@@ -177,7 +177,7 @@ private fun HomeActionCard(
     modifier = modifier
       .height(104.dp)
       .clip(RoundedCornerShape(23.dp))
-      .background(TheoSurfaceGlass)
+      .background(Color.Transparent)
       .liquidGlassSurface(
         shape = RoundedCornerShape(23.dp),
         tint = Color(0x67121E32),

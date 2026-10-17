@@ -165,7 +165,7 @@ fun MemoryMatrixScreen(
           .fillMaxWidth()
           .padding(top = 10.dp)
           .clip(RoundedCornerShape(12.dp))
-          .background(TheoSurfaceGlass)
+          .background(Color.Transparent)
                 .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(10.dp)
@@ -193,7 +193,7 @@ fun MemoryMatrixScreen(
         modifier = Modifier
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
-          .background(TheoSurfaceCard)
+          .background(Color.Transparent)
                 .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceCard, gloss = 0.08f)
           .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
           .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -393,7 +393,7 @@ private fun MemoryCardItem(
     modifier = Modifier
       .fillMaxWidth()
       .clip(RoundedCornerShape(12.dp))
-      .background(TheoSurfaceGlass)
+      .background(Color.Transparent)
                 .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
       .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
       .padding(12.dp)

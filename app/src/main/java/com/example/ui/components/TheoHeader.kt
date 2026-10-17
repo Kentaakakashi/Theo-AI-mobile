@@ -74,7 +74,7 @@ fun TheoHeader(
       .statusBarsPadding()
       .padding(horizontal = 16.dp, vertical = 7.dp)
       .clip(RoundedCornerShape(26.dp))
-      .background(TheoSurfaceGlass)
+      .background(Color.Transparent)
       .liquidGlassSurface(
         shape = RoundedCornerShape(26.dp),
         tint = Color(0x7610182A),

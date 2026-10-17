@@ -58,6 +58,7 @@ import com.example.service.DeviceActionHandler
 import com.example.service.parseGeminiApiKeys
 import com.example.ui.components.hudScanlines
 import com.example.ui.components.neonBorder
+import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoErrorRed
@@ -99,7 +100,7 @@ fun SettingsScreen(
   Box(
     modifier = modifier
       .fillMaxSize()
-      .background(TheoDarkBackground)
+      .background(Brush.verticalGradient(colors = listOf(Color(0xFF0A1423), TheoDarkBackground, Color(0xFF07101D))))
       .hudScanlines()
       .statusBarsPadding()
       .navigationBarsPadding()
@@ -213,6 +214,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -282,6 +284,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -337,6 +340,7 @@ fun SettingsScreen(
                   .fillMaxWidth()
                   .clip(RoundedCornerShape(8.dp))
                   .background(TheoSurfaceDeep)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceDeep, gloss = 0.06f)
                   .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(8.dp))
                   .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -463,6 +467,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -576,6 +581,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -619,6 +625,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -654,6 +661,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -710,6 +718,7 @@ fun SettingsScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
           .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
           .padding(14.dp)
       ) {
@@ -769,4 +778,5 @@ private fun SettingsSectionHeader(icon: androidx.compose.ui.graphics.vector.Imag
       letterSpacing = 1.sp
     )
   }
-}
+}import androidx.compose.ui.graphics.Brush
+

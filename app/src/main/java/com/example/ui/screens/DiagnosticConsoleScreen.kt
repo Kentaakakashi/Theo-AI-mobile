@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
@@ -43,6 +44,7 @@ import com.example.service.TheoLogEntry
 import com.example.service.TheoLogLevel
 import com.example.ui.components.hudScanlines
 import com.example.ui.components.neonBorder
+import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoErrorRed
@@ -62,7 +64,7 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
   Column(
     modifier
       .fillMaxSize()
-      .background(TheoDarkBackground)
+      .background(Brush.verticalGradient(colors = listOf(Color(0xFF0A1423), TheoDarkBackground, Color(0xFF07101D))))
       .hudScanlines()
       .padding(horizontal = 14.dp, vertical = 10.dp)
   ) {
@@ -119,6 +121,7 @@ private fun StatChip(label: String, value: String, color: Color, modifier: Modif
     modifier
       .clip(RoundedCornerShape(8.dp))
       .background(TheoSurfaceGlass)
+                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
       .neonBorder(RoundedCornerShape(8.dp), strokeWidth = 1.dp)
       .padding(horizontal = 10.dp, vertical = 8.dp)
   ) {

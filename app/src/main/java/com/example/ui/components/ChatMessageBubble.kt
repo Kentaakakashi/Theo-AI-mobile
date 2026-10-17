@@ -84,14 +84,21 @@ fun ChatMessageBubble(
         ) {
           Box(
             modifier = Modifier
-              .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
+              .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 6.dp, bottomStart = 20.dp, bottomEnd = 20.dp))
               .background(
                 Brush.linearGradient(
                   colors = listOf(
-                    Color(0xFF1E1B4B),
-                    Color(0xFF0F172A)
+                    Color(0xA62F326A),
+                    Color(0x74121D34)
                   )
                 )
+              )
+              .liquidGlassSurface(
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 6.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+                tint = Color(0x561C2850),
+                gloss = 0.22f,
+                refraction = 8.dp,
+                blurRadius = 5.dp
               )
               .neonBorder(
                 RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
@@ -114,7 +121,7 @@ fun ChatMessageBubble(
             verticalAlignment = Alignment.CenterVertically
           ) {
             Text(
-              text = "OPERATOR",
+              text = "You",
               color = TheoTextMuted,
               fontFamily = FontFamily.Monospace,
               fontSize = 8.sp,
@@ -148,11 +155,11 @@ fun ChatMessageBubble(
             )
             Spacer(modifier = Modifier.width(5.dp))
             Text(
-              text = message.modelBadge,
+              text = message.modelBadge.replace("_", " ").lowercase().replaceFirstChar { it.titlecase() },
               color = TheoCyan,
-              fontFamily = FontFamily.Monospace,
-              fontSize = 9.sp,
-              fontWeight = FontWeight.Bold
+              fontFamily = FontFamily.SansSerif,
+              fontSize = 10.sp,
+              fontWeight = FontWeight.SemiBold
             )
             if (message.latencyMs > 0L) {
               Spacer(modifier = Modifier.width(6.dp))

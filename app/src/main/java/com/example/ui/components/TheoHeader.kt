@@ -60,7 +60,7 @@ fun TheoHeader(
   onOpenSettings: () -> Unit,
   modifier: Modifier = Modifier
 ) {
-  Box(
+  Column(
     modifier = modifier
       .fillMaxWidth()
       .background(
@@ -125,7 +125,7 @@ fun TheoHeader(
             text = assistantState.label,
             color = TheoTextSecondary,
             fontFamily = FontFamily.Monospace,
-            fontSize = 9.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             letterSpacing = 0.5.sp
           )
@@ -157,7 +157,7 @@ fun TheoHeader(
               text = activeModel.shortBadge,
               color = TheoTextPrimary,
               fontFamily = FontFamily.Monospace,
-              fontSize = 9.sp,
+              fontSize = 10.sp,
               fontWeight = FontWeight.Bold
             )
           }
@@ -225,14 +225,14 @@ private fun TelemetryTickerItem(label: String, value: String) {
       text = "$label: ",
       color = TheoTextMuted,
       fontFamily = FontFamily.Monospace,
-      fontSize = 9.sp,
+      fontSize = 10.sp,
       fontWeight = FontWeight.Normal
     )
     Text(
       text = value,
       color = TheoCyan,
       fontFamily = FontFamily.Monospace,
-      fontSize = 9.sp,
+      fontSize = 10.sp,
       fontWeight = FontWeight.SemiBold
     )
   }

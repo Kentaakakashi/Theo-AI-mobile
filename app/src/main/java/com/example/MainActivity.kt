@@ -210,11 +210,11 @@ fun TheoBottomNavigation(
   onTabSelected: (Int) -> Unit
 ) {
   val tabs = listOf(
-    NavTabItem("CORE", Icons.Default.AutoAwesome, "nav_core_tab"),
-    NavTabItem("MEMORY", Icons.Default.Storage, "nav_memory_tab"),
-    NavTabItem("ACTIVITY", Icons.Default.Timeline, "nav_activity_tab"),
-    NavTabItem("LOGS", Icons.Default.Terminal, "nav_logs_tab"),
-    NavTabItem("SETTINGS", Icons.Default.Settings, "nav_settings_tab")
+    NavTabItem("Home", Icons.Default.AutoAwesome, "nav_core_tab"),
+    NavTabItem("Memory", Icons.Default.Storage, "nav_memory_tab"),
+    NavTabItem("Activity", Icons.Default.Timeline, "nav_activity_tab"),
+    NavTabItem("Logs", Icons.Default.Terminal, "nav_logs_tab"),
+    NavTabItem("Settings", Icons.Default.Settings, "nav_settings_tab")
   )
 
   Box(
@@ -280,10 +280,10 @@ fun TheoBottomNavigation(
               Text(
                 text = tabItem.label,
                 color = TheoCyan,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
+                fontFamily = FontFamily.SansSerif,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.sp
               )
             }
           }

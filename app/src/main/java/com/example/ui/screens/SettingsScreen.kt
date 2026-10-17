@@ -140,6 +140,7 @@ fun SettingsScreen(
               .fillMaxWidth()
               .clip(RoundedCornerShape(12.dp))
               .background(if (isSelected) TheoSurfaceGlass else TheoSurfaceCard)
+              .liquidGlassSurface(RoundedCornerShape(12.dp), tint = if (isSelected) TheoSurfaceGlass else TheoSurfaceCard, gloss = if (isSelected) 0.14f else 0.06f)
               .then(
                 if (isSelected) Modifier.neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
                 else Modifier.border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
@@ -544,6 +545,7 @@ fun SettingsScreen(
               .fillMaxWidth()
               .clip(RoundedCornerShape(12.dp))
               .background(if (isSelected) TheoSurfaceGlass else TheoSurfaceCard)
+              .liquidGlassSurface(RoundedCornerShape(12.dp), tint = if (isSelected) TheoSurfaceGlass else TheoSurfaceCard, gloss = if (isSelected) 0.14f else 0.06f)
               .border(1.dp, if (isSelected) TheoViolet else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
               .clickable {
                 selectedIntensity = intensity

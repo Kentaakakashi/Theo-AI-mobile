@@ -245,6 +245,7 @@ fun MemoryMatrixScreen(
             modifier = Modifier
               .clip(RoundedCornerShape(12.dp))
               .background(if (isSelected) TheoCyan.copy(alpha = 0.2f) else TheoSurfaceCard)
+              .liquidGlassSurface(RoundedCornerShape(12.dp), tint = if (isSelected) Color(0xFF123047) else TheoSurfaceCard, gloss = 0.08f)
               .border(1.dp, if (isSelected) TheoCyan else Color.Transparent, RoundedCornerShape(12.dp))
               .clickable { onCategorySelect(cat) }
               .padding(horizontal = 12.dp, vertical = 6.dp)

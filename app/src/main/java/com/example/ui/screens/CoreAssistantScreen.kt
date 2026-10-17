@@ -56,6 +56,7 @@ import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoSurfaceBorder
+import com.example.ui.theme.TheoSurfaceBorderSubtle
 import com.example.ui.theme.TheoSurfaceCard
 import com.example.ui.theme.TheoSurfaceDeep
 import com.example.ui.theme.TheoSurfaceGlass

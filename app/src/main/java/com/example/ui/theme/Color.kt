@@ -4,9 +4,9 @@ import androidx.compose.ui.graphics.Color
 
 // Theo Liquid Glass — obsidian ground, cool tinted optical surfaces and quiet hairline rims.
 val TheoDarkBackground = Color(0xFF050810)
-val TheoSurfaceDeep = Color(0xD90B1322)
-val TheoSurfaceCard = Color(0xB8142034)
-val TheoSurfaceGlass = Color(0x6817263B)
+val TheoSurfaceDeep = Color(0x9A0B1322)
+val TheoSurfaceCard = Color(0x8A142034)
+val TheoSurfaceGlass = Color(0x5017263B)
 val TheoSurfaceGlassLight = Color(0x1F8EDBFF)
 val TheoSurfaceBorder = Color(0x42C6E8FF)
 val TheoSurfaceBorderSubtle = Color(0x25FFFFFF)

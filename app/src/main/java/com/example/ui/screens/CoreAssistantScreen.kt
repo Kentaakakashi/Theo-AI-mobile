@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -138,12 +139,25 @@ fun CoreAssistantScreen(
             .padding(horizontal = 12.dp, vertical = 8.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          TheoOrb(
-            state = uiState.assistantState,
-            intensity = uiState.animationIntensity,
-            sizeDp = 46.dp,
-            onClick = onOrbClick
-          )
+          Box(
+            modifier = Modifier
+              .size(38.dp)
+              .clip(CircleShape)
+              .background(
+                Brush.radialGradient(
+                  colors = listOf(Color(0xFF3D5E93), Color(0xFF18253F), Color(0xFF101624))
+                )
+              )
+              .border(1.dp, Color.White.copy(alpha = 0.20f), CircleShape),
+            contentAlignment = Alignment.Center
+          ) {
+            Icon(
+              imageVector = Icons.Default.AutoAwesome,
+              contentDescription = null,
+              tint = TheoCyan,
+              modifier = Modifier.size(18.dp)
+            )
+          }
           Spacer(Modifier.width(10.dp))
           Column(modifier = Modifier.weight(1f)) {
             Text(

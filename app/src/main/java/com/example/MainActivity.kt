@@ -19,6 +19,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -274,94 +279,124 @@ fun TheoBottomNavigation(
     NavTabItem("Settings", Icons.Default.Settings, "nav_settings_tab")
   )
 
-  Box(
+  BoxWithConstraints(
     modifier = Modifier
       .fillMaxWidth()
-      .background(
-        Brush.verticalGradient(
-          colors = listOf(
-            Color.Transparent,
-            Color(0xDD0A1422),
-            Color(0xF5050810)
-          )
-        )
-      )
       .windowInsetsPadding(WindowInsets.navigationBars)
-      .padding(horizontal = 16.dp, vertical = 6.dp)
+      .padding(horizontal = 14.dp, vertical = 7.dp),
+    contentAlignment = Alignment.Center
   ) {
-    Row(
+    val itemWidth = maxWidth / tabs.size
+    val indicatorX by animateDpAsState(
+      targetValue = itemWidth * currentTab,
+      animationSpec = spring(dampingRatio = 0.78f, stiffness = 420f),
+      label = "LiquidTabIndicatorOffset"
+    )
+
+    Box(
       modifier = Modifier
         .fillMaxWidth()
+        .height(68.dp)
         .drawBackdrop(
           backdrop = backdrop,
-          shape = { RoundedCornerShape(26.dp) },
+          shape = { RoundedCornerShape(30.dp) },
           effects = {
             vibrancy()
-            blur(10.dp.toPx())
+            blur(13.dp.toPx())
             lens(
-              refractionHeight = 22.dp.toPx(),
-              refractionAmount = 28.dp.toPx(),
+              refractionHeight = 18.dp.toPx(),
+              refractionAmount = 23.dp.toPx(),
               depthEffect = true,
-              chromaticAberration = true
+              chromaticAberration = false
             )
           },
-          highlight = { Highlight.Default.copy(alpha = 0.88f) },
+          highlight = { Highlight.Default.copy(alpha = 0.82f) },
           shadow = { Shadow.Default },
-          onDrawSurface = { drawRect(Color(0x4A101827)) }
+          onDrawSurface = { drawRect(Color(0x64101829)) }
         )
-        .clip(RoundedCornerShape(26.dp))
+        .clip(RoundedCornerShape(30.dp))
         .border(
           1.dp,
           Brush.linearGradient(
             colors = listOf(
-              Color.White.copy(alpha = 0.38f),
-              TheoCyan.copy(alpha = 0.34f),
-              Color.White.copy(alpha = 0.08f)
+              Color.White.copy(alpha = 0.34f),
+              TheoCyan.copy(alpha = 0.28f),
+              Color.White.copy(alpha = 0.075f)
             )
           ),
-          RoundedCornerShape(26.dp)
+          RoundedCornerShape(30.dp)
         )
-        .padding(horizontal = 6.dp, vertical = 5.dp),
-      horizontalArrangement = Arrangement.SpaceAround,
-      verticalAlignment = Alignment.CenterVertically
     ) {
-      tabs.forEachIndexed { index, tabItem ->
-        val isSelected = currentTab == index
-        Box(
-          modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (isSelected) TheoCyan.copy(alpha = 0.10f) else Color.Transparent)
-            .border(
-              1.dp,
-              if (isSelected) TheoCyan.copy(alpha = 0.30f) else Color.Transparent,
-              RoundedCornerShape(16.dp)
-            )
-            .clickable { onTabSelected(index) }
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .testTag(tabItem.testTag),
-          contentAlignment = Alignment.Center
-        ) {
-          Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+      // A second lens rides beneath the selected destination, echoing Backdrop's liquid-tab demo.
+      Box(
+        modifier = Modifier
+          .offset(x = indicatorX)
+          .width(itemWidth)
+          .fillMaxHeight()
+          .padding(4.dp)
+          .drawBackdrop(
+            backdrop = backdrop,
+            shape = { RoundedCornerShape(25.dp) },
+            effects = {
+              vibrancy()
+              blur(7.dp.toPx())
+              lens(
+                refractionHeight = 23.dp.toPx(),
+                refractionAmount = 28.dp.toPx(),
+                depthEffect = true,
+                chromaticAberration = true
+              )
+            },
+            highlight = { Highlight.Default.copy(alpha = 0.95f) },
+            shadow = { Shadow.Default },
+            onDrawSurface = {
+              drawRect(
+                Brush.verticalGradient(
+                  listOf(Color(0x662C5276), Color(0x5522314D), Color(0x48202940))
+                )
+              )
+            }
+          )
+          .border(
+            1.dp,
+            Brush.linearGradient(
+              listOf(Color.White.copy(alpha = 0.30f), TheoCyan.copy(alpha = 0.24f), Color.Transparent)
+            ),
+            RoundedCornerShape(25.dp)
+          )
+      )
+
+      Row(
+        modifier = Modifier.fillMaxSize(),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        tabs.forEachIndexed { index, tabItem ->
+          val selected = currentTab == index
+          Column(
+            modifier = Modifier
+              .weight(1f)
+              .fillMaxHeight()
+              .clickable { onTabSelected(index) }
+              .testTag(tabItem.testTag)
+              .padding(vertical = 7.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
           ) {
             Icon(
               imageVector = tabItem.icon,
               contentDescription = tabItem.label,
-              tint = if (isSelected) TheoCyan else TheoTextMuted,
-              modifier = Modifier.size(16.dp)
+              tint = if (selected) TheoCyan else TheoTextMuted,
+              modifier = Modifier.size(if (selected) 21.dp else 19.dp)
             )
-            if (isSelected) {
-              Spacer(modifier = Modifier.width(5.dp))
-              Text(
-                text = tabItem.label,
-                color = TheoCyan,
-                fontFamily = FontFamily.SansSerif,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.sp
-              )
-            }
+            Spacer(Modifier.height(3.dp))
+            Text(
+              text = tabItem.label,
+              color = if (selected) TheoTextPrimary else TheoTextMuted,
+              fontSize = 9.sp,
+              fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+              letterSpacing = 0.sp,
+              maxLines = 1
+            )
           }
         }
       }

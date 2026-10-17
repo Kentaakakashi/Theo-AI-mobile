@@ -10,6 +10,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,12 +41,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -62,6 +65,7 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
+import com.example.ui.components.LocalTheoGlassBackdrop
 import com.example.ui.components.liquidGlassSurface
 import com.example.ui.screens.ActivityHistoryScreen
 import com.example.ui.screens.CoreAssistantScreen
@@ -113,7 +117,30 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun TheoMainContent(viewModel: TheoViewModel) {
-  val glassBackdrop = rememberLayerBackdrop()
+  val screenBackdrop = rememberLayerBackdrop()
+  val ambientBackdrop = rememberLayerBackdrop(onDraw = {
+    val glowA = Offset(size.width * 0.88f, size.height * 0.18f)
+    val glowB = Offset(size.width * 0.08f, size.height * 0.70f)
+    drawRect(Brush.verticalGradient(listOf(Color(0xFF0A1728), Color(0xFF050810), Color(0xFF090D1A))))
+    drawCircle(
+      brush = Brush.radialGradient(
+        colors = listOf(Color(0x443A8DCC), Color(0x1B2860B0), Color.Transparent),
+        center = glowA,
+        radius = size.minDimension * 0.82f
+      ),
+      radius = size.minDimension * 0.82f,
+      center = glowA
+    )
+    drawCircle(
+      brush = Brush.radialGradient(
+        colors = listOf(Color(0x2E7862D8), Color(0x128C6DE0), Color.Transparent),
+        center = glowB,
+        radius = size.minDimension * 0.76f
+      ),
+      radius = size.minDimension * 0.76f,
+      center = glowB
+    )
+  })
   val uiState by viewModel.uiState.collectAsState()
   val messages by viewModel.messages.collectAsState()
   val memories by viewModel.memories.collectAsState()
@@ -130,17 +157,42 @@ fun TheoMainContent(viewModel: TheoViewModel) {
     bottomBar = {
       TheoBottomNavigation(
         currentTab = uiState.currentTab,
-        backdrop = glassBackdrop,
+        backdrop = screenBackdrop,
         onTabSelected = { viewModel.setTab(it) }
       )
     }
   ) { paddingValues ->
+    CompositionLocalProvider(LocalTheoGlassBackdrop provides ambientBackdrop) {
     Box(
       modifier = Modifier
         .fillMaxSize()
         .padding(bottom = paddingValues.calculateBottomPadding())
-        .layerBackdrop(glassBackdrop)
+        .layerBackdrop(screenBackdrop)
+        .layerBackdrop(ambientBackdrop)
     ) {
+      Canvas(Modifier.fillMaxSize()) {
+        val glowA = Offset(size.width * 0.88f, size.height * 0.18f)
+        val glowB = Offset(size.width * 0.08f, size.height * 0.70f)
+        drawRect(Brush.verticalGradient(listOf(Color(0xFF0A1728), Color(0xFF050810), Color(0xFF090D1A))))
+        drawCircle(
+          brush = Brush.radialGradient(
+            colors = listOf(Color(0x443A8DCC), Color(0x1B2860B0), Color.Transparent),
+            center = glowA,
+            radius = size.minDimension * 0.82f
+          ),
+          radius = size.minDimension * 0.82f,
+          center = glowA
+        )
+        drawCircle(
+          brush = Brush.radialGradient(
+            colors = listOf(Color(0x2E7862D8), Color(0x128C6DE0), Color.Transparent),
+            center = glowB,
+            radius = size.minDimension * 0.76f
+          ),
+          radius = size.minDimension * 0.76f,
+          center = glowB
+        )
+      }
       AnimatedContent(
         targetState = uiState.currentTab,
         transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -197,6 +249,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
           )
         }
       }
+    }
     }
   }
 }

@@ -108,7 +108,7 @@ fun ActivityHistoryScreen(
               .size(36.dp)
               .clip(CircleShape)
               .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(CircleShape, tint = TheoSurfaceGlass, gloss = 0.12f)
               .testTag("clear_activity_btn")
           ) {
             Icon(
@@ -178,7 +178,7 @@ private fun ActivityTimelineItem(activity: ActivityEntity) {
       .fillMaxWidth()
       .clip(RoundedCornerShape(12.dp))
       .background(TheoSurfaceGlass)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
       .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
       .padding(12.dp)
   ) {

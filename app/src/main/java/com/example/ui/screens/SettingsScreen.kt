@@ -102,7 +102,7 @@ fun SettingsScreen(
   Box(
     modifier = modifier
       .fillMaxSize()
-      .background(Brush.verticalGradient(colors = listOf(Color(0xFF0A1423), TheoDarkBackground, Color(0xFF07101D))))
+      .background(Color.Transparent)
       .hudScanlines()
       .statusBarsPadding()
       .navigationBarsPadding()
@@ -116,18 +116,18 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(8.dp))
       // Title
       Text(
-        text = "NEURAL CONFIGURATION",
+        text = "Settings",
         color = TheoTextPrimary,
-        fontSize = 18.sp,
-        fontWeight = FontWeight.Black,
-        letterSpacing = 2.sp
+        fontSize = 28.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = (-0.65).sp
       )
       Text(
-        text = "// DUAL-ENGINE ARCHITECTURE & HARDWARE PROFILES",
+        text = "Make Theo work the way you want",
         color = TheoCyan,
-        fontFamily = FontFamily.Monospace,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.SemiBold
+        fontFamily = FontFamily.SansSerif,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Normal
       )
 
       Spacer(modifier = Modifier.height(16.dp))

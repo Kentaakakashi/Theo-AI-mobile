@@ -775,11 +775,11 @@ private fun SettingsSectionHeader(icon: androidx.compose.ui.graphics.vector.Imag
     Spacer(modifier = Modifier.width(6.dp))
     Text(
       text = title,
-      color = TheoCyan,
-      fontFamily = FontFamily.Monospace,
-      fontSize = 11.sp,
-      fontWeight = FontWeight.Bold,
-      letterSpacing = 1.sp
+      color = TheoTextPrimary,
+      fontFamily = FontFamily.SansSerif,
+      fontSize = 13.sp,
+      fontWeight = FontWeight.SemiBold,
+      letterSpacing = 0.2.sp
     )
   }
 }

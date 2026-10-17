@@ -53,6 +53,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.components.liquidGlassSurface
 import com.example.ui.screens.ActivityHistoryScreen
 import com.example.ui.screens.CoreAssistantScreen
 import com.example.ui.screens.DiagnosticConsoleScreen
@@ -215,8 +216,8 @@ fun TheoBottomNavigation(
         Brush.verticalGradient(
           colors = listOf(
             Color.Transparent,
-            Color(0xEE090D14),
-            Color(0xFF090D14)
+            Color(0xDD0A1422),
+            Color(0xF5050810)
           )
         )
       )
@@ -236,6 +237,7 @@ fun TheoBottomNavigation(
             )
           )
         )
+        .liquidGlassSurface(RoundedCornerShape(26.dp), tint = TheoSurfaceGlass, gloss = 0.16f)
         .border(
           1.dp,
           Brush.linearGradient(
@@ -256,10 +258,10 @@ fun TheoBottomNavigation(
         Box(
           modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isSelected) TheoCyan.copy(alpha = 0.15f) else Color.Transparent)
+            .background(if (isSelected) TheoCyan.copy(alpha = 0.10f) else Color.Transparent)
             .border(
               1.dp,
-              if (isSelected) TheoCyan.copy(alpha = 0.5f) else Color.Transparent,
+              if (isSelected) TheoCyan.copy(alpha = 0.30f) else Color.Transparent,
               RoundedCornerShape(16.dp)
             )
             .clickable { onTabSelected(index) }

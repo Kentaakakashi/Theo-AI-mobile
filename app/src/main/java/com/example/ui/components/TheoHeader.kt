@@ -66,8 +66,8 @@ fun TheoHeader(
       .background(
         Brush.verticalGradient(
           colors = listOf(
-            Color(0xF0090D14),
-            Color(0xCC090D14),
+            Color(0xF0070D19),
+            Color(0xB80A1424),
             Color.Transparent
           )
         )

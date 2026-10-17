@@ -107,7 +107,7 @@ fun TheoThinkingCapsule(
       modifier = Modifier
         .fillMaxWidth()
         .clip(RoundedCornerShape(30.dp))
-        .background(TheoSurfaceGlass)
+        .background(Color.Transparent)
         .liquidGlassSurface(
           shape = RoundedCornerShape(30.dp),
           tint = Color(0x80111D30),

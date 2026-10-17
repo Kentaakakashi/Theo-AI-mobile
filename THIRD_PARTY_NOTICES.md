@@ -57,3 +57,11 @@ Use: Studied as a primary reference for optical refraction, shape, and restraine
 - https://github.com/talhaluxury/JARVISAssistant — studied for assistant-home layout ideas.
 
 The additional repositories above are design/technical references only; no code from them is included by this update.
+
+## BuildItCode/LiquidGlass (runtime dependency)
+
+Repository: https://github.com/BuildItCode/LiquidGlass  
+License: MIT License  
+Dependency: `com.github.BuildItCode:glass:0.8.0`  
+Use: Live backdrop capture, AGSL refraction, dispersion and edge lighting for Theo's floating navigation dock. The library is used as a runtime dependency; its source is not copied into Theo.
+

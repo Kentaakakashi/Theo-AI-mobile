@@ -293,7 +293,7 @@ fun CoreAssistantScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .background(TheoSurfaceDeep)
-                .liquidGlassSurface(RoundedCornerShape(14.dp), tint = TheoSurfaceDeep, gloss = 0.06f)
+                .liquidGlassSurface(RoundedCornerShape(8.dp), tint = TheoSurfaceDeep, gloss = 0.06f)
                 .padding(10.dp)
             ) {
               val screenRequest = ScreenAutomationRequest.parse(actionTag)

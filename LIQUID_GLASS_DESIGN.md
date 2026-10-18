@@ -1,39 +1,46 @@
 # Theo Liquid Glass UI experiment
 
 Branch: `experiment/theo-liquid-glass`  
-Base: `feature/screen-aware-automation`
+Base development line: `feature/screen-aware-automation`
 
-## Visual direction
+## Design intent
 
-- Near-black navy ground with cool blue / violet light; no scanline texture or heavy neon outlines.
-- Reuse the VoiceOrbs Glass Orb silhouette language: deep glass body, soft cyan-blue aura, glossy rim, travelling highlight and flowing inner ribbon. The implementation is native Compose so Theo remains a native app.
-- Study shayann07/liquidglass as a main material reference. Its published `0.1.0` artifact requires compile SDK 37, which the current CI Android SDK runner could not install, so the experiment currently uses native Compose gradients and rim lighting without that runtime dependency.
-- Use Kyant0/AndroidLiquidGlass as a primary study for restrained refraction, legible tinted surfaces and optical edge behavior, while keeping a thin local compatibility surface system for the many existing screen components.
-- Use other suggested projects only as visual / technical references. No external assistant app or automation engine is substituted for Theo's own.
+Theo is moving away from a boxed sci-fi dashboard and toward a spacious, atmospheric assistant UI:
+- A layered ink/navy background with quiet blue and violet light.
+- Fewer containers; content should float on the background wherever a card is not needed.
+- One shared material language: translucent surfaces, soft optical edge lighting, modest radius families, restrained color and readable text.
+- Floating live-glass navigation, plus a glass composer/header where the effect adds real value.
+- Responsive hero sizing and adaptive chat widths; no fixed oversized orb or bubble width that assumes one phone size.
+- Short, consistent gaps and 18–20dp screen gutters across the main screens.
+- Cleaner sans-serif typography. Monospace is reserved for diagnostics and literal technical data.
 
-## Screens touched
+## Open-source engines and references
 
-- Home: greeting hierarchy, center orb and assistant-state caption.
-- Navigation: floating rounded translucent gradient glass surface, subtle optical-style rim, calmer labels and spacing.
-- Header: human-readable assistant identity and state.
-- Composer: cleaner quick-action chips and a direct “Ask Theo anything...” prompt.
-- Chat: translucent semantic colors and restrained rim borders.
-- Memory, activity, diagnostics and settings inherit the new surface palette and no-scanline treatment.
+- **Kyant0/AndroidLiquidGlass / Backdrop** — Apache-2.0, already used as the shared Compose glass engine for selected high-value surfaces. The API provides backdrop sampling, blur, lens/refraction and highlights.
+- **BuildItCode/LiquidGlass** — MIT, already included as the live capture/refraction engine for Theo's floating navigation dock.
+- **PrismalAGSL** — studied for AGSL rendering and graceful fallback ideas. It is not added as a third runtime renderer because Theo already has two glass engines and another would increase compatibility and performance risk.
+- **amunozdev/voiceorbs** — MIT visual reference for the orb direction; Theo's orb is a native Compose implementation, not bundled React/CSS.
+- **Abdullajon1881/LiquidGlass** — studied for material/refraction and interactive gel ideas.
+- **shayann07/liquidglass** — Apache-2.0 visual/technical reference; its published version was not adopted because of SDK compatibility concerns recorded in third-party notices.
 
-## Engineering constraints
-
-- Automation, accessibility service, AI providers, local Qwen runtime and persistence are intentionally untouched.
-- Keep shader use restrained on a 6 GB phone. Avoid applying high-cost blur to every row or chat bubble.
-- The orb changes motion by assistant state. True microphone-amplitude and TTS-amplitude driving still needs a signal from the audio pipeline; state animation alone is not amplitude-reactive.
-- Validate compile and unit tests in GitHub Actions, then inspect it on the actual device before claiming the visual result is final. The navigation surface uses the real Backdrop shader. Secondary panels use lightweight native Compose gradients and rim lighting to keep scrolling smooth on mid-range phones.
-
-## Reference projects
-
-- https://github.com/Kyant0/AndroidLiquidGlass — Apache-2.0.
-- https://github.com/shayann07/liquidglass — Apache-2.0.
-- https://github.com/amunozdev/voiceorbs — MIT.
-- https://github.com/Abdullajon1881/LiquidGlass
+Source projects:
+- https://github.com/Kyant0/AndroidLiquidGlass
+- https://github.com/BuildItCode/LiquidGlass
 - https://github.com/styropyr0/PrismalAGSL
-- https://github.com/talhaluxury/JARVISAssistant
+- https://github.com/amunozdev/voiceorbs
+- https://github.com/Abdullajon1881/LiquidGlass
+- https://github.com/shayann07/liquidglass
 
-See `THIRD_PARTY_NOTICES.md` for attribution and dependency details.
+## Rendering/performance choices
+
+- The dock uses BuildItCode's actual capture-backed glass renderer.
+- Header and composer use Kyant Backdrop's optical tier.
+- Repeating chat bubbles, memory rows, settings rows and action chips use a lightweight translucent material tier. Do not enable expensive live lensing for every item in a long scrolling list.
+- Material alpha is tuned centrally so all screens remain more transparent and less boxed in.
+- Content reserves space for the floating dock in one place. Secondary screens should not add a second navigation-bar inset.
+- Keep the ambient scene's backdrop definition and canvas colors in sync.
+- Preserve the existing orb, memory/history/settings, AI clients, Qwen runtime, database, accessibility service, task verification, action confirmations and diagnostics behavior.
+
+## Validation requirements
+
+CI must build the exact new experiment-branch commit before the APK is offered. Build success is not device visual verification. On the user's phone, inspect: header/composer refraction, selected dock island alignment, nav/gesture insets, screen-width variations, long chats, keyboard-open behavior and scroll performance. Visual tuning should follow actual screenshots rather than assumptions.

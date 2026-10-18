@@ -65,3 +65,15 @@ License: MIT License
 Dependency: `com.github.BuildItCode:glass:0.8.0`  
 Use: Live backdrop capture, AGSL refraction, dispersion and edge lighting for Theo's floating navigation dock. The library is used as a runtime dependency; its source is not copied into Theo.
 
+
+
+## PrismalAGSL (evaluated reference)
+
+Repository: https://github.com/styropyr0/PrismalAGSL  
+Use: Studied for Compose-first AGSL refraction, highlight treatment and API fallback strategy. No PrismalAGSL source or binary dependency is included in Theo by this UI change; no license header is required for code because none is copied from that project.
+
+## Current shared material use
+
+- Kyant0/AndroidLiquidGlass remains Apache-2.0 and is used as a runtime dependency for selected optical glass surfaces.
+- BuildItCode/LiquidGlass remains MIT and is used as a runtime dependency for the floating navigation dock.
+- Theo uses these public APIs with Theo-specific geometry, spacing and tint settings. No source file from either upstream engine is copied into Theo by this UI change.

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Settings
@@ -32,18 +34,23 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 
 private data class DockDestination(
   val label: String,
@@ -52,8 +59,15 @@ private data class DockDestination(
 )
 
 /**
- * Lightweight floating chrome. The dock is intentionally narrow and quiet: the content behind it
- * remains visible while the selected tab becomes a soft optical island instead of a solid pill.
+ * Theo's bottom dock follows the BitChord-style interaction model:
+ *
+ * - inactive destinations remain visually open; they do not get a colored pill
+ * - the active destination is represented by one translucent optical glass island
+ * - holding the dock and dragging horizontally moves that island with the finger
+ * - releasing snaps to the destination under the island
+ * - tapping a destination still navigates normally
+ *
+ * The implementation is native to Theo rather than copying BitChord source code.
  */
 @Composable
 fun TheoBottomNavigation(
@@ -81,12 +95,24 @@ fun TheoBottomNavigation(
   ) {
     val itemWidth = maxWidth / tabs.size
     val safeTab = currentTab.coerceIn(tabs.indices)
-    val selectedWidth = (itemWidth - 8.dp).coerceAtLeast(48.dp)
+    val islandWidth = (itemWidth - 8.dp).coerceAtLeast(48.dp)
+    val restingOffset = itemWidth * safeTab + 4.dp
+
+    var dragOffsetPx by remember { mutableFloatStateOf(0f) }
+    var dragTarget by remember { mutableIntStateOf(safeTab) }
+
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val itemWidthPx = with(density) { itemWidth.toPx() }
+    val islandWidthPx = with(density) { islandWidth.toPx() }
+    val maxDragPx = with(density) { (itemWidth * (tabs.lastIndex)).toPx() }
+
+    val targetOffset = restingOffset + with(density) { dragOffsetPx.toDp() }
     val indicatorOffset by animateDpAsState(
-      targetValue = itemWidth * safeTab + 4.dp,
-      animationSpec = spring(dampingRatio = 0.82f, stiffness = 520f),
+      targetValue = if (dragTarget == safeTab) targetOffset else itemWidth * dragTarget + 4.dp,
+      animationSpec = spring(dampingRatio = 0.78f, stiffness = 430f),
       label = "TheoDockLiquidSlide"
     )
+
     val dockShape = RoundedCornerShape(31.dp)
     val islandShape = RoundedCornerShape(25.dp)
 
@@ -97,26 +123,59 @@ fun TheoBottomNavigation(
         .clip(dockShape)
         .liquidGlassSurface(
           shape = dockShape,
-          tint = Color(0x20111D31),
-          gloss = 0.13f,
-          refraction = 10.dp,
-          blurRadius = 7.dp,
+          tint = Color.Transparent,
+          gloss = 0.11f,
+          refraction = 12.dp,
+          blurRadius = 9.dp,
           opticalGlass = true
         )
+        .pointerInput(safeTab, itemWidthPx) {
+          detectDragGesturesAfterLongPress(
+            onDragStart = {
+              dragOffsetPx = 0f
+              dragTarget = safeTab
+            },
+            onDragCancel = {
+              dragOffsetPx = 0f
+              dragTarget = safeTab
+            },
+            onDragEnd = {
+              val shift = if (itemWidthPx > 0f) {
+                (dragOffsetPx / itemWidthPx).roundToInt()
+              } else 0
+              val newTab = (safeTab + shift).coerceIn(tabs.indices)
+              dragOffsetPx = 0f
+              dragTarget = newTab
+              if (newTab != safeTab) onTabSelected(newTab)
+            },
+            onDrag = { change, dragAmount ->
+              change.consume()
+              val raw = dragOffsetPx + dragAmount.x
+              val minPx = if (safeTab == 0) -itemWidthPx * 0.25f else -itemWidthPx * safeTab
+              val maxPx = if (safeTab == tabs.lastIndex) itemWidthPx * 0.25f else itemWidthPx * (tabs.lastIndex - safeTab)
+              dragOffsetPx = raw.coerceIn(minPx, maxPx)
+
+              val projected = safeTab + if (itemWidthPx > 0f) {
+                (dragOffsetPx / itemWidthPx).roundToInt()
+              } else 0
+              dragTarget = projected.coerceIn(tabs.indices)
+            }
+          )
+        }
     ) {
       Box(
         modifier = Modifier
           .offset(x = indicatorOffset)
-          .width(selectedWidth)
+          .width(islandWidth)
           .fillMaxHeight()
           .padding(vertical = 5.dp)
           .clip(islandShape)
           .liquidGlassSurface(
             shape = islandShape,
-            tint = Color(0x2B73BDEB),
-            gloss = 0.16f,
-            refraction = 11.dp,
-            blurRadius = 6.dp,
+            tint = Color.Transparent,
+            gloss = 0.22f,
+            refraction = 16.dp,
+            blurRadius = 10.dp,
             opticalGlass = true
           )
       )
@@ -129,6 +188,7 @@ fun TheoBottomNavigation(
           DockDestinationItem(
             destination = tab,
             selected = index == safeTab,
+            dragging = dragTarget == index && dragOffsetPx != 0f,
             onClick = { onTabSelected(index) },
             modifier = Modifier.weight(1f).fillMaxHeight()
           )
@@ -142,6 +202,7 @@ fun TheoBottomNavigation(
 private fun DockDestinationItem(
   destination: DockDestination,
   selected: Boolean,
+  dragging: Boolean,
   onClick: () -> Unit,
   modifier: Modifier = Modifier
 ) {
@@ -150,14 +211,23 @@ private fun DockDestinationItem(
   val iconScale by animateFloatAsState(
     targetValue = when {
       pressed -> 0.92f
-      selected -> 1.06f
+      selected || dragging -> 1.07f
       else -> 1f
     },
     animationSpec = spring(dampingRatio = 0.72f, stiffness = 600f),
     label = "TheoDockIconScale"
   )
-  val iconTint = if (selected) Color.White else Color(0xC9B9C5D6)
-  val labelTint = if (selected) Color.White else Color(0xAAB9C5D6)
+
+  // Inactive destinations intentionally have no filled background. The only
+  // material is the single moving glass island above the row.
+  val iconTint = when {
+    selected || dragging -> Color.White
+    else -> Color(0xD0F2F2F4)
+  }
+  val labelTint = when {
+    selected || dragging -> Color.White
+    else -> Color(0xA8D6D6DA)
+  }
 
   Column(
     modifier = modifier

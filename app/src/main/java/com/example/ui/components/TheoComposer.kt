@@ -66,7 +66,7 @@ fun TheoComposer(
       .clip(shape)
       .liquidGlassSurface(
         shape = shape,
-        tint = Color(0x28131F34),
+        tint = Color(0x281E1E1E),
         gloss = 0.12f,
         refraction = 9.dp,
         blurRadius = 6.dp,
@@ -80,7 +80,7 @@ fun TheoComposer(
       modifier = Modifier
         .size(42.dp)
         .clip(CircleShape)
-        .background(if (isListening) Color(0x3D63D8FF) else Color.White.copy(alpha = 0.055f))
+        .background(if (isListening) Color(0x3DC2C2C2) else Color.White.copy(alpha = 0.055f))
         .testTag("composer_mic_button")
     ) {
       Icon(
@@ -145,7 +145,7 @@ fun TheoComposer(
         .clip(CircleShape)
         .background(
           if (canSend) Brush.linearGradient(listOf(TheoCyan, TheoViolet))
-          else Brush.linearGradient(listOf(Color(0x242E4D69), Color(0x18111B2D)))
+          else Brush.linearGradient(listOf(Color(0x24484848), Color(0x181A1A1A)))
         )
         .testTag("composer_send_button")
     ) {

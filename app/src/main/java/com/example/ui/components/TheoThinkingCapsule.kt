@@ -110,7 +110,7 @@ fun TheoThinkingCapsule(
         .background(Color.Transparent)
         .liquidGlassSurface(
           shape = RoundedCornerShape(30.dp),
-          tint = Color(0x80111D30),
+          tint = Color(0x801C1C1C),
           gloss = 0.22f,
           refraction = 12.dp,
           blurRadius = 8.dp
@@ -197,7 +197,7 @@ fun TheoThinkingCapsule(
             modifier = Modifier
               .clip(CircleShape)
               .background(
-                if (isCurrent) Color(0x5738BDF8) else Color.White.copy(alpha = 0.035f)
+                if (isCurrent) Color(0x57A5A5A5) else Color.White.copy(alpha = 0.035f)
               )
               .border(
                 1.dp,

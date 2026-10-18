@@ -99,7 +99,7 @@ fun TheoOrb(
   )
   val auraColor = when (state) {
     AssistantState.IDLE -> TheoIceBlue
-    AssistantState.LISTENING -> Color(0xFF68DDFF)
+    AssistantState.LISTENING -> Color(0xFFC7C7C7)
     AssistantState.THINKING -> TheoViolet
     AssistantState.SPEAKING -> TheoCyan
     AssistantState.OFFLINE -> TheoWarningAmber
@@ -109,7 +109,7 @@ fun TheoOrb(
     AssistantState.LISTENING -> TheoCyan
     AssistantState.THINKING -> TheoMagenta
     AssistantState.SPEAKING -> TheoIceBlue
-    AssistantState.OFFLINE -> Color(0xFF9A8390)
+    AssistantState.OFFLINE -> Color(0xFF898989)
   }
 
   Box(
@@ -168,7 +168,7 @@ fun TheoOrb(
       // Deep translucent body. The center remains almost black, like the reference.
       drawCircle(
         brush = Brush.radialGradient(
-          colors = listOf(Color(0xFF152D53), Color(0xFF091529), Color(0xFF030711), Color(0xFF010309)),
+          colors = listOf(Color(0xFF2B2B2B), Color(0xFF141414), Color(0xFF070707), Color(0xFF030303)),
           center = Offset(sphereCenter.x - sphereRadius * 0.25f, sphereCenter.y - sphereRadius * 0.25f),
           radius = sphereRadius * 1.72f
         ),

@@ -146,7 +146,7 @@ fun MemoryMatrixScreen(
           modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .liquidGlassSurface(CircleShape, tint = Color(0x297BCBFF), gloss = 0.13f)
+            .liquidGlassSurface(CircleShape, tint = Color(0x29BEBEBE), gloss = 0.13f)
             .border(0.8.dp, Color.White.copy(alpha = 0.16f), CircleShape)
             .testTag("add_memory_btn")
         ) {
@@ -245,7 +245,7 @@ fun MemoryMatrixScreen(
               .clip(pillShape)
               .liquidGlassSurface(
                 pillShape,
-                tint = if (isSelected) Color(0x3B3F85BB) else Color(0x201B2C44),
+                tint = if (isSelected) Color(0x3B7A7A7A) else Color(0x202A2A2A),
                 gloss = 0.08f
               )
               .border(

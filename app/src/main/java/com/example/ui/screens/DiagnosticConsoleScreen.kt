@@ -107,7 +107,7 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
           .fillMaxSize()
           .clip(RoundedCornerShape(18.dp))
           .background(Color.Transparent)
-          .liquidGlassSurface(RoundedCornerShape(18.dp), tint = Color(0x72101829), gloss = 0.12f, refraction = 8.dp, blurRadius = 6.dp)
+          .liquidGlassSurface(RoundedCornerShape(18.dp), tint = Color(0x72181818), gloss = 0.12f, refraction = 8.dp, blurRadius = 6.dp)
           .border(0.7.dp, Color.White.copy(alpha = 0.09f), RoundedCornerShape(18.dp))
           .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)

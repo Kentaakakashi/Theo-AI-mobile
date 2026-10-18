@@ -178,7 +178,7 @@ private fun QuickActionChip(
       .clip(shape)
       .liquidGlassSurface(
         shape = shape,
-        tint = Color(0x221A2C45),
+        tint = Color(0x222A2A2A),
         gloss = 0.10f,
         refraction = 7.dp,
         blurRadius = 5.dp,
@@ -194,7 +194,7 @@ private fun QuickActionChip(
         .clip(RoundedCornerShape(10.dp))
         .liquidGlassSurface(
           shape = RoundedCornerShape(10.dp),
-          tint = Color(0x261B3552),
+          tint = Color(0x26323232),
           gloss = 0.08f,
           refraction = 4.dp,
           blurRadius = 3.dp

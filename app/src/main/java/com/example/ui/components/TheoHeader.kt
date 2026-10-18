@@ -72,7 +72,7 @@ fun TheoHeader(
       .clip(shape)
       .liquidGlassSurface(
         shape = shape,
-        tint = Color(0x24152238),
+        tint = Color(0x24212121),
         gloss = 0.12f,
         refraction = 8.dp,
         blurRadius = 5.dp,

@@ -200,7 +200,7 @@ fun CoreAssistantScreen(
                     .background(Color.Transparent)
                     .liquidGlassSurface(
                       shape = RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp),
-                      tint = Color(0x8A101C2E),
+                      tint = Color(0x8A1B1B1B),
                       gloss = 0.12f
                     )
                     .padding(horizontal = 15.dp, vertical = 13.dp)

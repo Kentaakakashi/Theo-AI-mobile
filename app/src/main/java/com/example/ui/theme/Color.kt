@@ -2,31 +2,31 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Theo's atmospheric ground: deep ink, with light kept in the background rather than in borders.
-val TheoDarkBackground = Color(0xFF050812)
-val TheoSurfaceDeep = Color(0x66101A2B)
-val TheoSurfaceCard = Color(0x5417243A)
-val TheoSurfaceGlass = Color(0x351C2E49)
-val TheoSurfaceGlassLight = Color(0x288EDBFF)
-val TheoSurfaceBorder = Color(0x36C6E8FF)
-val TheoSurfaceBorderSubtle = Color(0x20FFFFFF)
+// Theo's material palette is deliberately achromatic: obsidian, smoke and neutral optical highlights.
+// Colour is reserved for meaningful status feedback, never used to tint the glass itself.
+val TheoDarkBackground = Color(0xFF060607)
+val TheoSurfaceDeep = Color(0x66131315)
+val TheoSurfaceCard = Color(0x541D1D20)
+val TheoSurfaceGlass = Color(0x24FFFFFF)
+val TheoSurfaceGlassLight = Color(0x24FFFFFF)
+val TheoSurfaceBorder = Color(0x30FFFFFF)
+val TheoSurfaceBorderSubtle = Color(0x18FFFFFF)
 
-// Accents are used as points of focus, not as outlines around every component.
-val TheoCyan = Color(0xFF9AE7FF)
-val TheoIceBlue = Color(0xFF54C3F5)
-val TheoDeepCyan = Color(0xFF147DA8)
-val TheoViolet = Color(0xFFB9ABFF)
-val TheoDeepViolet = Color(0xFF6552BE)
-val TheoMagenta = Color(0xFFE2A2FF)
+// Historical accent tokens remain for source compatibility, but now resolve to neutral silver/charcoal.
+val TheoCyan = Color(0xFFF5F5F6)
+val TheoIceBlue = Color(0xFFE2E2E4)
+val TheoDeepCyan = Color(0xFF555559)
+val TheoViolet = Color(0xFFDADADD)
+val TheoDeepViolet = Color(0xFF29292C)
+val TheoMagenta = Color(0xFFECECEE)
 
-// Status colors stay readable on transparent materials.
+// Semantic states only: ready, warning and failure remain distinguishable.
 val TheoOnlineGreen = Color(0xFF72E7BA)
 val TheoWarningAmber = Color(0xFFFFCD78)
 val TheoErrorRed = Color(0xFFFF8295)
 
-// Keep secondary text light enough to survive translucency and live backdrops.
-val TheoTextPrimary = Color(0xFFF6F8FF)
-val TheoTextSecondary = Color(0xFFC5D0E3)
-val TheoTextMuted = Color(0xFF9AA8BF)
-val TheoTextCyan = Color(0xFFC0F0FF)
-val TheoTextViolet = Color(0xFFD7CDFF)
+val TheoTextPrimary = Color(0xFFF5F5F7)
+val TheoTextSecondary = Color(0xFFC9C9CE)
+val TheoTextMuted = Color(0xFF9B9BA1)
+val TheoTextCyan = Color(0xFFEAEAEC)
+val TheoTextViolet = Color(0xFFDADADD)

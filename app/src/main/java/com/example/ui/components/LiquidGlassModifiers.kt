@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoSurfaceGlass
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
@@ -23,19 +22,15 @@ import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 
-/**
- * Static ambient scene used by the shared glass controls. The live navigation dock uses the
- * BuildItCode capture layer; repeating content rows deliberately use the inexpensive surface tier.
- */
 val LocalTheoGlassBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 
-/**
- * Shared glass material.
- *
- * opticalGlass should be reserved for a small number of high-value chrome surfaces (header and
- * composer). Rows, bubbles and settings options use the lighter Compose tier so a long chat or
- * settings list does not stack a GPU blur/lens effect on every single item.
- */
+/** Remove hue from any caller-provided tint, so old screens cannot accidentally restore blue/purple glass. */
+private fun Color.asNeutralGlass(): Color {
+  val luminance = (red * 0.2126f + green * 0.7152f + blue * 0.0722f).coerceIn(0f, 1f)
+  return Color(luminance, luminance, luminance, alpha)
+}
+
+/** Shared achromatic glass. High-value chrome uses a live backdrop; repeating rows use a lighter treatment. */
 fun Modifier.liquidGlassSurface(
   shape: Shape,
   tint: Color = TheoSurfaceGlass,
@@ -46,9 +41,8 @@ fun Modifier.liquidGlassSurface(
   opticalGlass: Boolean = false
 ): Modifier = composed {
   val backdrop = LocalTheoGlassBackdrop.current
-  // Existing screens used opaque tints. Reduce tint density centrally so all screens share a
-  // translucent material rather than a collection of dark, boxed-in cards.
-  val glassTint = tint.copy(alpha = (tint.alpha * 0.58f).coerceAtMost(0.36f))
+  val neutralTint = tint.asNeutralGlass()
+  val glassTint = neutralTint.copy(alpha = (neutralTint.alpha * 0.38f).coerceAtMost(0.16f))
 
   if (backdrop != null && opticalGlass) {
     drawBackdrop(
@@ -59,13 +53,15 @@ fun Modifier.liquidGlassSurface(
         blur(blurRadius.toPx())
         lens(
           refractionHeight = refraction.toPx(),
-          refractionAmount = (refraction * 1.15f).toPx(),
+          refractionAmount = (refraction * 1.35f).toPx(),
           depthEffect = true,
           chromaticAberration = false
         )
       },
       highlight = {
-        Highlight.Default.copy(alpha = (gloss.coerceIn(0f, 0.28f) + 0.28f).coerceAtMost(0.48f))
+        Highlight.Default.copy(
+          alpha = (0.17f + gloss.coerceIn(0f, 0.28f) * 0.72f).coerceAtMost(0.38f)
+        )
       },
       shadow = if (showShadow) ({ Shadow.Default }) else null,
       onDrawSurface = {
@@ -73,16 +69,15 @@ fun Modifier.liquidGlassSurface(
         drawRect(
           Brush.verticalGradient(
             colors = listOf(
-              Color.White.copy(alpha = (gloss * 0.62f).coerceAtMost(0.10f)),
+              Color.White.copy(alpha = (0.025f + gloss * 0.20f).coerceAtMost(0.075f)),
               Color.Transparent,
-              Color(0xFF020610).copy(alpha = 0.08f)
+              Color.Black.copy(alpha = 0.10f)
             )
           )
         )
       }
     )
   } else {
-    // Fast translucent tier for repeating bubbles, rows and cards.
     drawWithCache {
       val outline = shape.createOutline(size, layoutDirection, this)
       val path = when (outline) {
@@ -91,17 +86,17 @@ fun Modifier.liquidGlassSurface(
         is Outline.Generic -> outline.path
       }
       val fill = Brush.verticalGradient(
-        0f to Color.White.copy(alpha = (gloss * 0.42f).coerceAtMost(0.09f)),
-        0.18f to glassTint.copy(alpha = (glassTint.alpha * 0.72f).coerceAtMost(0.28f)),
-        0.76f to glassTint,
-        1f to Color(0xFF050A13).copy(alpha = 0.20f)
+        0f to Color.White.copy(alpha = (0.018f + gloss * 0.18f).coerceAtMost(0.055f)),
+        0.20f to glassTint,
+        0.78f to glassTint.copy(alpha = glassTint.alpha * 0.62f),
+        1f to Color.Black.copy(alpha = 0.12f)
       )
       val rim = Brush.linearGradient(
         colors = listOf(
-          Color.White.copy(alpha = 0.18f),
-          TheoCyan.copy(alpha = 0.10f),
-          Color.White.copy(alpha = 0.035f),
-          Color.White.copy(alpha = 0.075f)
+          Color.White.copy(alpha = 0.19f),
+          Color.White.copy(alpha = 0.075f),
+          Color.White.copy(alpha = 0.025f),
+          Color.White.copy(alpha = 0.085f)
         ),
         start = Offset(0f, 0f),
         end = Offset(size.width, size.height)
@@ -109,7 +104,7 @@ fun Modifier.liquidGlassSurface(
       onDrawWithContent {
         drawPath(path, brush = fill)
         drawContent()
-        drawPath(path, brush = rim, style = Stroke(width = 0.65.dp.toPx()))
+        drawPath(path, brush = rim, style = Stroke(width = 0.72.dp.toPx()))
       }
     }
   }

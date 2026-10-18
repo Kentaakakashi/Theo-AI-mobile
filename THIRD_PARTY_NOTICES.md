@@ -58,12 +58,11 @@ Use: Studied as a primary reference for optical refraction, shape, and restraine
 
 The additional repositories above are design/technical references only; no code from them is included by this update.
 
-## BuildItCode/LiquidGlass (runtime dependency)
+## BuildItCode/LiquidGlass (evaluated reference; not a dependency)
 
 Repository: https://github.com/BuildItCode/LiquidGlass  
 License: MIT License  
-Dependency: `com.github.BuildItCode:glass:0.8.0`  
-Use: Live backdrop capture, AGSL refraction, dispersion and edge lighting for Theo's floating navigation dock. The library is used as a runtime dependency; its source is not copied into Theo.
+Use: Evaluated for its live backdrop capture, AGSL refraction, dispersion and edge-lighting approach. The `com.github.BuildItCode:glass:0.8.0` artifact returned HTTP 401 from JitPack in GitHub Actions, so it was removed from Theo's active dependencies. No source was copied. Theo's dock now uses the already-present Kyant Backdrop engine.
 
 
 

@@ -1,7 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,9 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -45,8 +42,8 @@ import com.example.ui.theme.TheoTextSecondary
 import com.example.viewmodel.TheoUiState
 
 /**
- * Responsive empty-chat landing view. The orb, copy and task suggestions resize as one layout
- * instead of forcing a tall, scroll-heavy 224dp hero onto every phone.
+ * Calm landing surface: the background stays visible and the content is allowed to breathe.
+ * Functional controls use glass; the hero itself is deliberately not boxed in.
  */
 @Composable
 fun TheoHomeStage(
@@ -57,40 +54,41 @@ fun TheoHomeStage(
   modifier: Modifier = Modifier
 ) {
   BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-    val availableHeight = maxHeight
-    val orbSize = minOf(196.dp, maxWidth * 0.54f, availableHeight * 0.34f).coerceAtLeast(126.dp)
+    val compact = maxHeight < 660.dp
+    val orbSize = minOf(184.dp, maxWidth * 0.50f, if (compact) 164.dp else 184.dp)
+
     Column(
       modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp),
+        .padding(horizontal = 22.dp),
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Spacer(Modifier.height(if (availableHeight < 620.dp) 3.dp else 9.dp))
+      Spacer(Modifier.height(if (compact) 10.dp else 22.dp))
 
       TheoOrb(
         state = uiState.assistantState,
         intensity = uiState.animationIntensity,
-        sizeDp = orbSize,
+        sizeDp = orbSize.coerceAtLeast(128.dp),
         onClick = onOrbClick
       )
 
-      Spacer(Modifier.height(4.dp))
+      Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
       Text(
         text = "YOUR AI, IN MOTION",
         color = TheoTextSecondary,
         fontSize = 10.sp,
         fontWeight = FontWeight.SemiBold,
-        letterSpacing = 1.05.sp
+        letterSpacing = 1.35.sp
       )
-      Spacer(Modifier.height(6.dp))
+      Spacer(Modifier.height(7.dp))
       Text(
         text = "What’s on your mind?",
         color = TheoTextPrimary,
-        fontSize = 27.sp,
-        lineHeight = 33.sp,
+        fontSize = if (compact) 25.sp else 29.sp,
+        lineHeight = if (compact) 30.sp else 34.sp,
         fontWeight = FontWeight.SemiBold,
-        letterSpacing = (-0.75).sp,
+        letterSpacing = (-0.7).sp,
         textAlign = TextAlign.Center
       )
       Spacer(Modifier.height(5.dp))
@@ -100,32 +98,33 @@ fun TheoHomeStage(
         fontSize = 12.sp,
         lineHeight = 17.sp,
         textAlign = TextAlign.Center,
-        modifier = Modifier.padding(horizontal = 10.dp)
+        modifier = Modifier.padding(horizontal = 14.dp)
       )
 
-      Spacer(Modifier.height(if (availableHeight < 620.dp) 14.dp else 20.dp))
+      Spacer(Modifier.height(if (compact) 16.dp else 24.dp))
+
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
         Text(
-          text = "Try a quick start",
-          color = TheoTextSecondary,
-          fontSize = 13.sp,
+          text = "Quick starts",
+          color = TheoTextPrimary,
+          fontSize = 14.sp,
           fontWeight = FontWeight.SemiBold
         )
+        Spacer(Modifier.weight(1f))
         Text(
           text = "4 ideas",
           color = TheoTextMuted,
-          fontSize = 11.sp
+          fontSize = 10.sp
         )
       }
-      Spacer(Modifier.height(9.dp))
 
+      Spacer(Modifier.height(10.dp))
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(9.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
       ) {
         QuickActionChip(
           title = "Open an app",
@@ -140,10 +139,10 @@ fun TheoHomeStage(
           onClick = { onSendMessage("Help me plan my day") }
         )
       }
-      Spacer(Modifier.height(9.dp))
+      Spacer(Modifier.height(8.dp))
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(9.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
       ) {
         QuickActionChip(
           title = "Remember",
@@ -158,6 +157,7 @@ fun TheoHomeStage(
           onClick = { onSendMessage("Check my battery and device status") }
         )
       }
+
       Spacer(Modifier.height(18.dp))
     }
   }
@@ -170,18 +170,38 @@ private fun QuickActionChip(
   modifier: Modifier = Modifier,
   onClick: () -> Unit
 ) {
-  val shape = RoundedCornerShape(22.dp)
+  val shape = RoundedCornerShape(18.dp)
   Row(
     modifier = modifier
-      .height(46.dp)
+      .height(48.dp)
       .clip(shape)
-      .background(Color.White.copy(alpha = 0.018f))
-      .liquidGlassSurface(shape, tint = Color(0x291A2C45), gloss = 0.08f)
+      .liquidGlassSurface(
+        shape = shape,
+        tint = Color(0x221A2C45),
+        gloss = 0.10f,
+        refraction = 7.dp,
+        blurRadius = 5.dp,
+        opticalGlass = true
+      )
       .clickable(onClick = onClick)
-      .padding(horizontal = 12.dp, vertical = 8.dp),
+      .padding(horizontal = 12.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Icon(icon, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(17.dp))
+    Box(
+      modifier = Modifier
+        .size(28.dp)
+        .clip(RoundedCornerShape(10.dp))
+        .liquidGlassSurface(
+          shape = RoundedCornerShape(10.dp),
+          tint = Color(0x261B3552),
+          gloss = 0.08f,
+          refraction = 4.dp,
+          blurRadius = 3.dp
+        ),
+      contentAlignment = Alignment.Center
+    ) {
+      Icon(icon, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(16.dp))
+    }
     Spacer(Modifier.width(8.dp))
     Text(
       text = title,

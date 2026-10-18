@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Launch
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -33,21 +33,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.MessageEntity
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
-import com.example.ui.theme.TheoSurfaceBorder
-import com.example.ui.theme.TheoSurfaceBorderSubtle
-import com.example.ui.theme.TheoSurfaceCard
-import com.example.ui.theme.TheoSurfaceGlass
 import com.example.ui.theme.TheoTextMuted
 import com.example.ui.theme.TheoTextPrimary
 import com.example.ui.theme.TheoTextSecondary
@@ -67,216 +61,173 @@ fun ChatMessageBubble(
 
   AnimatedVisibility(
     visible = true,
-    enter = fadeIn() + slideInVertically { it / 2 },
+    enter = fadeIn() + slideInVertically { it / 3 },
     modifier = modifier.fillMaxWidth()
   ) {
-    Box(
+    BoxWithConstraints(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(vertical = 4.dp, horizontal = 12.dp),
+        .padding(horizontal = 18.dp, vertical = 4.dp),
       contentAlignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
     ) {
+      val bubbleWidth = (maxWidth * 0.90f).coerceAtMost(420.dp)
       if (message.isUser) {
-        // Operator Message Bubble
+        val shape = RoundedCornerShape(topStart = 22.dp, topEnd = 8.dp, bottomStart = 22.dp, bottomEnd = 22.dp)
         Column(
           horizontalAlignment = Alignment.End,
-          modifier = Modifier.widthIn(max = 290.dp)
+          modifier = Modifier.widthIn(max = bubbleWidth)
         ) {
           Box(
             modifier = Modifier
-              .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 6.dp, bottomStart = 20.dp, bottomEnd = 20.dp))
-              .background(
-                Brush.linearGradient(
-                  colors = listOf(
-                    Color(0xA62F326A),
-                    Color(0x74121D34)
-                  )
-                )
-              )
+              .clip(shape)
               .liquidGlassSurface(
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 6.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
-                tint = Color(0x561C2850),
-                gloss = 0.22f,
-                refraction = 8.dp,
-                blurRadius = 5.dp
+                shape = shape,
+                tint = Color(0x3D575AC5),
+                gloss = 0.09f,
+                refraction = 5.dp,
+                blurRadius = 4.dp
               )
-              .neonBorder(
-                RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
-                colors = listOf(TheoViolet, TheoCyan, TheoViolet),
-                strokeWidth = 1.dp
-              )
-              .padding(horizontal = 14.dp, vertical = 10.dp)
+              .border(0.7.dp, Color.White.copy(alpha = 0.10f), shape)
+              .padding(horizontal = 15.dp, vertical = 11.dp)
               .testTag("user_chat_bubble")
           ) {
             Text(
               text = message.text,
               color = TheoTextPrimary,
               fontSize = 14.sp,
-              lineHeight = 20.sp
+              lineHeight = 21.sp
             )
           }
-
           Row(
-            modifier = Modifier.padding(top = 2.dp, end = 4.dp),
+            modifier = Modifier.padding(top = 3.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically
           ) {
-            Text(
-              text = "You",
-              color = TheoTextMuted,
-              fontFamily = FontFamily.Monospace,
-              fontSize = 8.sp,
-              fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-              text = timeStr,
-              color = TheoTextMuted,
-              fontFamily = FontFamily.Monospace,
-              fontSize = 9.sp
-            )
+            Text("You", color = TheoTextMuted, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.width(6.dp))
+            Text(timeStr, color = TheoTextMuted, fontSize = 10.sp)
           }
         }
       } else {
-        // Theo Assistant Message Bubble
+        val shape = RoundedCornerShape(topStart = 7.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp)
         Column(
           horizontalAlignment = Alignment.Start,
-          modifier = Modifier.widthIn(max = 320.dp)
+          modifier = Modifier.widthIn(max = bubbleWidth)
         ) {
-          // Metadata badge row
           Row(
-            modifier = Modifier.padding(bottom = 4.dp, start = 4.dp),
+            modifier = Modifier.padding(bottom = 5.dp, start = 3.dp),
             verticalAlignment = Alignment.CenterVertically
           ) {
             Box(
               modifier = Modifier
-                .size(6.dp)
+                .size(5.dp)
                 .clip(CircleShape)
                 .background(TheoCyan)
             )
-            Spacer(modifier = Modifier.width(5.dp))
+            Spacer(Modifier.width(6.dp))
             Text(
               text = message.modelBadge.replace("_", " ").lowercase().replaceFirstChar { it.titlecase() },
-              color = TheoCyan,
-              fontFamily = FontFamily.SansSerif,
+              color = TheoTextSecondary,
               fontSize = 10.sp,
-              fontWeight = FontWeight.SemiBold
+              fontWeight = FontWeight.Medium
             )
             if (message.latencyMs > 0L) {
-              Spacer(modifier = Modifier.width(6.dp))
+              Spacer(Modifier.width(7.dp))
               Text(
-                text = "${message.latencyMs}ms",
+                text = message.latencyMs.toString() + " ms",
                 color = TheoTextMuted,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 8.sp
+                fontSize = 9.sp
               )
             }
           }
 
-          // Card content
-          Box(
+          Column(
             modifier = Modifier
-              .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
-              .background(Color.Transparent)
-                .liquidGlassSurface(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
-              .neonBorder(
-                RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+              .fillMaxWidth()
+              .clip(shape)
+              .liquidGlassSurface(
+                shape = shape,
+                tint = Color(0x25172438),
+                gloss = 0.07f,
+                refraction = 4.dp,
+                blurRadius = 3.dp
               )
-              .padding(horizontal = 14.dp, vertical = 12.dp)
+              .border(0.6.dp, Color.White.copy(alpha = 0.085f), shape)
+              .padding(horizontal = 15.dp, vertical = 12.dp)
               .testTag("theo_chat_bubble")
           ) {
-            Column {
-              Text(
-                text = message.text,
-                color = TheoTextPrimary,
-                fontSize = 14.sp,
-                lineHeight = 21.sp
-              )
+            Text(
+              text = message.text,
+              color = TheoTextPrimary,
+              fontSize = 14.sp,
+              lineHeight = 21.sp
+            )
 
-              // Action trigger chip if available
-              message.actionTag?.let { actionKey ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                  modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(TheoCyan.copy(alpha = 0.15f))
-                    .border(1.dp, TheoCyan.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                    .clickable { onExecuteAction(actionKey) }
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
-                  verticalAlignment = Alignment.CenterVertically
-                ) {
-                  Icon(
-                    imageVector = Icons.Default.Launch,
-                    contentDescription = "Execute Intent",
-                    tint = TheoCyan,
-                    modifier = Modifier.size(13.dp)
-                  )
-                  Spacer(modifier = Modifier.width(5.dp))
-                  Text(
-                    text = when {
-                      actionKey.startsWith("music:", ignoreCase = true) -> run {
-                        val payload = actionKey.substringAfter(':')
-                        val provider = payload.substringBefore('|')
-                        val query = payload.substringAfter('|', payload).trim()
-                        val service = if (provider.equals("spotify", ignoreCase = true)) "Spotify" else "YouTube Music"
-                        "Search ${query.take(20)} on $service"
-                      }
-                      actionKey.startsWith("order:", ignoreCase = true) ->
-                        "Find order options (no purchase)"
-                      actionKey.startsWith("setup:accessibility", ignoreCase = true) ->
-                        "Enable Screen Automation"
-                      actionKey.startsWith("screen:", ignoreCase = true) ->
-                        "Run screen task"
-                      actionKey.startsWith("app:", ignoreCase = true) ->
-                        "Open ${actionKey.substringAfter(':').take(28)}"
-                      else -> "Run ${actionKey.replaceFirstChar { it.uppercase() }}"
-                    },
-                    color = TheoCyan,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                  )
+            message.actionTag?.let { actionKey ->
+              val actionLabel = when {
+                actionKey.startsWith("music:", ignoreCase = true) -> {
+                  val payload = actionKey.substringAfter(':')
+                  val provider = payload.substringBefore('|')
+                  val query = payload.substringAfter('|', payload).trim()
+                  val service = if (provider.equals("spotify", ignoreCase = true)) "Spotify" else "YouTube Music"
+                  "Search " + query.take(20) + " on " + service
                 }
+                actionKey.startsWith("order:", ignoreCase = true) -> "Find order options (no purchase)"
+                actionKey.startsWith("setup:accessibility", ignoreCase = true) -> "Enable Screen Automation"
+                actionKey.startsWith("screen:", ignoreCase = true) -> "Run screen task"
+                actionKey.startsWith("app:", ignoreCase = true) -> "Open " + actionKey.substringAfter(':').take(28)
+                else -> "Run " + actionKey.replaceFirstChar { it.uppercase() }
               }
-
-              // Footer with copy button & timestamp
-              Spacer(modifier = Modifier.height(6.dp))
+              Spacer(Modifier.height(10.dp))
               Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                  .clip(RoundedCornerShape(17.dp))
+                  .background(Color.White.copy(alpha = 0.045f))
+                  .border(0.7.dp, Color.White.copy(alpha = 0.11f), RoundedCornerShape(17.dp))
+                  .clickable { onExecuteAction(actionKey) }
+                  .padding(horizontal = 11.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically
               ) {
-                Text(
-                  text = timeStr,
-                  color = TheoTextMuted,
-                  fontFamily = FontFamily.Monospace,
-                  fontSize = 9.sp
+                Icon(
+                  imageVector = Icons.Default.Launch,
+                  contentDescription = "Execute action",
+                  tint = TheoCyan,
+                  modifier = Modifier.size(14.dp)
                 )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                  text = actionLabel,
+                  color = TheoTextPrimary,
+                  fontSize = 11.sp,
+                  fontWeight = FontWeight.Medium
+                )
+              }
+            }
 
-                Row(
-                  modifier = Modifier
-                    .clickable {
-                      val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                      val clip = ClipData.newPlainText("Theo Response", message.text)
-                      clipboard.setPrimaryClip(clip)
-                      Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
-                    }
-                    .padding(2.dp),
-                  verticalAlignment = Alignment.CenterVertically
-                ) {
-                  Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Copy text",
-                    tint = TheoTextMuted,
-                    modifier = Modifier.size(12.dp)
-                  )
-                  Spacer(modifier = Modifier.width(3.dp))
-                  Text(
-                    text = "COPY",
-                    color = TheoTextMuted,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 8.sp
-                  )
-                }
+            Spacer(Modifier.height(8.dp))
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Text(timeStr, color = TheoTextMuted, fontSize = 10.sp)
+              Row(
+                modifier = Modifier
+                  .clickable {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("Theo Response", message.text))
+                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                  }
+                  .padding(vertical = 2.dp, horizontal = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                Icon(
+                  imageVector = Icons.Default.ContentCopy,
+                  contentDescription = "Copy text",
+                  tint = TheoTextMuted,
+                  modifier = Modifier.size(12.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text("Copy", color = TheoTextMuted, fontSize = 10.sp)
               }
             }
           }

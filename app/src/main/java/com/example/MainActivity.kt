@@ -78,10 +78,10 @@ fun TheoMainContent(viewModel: TheoViewModel) {
   val ambientBackdrop = rememberLayerBackdrop(onDraw = {
     val glowA = Offset(size.width * 0.88f, size.height * 0.18f)
     val glowB = Offset(size.width * 0.08f, size.height * 0.70f)
-    drawRect(Brush.verticalGradient(listOf(Color(0xFF0A1728), Color(0xFF050810), Color(0xFF090D1A))))
+    drawRect(Brush.verticalGradient(listOf(Color(0xFF102039), Color(0xFF070B18), Color(0xFF090D1D))))
     drawCircle(
       brush = Brush.radialGradient(
-        colors = listOf(Color(0x443A8DCC), Color(0x1B2860B0), Color.Transparent),
+        colors = listOf(Color(0x6652BDEB), Color(0x2A286CBA), Color.Transparent),
         center = glowA,
         radius = size.minDimension * 0.82f
       ),
@@ -90,7 +90,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
     )
     drawCircle(
       brush = Brush.radialGradient(
-        colors = listOf(Color(0x2E7862D8), Color(0x128C6DE0), Color.Transparent),
+        colors = listOf(Color(0x4A8164E8), Color(0x208C6DE0), Color.Transparent),
         center = glowB,
         radius = size.minDimension * 0.76f
       ),
@@ -129,10 +129,10 @@ fun TheoMainContent(viewModel: TheoViewModel) {
       Canvas(Modifier.fillMaxSize()) {
         val glowA = Offset(size.width * 0.88f, size.height * 0.18f)
         val glowB = Offset(size.width * 0.08f, size.height * 0.70f)
-        drawRect(Brush.verticalGradient(listOf(Color(0xFF0A1728), Color(0xFF050810), Color(0xFF090D1A))))
+        drawRect(Brush.verticalGradient(listOf(Color(0xFF102039), Color(0xFF070B18), Color(0xFF090D1D))))
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color(0x443A8DCC), Color(0x1B2860B0), Color.Transparent),
+            colors = listOf(Color(0x6652BDEB), Color(0x2A286CBA), Color.Transparent),
             center = glowA,
             radius = size.minDimension * 0.82f
           ),
@@ -141,7 +141,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
         )
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color(0x2E7862D8), Color(0x128C6DE0), Color.Transparent),
+            colors = listOf(Color(0x4A8164E8), Color(0x208C6DE0), Color.Transparent),
             center = glowB,
             radius = size.minDimension * 0.76f
           ),

@@ -120,47 +120,32 @@ fun CoreAssistantScreen(
           modifier = Modifier.weight(1f).fillMaxWidth()
         )
       } else {
-        // Conversation mode: keep the assistant identity visible while the transcript scrolls.
+        // Compact context line. The transcript is the content; this should not become another
+        // full-width dashboard card competing with every message.
         Row(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(Color.Transparent)
-            .liquidGlassSurface(
-              shape = RoundedCornerShape(22.dp),
-              tint = Color(0x68131E32),
-              gloss = 0.14f,
-              refraction = 8.dp,
-              blurRadius = 6.dp
-            )
-            .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(22.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 7.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
           Box(
             modifier = Modifier
-              .size(38.dp)
+              .size(30.dp)
               .clip(CircleShape)
-              .background(
-                Brush.radialGradient(
-                  colors = listOf(Color(0xFF3D5E93), Color(0xFF18253F), Color(0xFF101624))
-                )
-              )
-              .border(1.dp, Color.White.copy(alpha = 0.20f), CircleShape),
+              .background(Color.White.copy(alpha = 0.055f)),
             contentAlignment = Alignment.Center
           ) {
             Icon(
               imageVector = Icons.Default.AutoAwesome,
               contentDescription = null,
               tint = TheoCyan,
-              modifier = Modifier.size(18.dp)
+              modifier = Modifier.size(16.dp)
             )
           }
           Spacer(Modifier.width(10.dp))
           Column(modifier = Modifier.weight(1f)) {
             Text(
-              text = "Your conversation",
+              text = "Conversation",
               color = TheoTextPrimary,
               fontSize = 13.sp,
               fontWeight = FontWeight.SemiBold
@@ -173,15 +158,16 @@ fun CoreAssistantScreen(
                 com.example.model.AssistantState.SPEAKING -> "Replying to you"
                 com.example.model.AssistantState.OFFLINE -> "Check the active AI provider"
               },
-              color = TheoTextSecondary,
-              fontSize = 11.sp
+              color = TheoTextMuted,
+              fontSize = 11.sp,
+              maxLines = 1
             )
           }
           Text(
             text = messages.size.toString(),
             color = TheoTextMuted,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium
           )
         }
 

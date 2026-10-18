@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 
 private val TheoShapes = Shapes(
   extraSmall = RoundedCornerShape(8.dp),

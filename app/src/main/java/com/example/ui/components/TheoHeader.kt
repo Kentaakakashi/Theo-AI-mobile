@@ -2,7 +2,6 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
@@ -27,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,8 +33,7 @@ import com.example.model.AiModelType
 import com.example.model.AssistantState
 import com.example.service.DeviceActionHandler
 import com.example.ui.theme.TheoCyan
-import com.example.ui.theme.TheoSurfaceBorderSubtle
-import com.example.ui.theme.TheoSurfaceGlass
+import com.example.ui.theme.TheoOnlineGreen
 import com.example.ui.theme.TheoTextMuted
 import com.example.ui.theme.TheoTextPrimary
 import com.example.ui.theme.TheoTextSecondary
@@ -54,7 +50,7 @@ fun TheoHeader(
   modifier: Modifier = Modifier
 ) {
   val stateColor = when (assistantState) {
-    AssistantState.IDLE -> Color(0xFF72E7BA)
+    AssistantState.IDLE -> TheoOnlineGreen
     AssistantState.LISTENING -> TheoCyan
     AssistantState.THINKING -> TheoViolet
     AssistantState.SPEAKING -> TheoCyan
@@ -72,30 +68,26 @@ fun TheoHeader(
     modifier = modifier
       .fillMaxWidth()
       .statusBarsPadding()
-      .padding(horizontal = 16.dp, vertical = 7.dp)
-      .clip(RoundedCornerShape(26.dp))
-      .background(Color.Transparent)
+      .padding(horizontal = 18.dp, vertical = 6.dp)
+      .clip(RoundedCornerShape(30.dp))
       .liquidGlassSurface(
-        shape = RoundedCornerShape(26.dp),
-        tint = Color(0x7610182A),
-        gloss = 0.20f,
-        refraction = 10.dp,
-        blurRadius = 8.dp
+        shape = RoundedCornerShape(30.dp),
+        tint = Color(0x32152238),
+        gloss = 0.14f,
+        refraction = 7.dp,
+        blurRadius = 5.dp,
+        opticalGlass = true
       )
-      .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(26.dp))
-      .padding(start = 11.dp, end = 7.dp, top = 9.dp, bottom = 9.dp),
+      .border(0.7.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(30.dp))
+      .padding(start = 10.dp, end = 7.dp, top = 7.dp, bottom = 7.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
     Box(
       modifier = Modifier
-        .size(40.dp)
+        .size(42.dp)
         .clip(CircleShape)
-        .background(
-          Brush.radialGradient(
-            colors = listOf(Color(0xFF4DB8FF), Color(0xFF544CBA), Color(0xFF11182D))
-          )
-        )
-        .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape),
+        .background(Color.White.copy(alpha = 0.075f))
+        .border(0.8.dp, Color.White.copy(alpha = 0.16f), CircleShape),
       contentAlignment = Alignment.Center
     ) {
       Icon(
@@ -106,28 +98,27 @@ fun TheoHeader(
       )
     }
 
-    Spacer(Modifier.width(10.dp))
+    Spacer(Modifier.width(11.dp))
     Column(modifier = Modifier.weight(1f)) {
       Text(
         text = "Theo",
         color = TheoTextPrimary,
-        fontSize = 20.sp,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = (-0.4).sp
+        fontSize = 19.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = (-0.35).sp
       )
-      Spacer(Modifier.width(2.dp))
       Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
           modifier = Modifier
-            .size(6.dp)
+            .size(5.dp)
             .clip(CircleShape)
             .background(stateColor)
         )
         Spacer(Modifier.width(5.dp))
         Text(
-          text = "$stateLabel · ${activeModel.shortBadge}",
+          text = stateLabel + " · " + activeModel.shortBadge,
           color = TheoTextSecondary,
-          fontSize = 10.sp,
+          fontSize = 11.sp,
           fontWeight = FontWeight.Medium,
           maxLines = 1
         )
@@ -136,16 +127,16 @@ fun TheoHeader(
 
     if (telemetry != null) {
       Column(
-        modifier = Modifier.padding(end = 4.dp),
+        modifier = Modifier.padding(end = 5.dp),
         horizontalAlignment = Alignment.End
       ) {
         Text(
-          text = "${telemetry.batteryPct}%${if (telemetry.isCharging) " ⚡" else ""}",
+          text = telemetry.batteryPct.toString() + "%" + if (telemetry.isCharging) " ⚡" else "",
           color = TheoTextPrimary,
-          fontSize = 10.sp,
+          fontSize = 11.sp,
           fontWeight = FontWeight.SemiBold
         )
-        Text("battery", color = TheoTextMuted, fontSize = 8.sp)
+        Text("Battery", color = TheoTextMuted, fontSize = 9.sp)
       }
     }
 
@@ -153,30 +144,30 @@ fun TheoHeader(
       onClick = onToggleSpeech,
       modifier = Modifier
         .padding(start = 2.dp)
-        .size(36.dp)
+        .size(38.dp)
         .clip(CircleShape)
-        .background(if (isSpeechEnabled) Color.White.copy(alpha = 0.07f) else Color.Transparent)
+        .background(if (isSpeechEnabled) Color.White.copy(alpha = 0.075f) else Color.Transparent)
     ) {
       Icon(
         imageVector = if (isSpeechEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
         contentDescription = if (isSpeechEnabled) "Disable spoken responses" else "Enable spoken responses",
         tint = if (isSpeechEnabled) TheoCyan else TheoTextMuted,
-        modifier = Modifier.size(18.dp)
+        modifier = Modifier.size(19.dp)
       )
     }
 
     IconButton(
       onClick = onOpenSettings,
       modifier = Modifier
-        .size(36.dp)
+        .size(38.dp)
         .clip(CircleShape)
-        .background(Color.White.copy(alpha = 0.06f))
+        .background(Color.White.copy(alpha = 0.055f))
     ) {
       Icon(
         imageVector = Icons.Default.Settings,
         contentDescription = "Settings",
         tint = TheoTextSecondary,
-        modifier = Modifier.size(18.dp)
+        modifier = Modifier.size(19.dp)
       )
     }
   }

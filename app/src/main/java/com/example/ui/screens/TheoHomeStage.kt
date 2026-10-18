@@ -1,19 +1,22 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -26,24 +29,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.model.AssistantState
 import com.example.ui.components.TheoOrb
-import com.example.ui.components.TheoThinkingCapsule
 import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
-import com.example.ui.theme.TheoSurfaceBorderSubtle
-import com.example.ui.theme.TheoSurfaceGlass
 import com.example.ui.theme.TheoTextMuted
 import com.example.ui.theme.TheoTextPrimary
 import com.example.ui.theme.TheoTextSecondary
 import com.example.viewmodel.TheoUiState
 
+/**
+ * Responsive empty-chat landing view. The orb, copy and task suggestions resize as one layout
+ * instead of forcing a tall, scroll-heavy 224dp hero onto every phone.
+ */
 @Composable
 fun TheoHomeStage(
   uiState: TheoUiState,
@@ -52,160 +56,139 @@ fun TheoHomeStage(
   onInputChange: (String) -> Unit,
   modifier: Modifier = Modifier
 ) {
-  Column(
-    modifier = modifier
-      .verticalScroll(rememberScrollState())
-      .padding(horizontal = 20.dp),
-    horizontalAlignment = Alignment.CenterHorizontally
-  ) {
-    Spacer(Modifier.height(14.dp))
-
-    TheoOrb(
-      state = uiState.assistantState,
-      intensity = uiState.animationIntensity,
-      sizeDp = 224.dp,
-      onClick = onOrbClick
-    )
-
-    Spacer(Modifier.height(7.dp))
-    Text(
-      text = "Your AI, in motion.",
-      color = TheoTextSecondary,
-      fontSize = 14.sp,
-      fontWeight = FontWeight.Medium
-    )
-    Spacer(Modifier.height(3.dp))
-    Text(
-      text = "What's on your mind?",
-      color = TheoTextPrimary,
-      fontSize = 30.sp,
-      lineHeight = 36.sp,
-      fontWeight = FontWeight.SemiBold,
-      textAlign = TextAlign.Center
-    )
-    Spacer(Modifier.height(6.dp))
-    Text(
-      text = "Talk naturally. Theo can think, act, and check the result.",
-      color = TheoTextMuted,
-      fontSize = 12.sp,
-      lineHeight = 17.sp,
-      textAlign = TextAlign.Center,
-      modifier = Modifier.padding(horizontal = 12.dp)
-    )
-
-    Spacer(Modifier.height(16.dp))
-    TheoThinkingCapsule(
-      assistantState = uiState.assistantState,
-      thinkingSteps = uiState.thinkingSteps,
-      modelLabel = uiState.activeModel.shortBadge,
-      modifier = Modifier.fillMaxWidth()
-    )
-
-    Spacer(Modifier.height(22.dp))
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      verticalAlignment = Alignment.CenterVertically
+  BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+    val orbSize = minOf(196.dp, maxWidth * 0.54f, maxHeight * 0.34f).coerceAtLeast(126.dp)
+    Column(
+      modifier = Modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState())
+        .padding(horizontal = 20.dp),
+      horizontalAlignment = Alignment.CenterHorizontally
     ) {
+      Spacer(Modifier.height(if (maxHeight < 620.dp) 3.dp else 9.dp))
+
+      TheoOrb(
+        state = uiState.assistantState,
+        intensity = uiState.animationIntensity,
+        sizeDp = orbSize,
+        onClick = onOrbClick
+      )
+
+      Spacer(Modifier.height(4.dp))
       Text(
-        text = "START WITH A TASK",
+        text = "YOUR AI, IN MOTION",
         color = TheoTextSecondary,
         fontSize = 10.sp,
         fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.75.sp
+        letterSpacing = 1.05.sp
       )
-      Spacer(Modifier.weight(1f))
+      Spacer(Modifier.height(6.dp))
       Text(
-        text = "4 suggestions",
+        text = "What’s on your mind?",
+        color = TheoTextPrimary,
+        fontSize = 27.sp,
+        lineHeight = 33.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = (-0.75).sp,
+        textAlign = TextAlign.Center
+      )
+      Spacer(Modifier.height(5.dp))
+      Text(
+        text = "Talk naturally. Theo can think, act, and verify the result.",
         color = TheoTextMuted,
-        fontSize = 10.sp
+        fontSize = 12.sp,
+        lineHeight = 17.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(horizontal = 10.dp)
       )
-    }
-    Spacer(Modifier.height(10.dp))
 
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-      HomeActionCard(
-        title = "Open an app",
-        detail = "Jump into a task",
-        icon = { Icon(Icons.Default.Launch, null, tint = TheoCyan, modifier = Modifier.size(19.dp)) },
-        modifier = Modifier.weight(1f),
-        onClick = { onSendMessage("Open an app for me") }
-      )
-      HomeActionCard(
-        title = "Plan my day",
-        detail = "Make a clear plan",
-        icon = { Icon(Icons.Default.AutoAwesome, null, tint = Color(0xFFB2A1FF), modifier = Modifier.size(19.dp)) },
-        modifier = Modifier.weight(1f),
-        onClick = { onSendMessage("Help me plan my day") }
-      )
+      Spacer(Modifier.height(if (maxHeight < 620.dp) 14.dp else 20.dp))
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Text(
+          text = "Try a quick start",
+          color = TheoTextSecondary,
+          fontSize = 13.sp,
+          fontWeight = FontWeight.SemiBold
+        )
+        Text(
+          text = "4 ideas",
+          color = TheoTextMuted,
+          fontSize = 11.sp
+        )
+      }
+      Spacer(Modifier.height(9.dp))
+
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(9.dp)
+      ) {
+        QuickActionChip(
+          title = "Open an app",
+          icon = Icons.Default.Launch,
+          modifier = Modifier.weight(1f),
+          onClick = { onSendMessage("Open an app for me") }
+        )
+        QuickActionChip(
+          title = "Plan my day",
+          icon = Icons.Default.AutoAwesome,
+          modifier = Modifier.weight(1f),
+          onClick = { onSendMessage("Help me plan my day") }
+        )
+      }
+      Spacer(Modifier.height(9.dp))
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(9.dp)
+      ) {
+        QuickActionChip(
+          title = "Remember",
+          icon = Icons.Default.Memory,
+          modifier = Modifier.weight(1f),
+          onClick = { onInputChange("Remember that ") }
+        )
+        QuickActionChip(
+          title = "Device status",
+          icon = Icons.Default.PhoneAndroid,
+          modifier = Modifier.weight(1f),
+          onClick = { onSendMessage("Check my battery and device status") }
+        )
+      }
+      Spacer(Modifier.height(18.dp))
     }
-    Spacer(Modifier.height(10.dp))
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-      HomeActionCard(
-        title = "Remember",
-        detail = "Keep a useful fact",
-        icon = { Icon(Icons.Default.Memory, null, tint = Color(0xFFB8ECFF), modifier = Modifier.size(19.dp)) },
-        modifier = Modifier.weight(1f),
-        onClick = { onInputChange("Remember that ") }
-      )
-      HomeActionCard(
-        title = "Device status",
-        detail = "Check your phone",
-        icon = { Icon(Icons.Default.PhoneAndroid, null, tint = Color(0xFF72E7BA), modifier = Modifier.size(19.dp)) },
-        modifier = Modifier.weight(1f),
-        onClick = { onSendMessage("Check my battery and device status") }
-      )
-    }
-    Spacer(Modifier.height(22.dp))
   }
 }
 
 @Composable
-private fun HomeActionCard(
+private fun QuickActionChip(
   title: String,
-  detail: String,
-  icon: @Composable () -> Unit,
+  icon: ImageVector,
   modifier: Modifier = Modifier,
   onClick: () -> Unit
 ) {
-  Column(
+  val shape = RoundedCornerShape(22.dp)
+  Row(
     modifier = modifier
-      .height(104.dp)
-      .clip(RoundedCornerShape(23.dp))
-      .background(Color.Transparent)
-      .liquidGlassSurface(
-        shape = RoundedCornerShape(23.dp),
-        tint = Color(0x67121E32),
-        gloss = 0.18f,
-        refraction = 8.dp,
-        blurRadius = 5.dp
-      )
-      .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(23.dp))
+      .height(46.dp)
+      .clip(shape)
+      .background(Color.White.copy(alpha = 0.018f))
+      .liquidGlassSurface(shape, tint = Color(0x291A2C45), gloss = 0.08f)
       .clickable(onClick = onClick)
-      .padding(13.dp),
-    verticalArrangement = Arrangement.SpaceBetween
+      .padding(horizontal = 12.dp, vertical = 8.dp),
+    verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(
-      modifier = Modifier
-        .size(32.dp)
-        .clip(RoundedCornerShape(12.dp))
-        .background(
-          Brush.linearGradient(
-            colors = listOf(Color.White.copy(alpha = 0.10f), Color.White.copy(alpha = 0.035f))
-          )
-        ),
-      contentAlignment = Alignment.Center
-    ) { icon() }
-
-    Column {
-      Text(title, color = TheoTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-      Spacer(Modifier.height(2.dp))
-      Text(detail, color = TheoTextMuted, fontSize = 10.sp)
-    }
+    Icon(icon, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(17.dp))
+    Spacer(Modifier.width(8.dp))
+    Text(
+      text = title,
+      color = TheoTextPrimary,
+      fontSize = 12.sp,
+      fontWeight = FontWeight.Medium,
+      maxLines = 1,
+      overflow = TextOverflow.Ellipsis
+    )
   }
 }

@@ -6,17 +6,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,8 +44,6 @@ import androidx.compose.ui.unit.sp
 import com.example.model.AssistantState
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
-import com.example.ui.theme.TheoSurfaceBorderSubtle
-import com.example.ui.theme.TheoSurfaceGlass
 import com.example.ui.theme.TheoTextMuted
 import com.example.ui.theme.TheoTextPrimary
 import com.example.ui.theme.TheoViolet
@@ -65,50 +59,38 @@ fun TheoComposer(
 ) {
   val isListening = assistantState == AssistantState.LISTENING
   val canSend = inputText.isNotBlank() && assistantState != AssistantState.THINKING
+  val composerShape = RoundedCornerShape(32.dp)
 
   Column(
     modifier = modifier
       .fillMaxWidth()
-      .background(
-        Brush.verticalGradient(
-          colors = listOf(
-            Color.Transparent,
-            Color(0x42050A14),
-            Color(0xD9050810)
-          )
-        )
-      )
       .imePadding()
-      .navigationBarsPadding()
-      .padding(horizontal = 15.dp, vertical = 8.dp)
+      .padding(horizontal = 18.dp, vertical = 8.dp)
   ) {
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .heightIn(min = 58.dp)
-        .clip(RoundedCornerShape(34.dp))
-        .background(Color.Transparent)
+        .clip(composerShape)
         .liquidGlassSurface(
-          shape = RoundedCornerShape(34.dp),
-          tint = Color(0x8E101A2B),
-          gloss = 0.22f,
-          refraction = 11.dp,
-          blurRadius = 8.dp
+          shape = composerShape,
+          tint = Color(0x32131F34),
+          gloss = 0.13f,
+          refraction = 8.dp,
+          blurRadius = 5.dp,
+          opticalGlass = true
         )
-        .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(34.dp))
-        .padding(start = 7.dp, end = 7.dp, top = 6.dp, bottom = 6.dp),
+        .border(0.75.dp, Color.White.copy(alpha = 0.15f), composerShape)
+        .padding(start = 7.dp, end = 7.dp, top = 7.dp, bottom = 7.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
       IconButton(
         onClick = onMicClick,
         modifier = Modifier
-          .size(44.dp)
+          .size(42.dp)
           .clip(CircleShape)
-          .background(
-            if (isListening) Color(0x5438BDF8) else Color.White.copy(alpha = 0.055f)
-          )
+          .background(if (isListening) Color(0x3D63D8FF) else Color.White.copy(alpha = 0.055f))
           .border(
-            1.dp,
+            0.7.dp,
             if (isListening) TheoCyan.copy(alpha = 0.42f) else Color.White.copy(alpha = 0.07f),
             CircleShape
           )
@@ -118,11 +100,11 @@ fun TheoComposer(
           imageVector = if (isListening) Icons.Default.Mic else Icons.Default.MicNone,
           contentDescription = if (isListening) "Stop listening" else "Voice input",
           tint = if (isListening) TheoCyan else TheoTextMuted,
-          modifier = Modifier.size(20.dp)
+          modifier = Modifier.size(19.dp)
         )
       }
 
-      Spacer(Modifier.width(11.dp))
+      Spacer(Modifier.width(12.dp))
       Column(
         modifier = Modifier.weight(1f),
         verticalArrangement = Arrangement.Center
@@ -132,17 +114,19 @@ fun TheoComposer(
           onValueChange = onInputChange,
           modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 25.dp, max = 104.dp)
             .testTag("composer_text_input"),
           textStyle = TextStyle(
             color = TheoTextPrimary,
             fontSize = 15.sp,
-            lineHeight = 20.sp
+            lineHeight = 21.sp
           ),
           cursorBrush = SolidColor(TheoCyan),
           keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
           keyboardActions = KeyboardActions(
             onSend = { if (canSend) onSend(inputText) }
           ),
+          maxLines = 5,
           decorationBox = { innerTextField ->
             if (inputText.isEmpty()) {
               AnimatedContent(
@@ -159,8 +143,9 @@ fun TheoComposer(
                 Text(
                   text = hint,
                   color = TheoTextMuted,
-                  fontSize = 14.sp,
-                  fontWeight = FontWeight.Normal
+                  fontSize = 15.sp,
+                  fontWeight = FontWeight.Normal,
+                  maxLines = 1
                 )
               }
             }
@@ -168,20 +153,21 @@ fun TheoComposer(
           }
         )
       }
-      Spacer(Modifier.width(9.dp))
+
+      Spacer(Modifier.width(8.dp))
       IconButton(
         onClick = { if (canSend) onSend(inputText) },
         enabled = canSend,
         modifier = Modifier
-          .size(44.dp)
+          .size(42.dp)
           .clip(CircleShape)
           .background(
             if (canSend) Brush.linearGradient(listOf(TheoCyan, TheoViolet))
-            else Brush.linearGradient(listOf(Color(0x332E4D69), Color(0x22111B2D)))
+            else Brush.linearGradient(listOf(Color(0x242E4D69), Color(0x18111B2D)))
           )
           .border(
-            1.dp,
-            if (canSend) Color.White.copy(alpha = 0.32f) else Color.White.copy(alpha = 0.045f),
+            0.7.dp,
+            if (canSend) Color.White.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.045f),
             CircleShape
           )
           .testTag("composer_send_button")
@@ -190,27 +176,9 @@ fun TheoComposer(
           imageVector = Icons.AutoMirrored.Filled.Send,
           contentDescription = "Send message",
           tint = if (canSend) TheoDarkBackground else TheoTextMuted,
-          modifier = Modifier.size(19.dp)
+          modifier = Modifier.size(18.dp)
         )
       }
-    }
-
-    Spacer(Modifier.height(5.dp))
-    Row(
-      modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Text(
-        text = if (isListening) "Speak naturally" else "Message Theo",
-        color = TheoTextMuted,
-        fontSize = 9.sp
-      )
-      Spacer(Modifier.weight(1f))
-      Text(
-        text = if (assistantState == AssistantState.THINKING) "Working on it" else "↵ to send",
-        color = TheoTextMuted,
-        fontSize = 9.sp
-      )
     }
   }
 }

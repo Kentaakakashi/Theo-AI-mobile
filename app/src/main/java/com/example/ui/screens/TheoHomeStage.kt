@@ -184,7 +184,7 @@ private fun QuickActionChip(
         blurRadius = 5.dp,
         opticalGlass = true
       )
-      .clickable(onClick = onClick)
+      .clickable { onClick() }
       .padding(horizontal = 12.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {

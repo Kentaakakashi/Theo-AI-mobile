@@ -13,7 +13,7 @@ internal object ActionIntentParser {
     fun match(pattern: String): MatchResult? = Regex(pattern, flags).matchEntire(trimmed)
 
     val explicitExtraDim = Regex(
-      """^(?:please\s+)?(?:turn|switch)\s+(off|on|disable|enable)\s+(?:my\s+)?extra\s+dim(?:\s+feature)?$""",
+      """^(?:please\s+)?(?:turn|switch)\s+(off|on|disable|enable)\s+(?:(?:my|the)\s+)?extra\s+dim(?:\s+feature)?$""",
       flags
     ).matchEntire(trimmed)
     if (explicitExtraDim != null) {
@@ -23,12 +23,23 @@ internal object ActionIntentParser {
       return "screen:current|task:turn $normalizedMode Extra Dim"
     }
 
+    val extraDimTrailingMode = Regex(
+      """^(?:please\s+)?(?:turn|switch)\s+(?:(?:my|the)\s+)?extra\s+dim\s+(off|on|disable|enable)$""",
+      flags
+    ).matchEntire(trimmed)
+    if (extraDimTrailingMode != null) {
+      val mode = extraDimTrailingMode.groupValues[1].lowercase()
+      val normalizedMode = if (mode == "off" || mode == "disable") "off" else "on"
+      SystemUiAutomationBridge.requestNotificationShade()
+      return "screen:current|task:turn $normalizedMode Extra Dim"
+    }
+
     val followUpExtraDim = Regex(
-      """^(?:please\s+)?(?:turn|switch)\s+(?:it|that)\s+(off|on)$""",
+      """^(?:please\s+)?(?:turn|switch)\s+(?:it|that)\s+(off|on|disable|enable)$""",
       flags
     ).matchEntire(trimmed)
     if (followUpExtraDim != null && ConversationContext.previousUserMentions("extra dim")) {
-      val normalizedMode = if (followUpExtraDim.groupValues[1].equals("off", true)) "off" else "on"
+      val normalizedMode = if (followUpExtraDim.groupValues[1].equals("off", true) || followUpExtraDim.groupValues[1].equals("disable", true)) "off" else "on"
       SystemUiAutomationBridge.requestNotificationShade()
       return "screen:current|task:turn $normalizedMode Extra Dim"
     }

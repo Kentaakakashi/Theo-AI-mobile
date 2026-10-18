@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Settings
@@ -103,8 +102,6 @@ fun TheoBottomNavigation(
 
     val density = androidx.compose.ui.platform.LocalDensity.current
     val itemWidthPx = with(density) { itemWidth.toPx() }
-    val islandWidthPx = with(density) { islandWidth.toPx() }
-    val maxDragPx = with(density) { (itemWidth * (tabs.lastIndex)).toPx() }
 
     val targetOffset = restingOffset + with(density) { dragOffsetPx.toDp() }
     val indicatorOffset by animateDpAsState(
@@ -218,8 +215,6 @@ private fun DockDestinationItem(
     label = "TheoDockIconScale"
   )
 
-  // Inactive destinations intentionally have no filled background. The only
-  // material is the single moving glass island above the row.
   val iconTint = when {
     selected || dragging -> Color.White
     else -> Color(0xD0F2F2F4)

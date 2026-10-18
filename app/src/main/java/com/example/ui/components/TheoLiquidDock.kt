@@ -3,8 +3,6 @@ package com.example.ui.components
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -13,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,9 +44,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.TheoCyan
-import com.example.ui.theme.TheoTextPrimary
-import com.example.ui.theme.TheoTextSecondary
 
 private data class DockDestination(
   val label: String,
@@ -58,9 +52,8 @@ private data class DockDestination(
 )
 
 /**
- * Floating liquid-glass navigation built on Theo's existing Kyant Backdrop renderer.
- * Only the dock and selected island opt into optical refraction; the rest of the scrolling UI
- * uses the lighter surface tier so the effect does not become a device-wide blur workload.
+ * Lightweight floating chrome. The dock is intentionally narrow and quiet: the content behind it
+ * remains visible while the selected tab becomes a soft optical island instead of a solid pill.
  */
 @Composable
 fun TheoBottomNavigation(
@@ -81,55 +74,51 @@ fun TheoBottomNavigation(
   BoxWithConstraints(
     modifier = modifier
       .fillMaxWidth()
-      .widthIn(max = 460.dp)
+      .widthIn(max = 430.dp)
       .navigationBarsPadding()
-      .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+      .padding(horizontal = 18.dp, vertical = 7.dp),
     contentAlignment = Alignment.Center
   ) {
     val itemWidth = maxWidth / tabs.size
     val safeTab = currentTab.coerceIn(tabs.indices)
+    val selectedWidth = (itemWidth - 8.dp).coerceAtLeast(48.dp)
     val indicatorOffset by animateDpAsState(
-      targetValue = itemWidth * safeTab + 5.dp,
-      animationSpec = spring(dampingRatio = 0.78f, stiffness = 600f),
+      targetValue = itemWidth * safeTab + 4.dp,
+      animationSpec = spring(dampingRatio = 0.82f, stiffness = 520f),
       label = "TheoDockLiquidSlide"
     )
-    val dockShape = RoundedCornerShape(36.dp)
-    val islandShape = RoundedCornerShape(30.dp)
+    val dockShape = RoundedCornerShape(31.dp)
+    val islandShape = RoundedCornerShape(25.dp)
 
     Box(
       modifier = Modifier
         .fillMaxWidth()
-        .height(72.dp)
+        .height(64.dp)
         .clip(dockShape)
         .liquidGlassSurface(
           shape = dockShape,
-          tint = Color(0x2B111D31),
-          gloss = 0.14f,
+          tint = Color(0x20111D31),
+          gloss = 0.13f,
           refraction = 10.dp,
-          blurRadius = 6.dp,
+          blurRadius = 7.dp,
           opticalGlass = true
         )
-        .then(
-          Modifier.background(Color.White.copy(alpha = 0.012f), dockShape)
-        )
-        .border(0.8.dp, Color.White.copy(alpha = 0.20f), dockShape)
     ) {
       Box(
         modifier = Modifier
           .offset(x = indicatorOffset)
-          .width((itemWidth - 10.dp).coerceAtLeast(40.dp))
+          .width(selectedWidth)
           .fillMaxHeight()
-          .padding(vertical = 4.dp)
+          .padding(vertical = 5.dp)
           .clip(islandShape)
           .liquidGlassSurface(
             shape = islandShape,
-            tint = Color(0x3573BDEB),
-            gloss = 0.17f,
-            refraction = 12.dp,
+            tint = Color(0x2B73BDEB),
+            gloss = 0.16f,
+            refraction = 11.dp,
             blurRadius = 6.dp,
             opticalGlass = true
           )
-          .border(0.65.dp, Color.White.copy(alpha = 0.22f), islandShape)
       )
 
       Row(
@@ -160,15 +149,15 @@ private fun DockDestinationItem(
   val pressed by interactionSource.collectIsPressedAsState()
   val iconScale by animateFloatAsState(
     targetValue = when {
-      pressed -> 0.94f
-      selected -> 1.04f
-      else -> 0.97f
+      pressed -> 0.92f
+      selected -> 1.06f
+      else -> 1f
     },
     animationSpec = spring(dampingRatio = 0.72f, stiffness = 600f),
     label = "TheoDockIconScale"
   )
-  val iconTint = if (selected) Color(0xFFF7FBFF) else Color(0xFFB0BCD0)
-  val labelTint = if (selected) Color(0xFFF2F8FF) else Color(0xC5C0CCDD)
+  val iconTint = if (selected) Color.White else Color(0xC9B9C5D6)
+  val labelTint = if (selected) Color.White else Color(0xAAB9C5D6)
 
   Column(
     modifier = modifier
@@ -179,7 +168,7 @@ private fun DockDestinationItem(
         onClick = onClick
       )
       .semantics { this.selected = selected }
-      .padding(top = 3.dp, bottom = 3.dp),
+      .padding(vertical = 2.dp),
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.Center
   ) {
@@ -188,19 +177,17 @@ private fun DockDestinationItem(
       contentDescription = destination.label,
       tint = iconTint,
       modifier = Modifier
-        .size(21.dp)
+        .size(20.dp)
         .graphicsLayer {
           scaleX = iconScale
           scaleY = iconScale
         }
     )
-    Spacer(Modifier.height(3.dp))
     Text(
       text = destination.label,
       color = labelTint,
-      fontSize = 10.5.sp,
-      lineHeight = 12.sp,
-      fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium,
+      fontSize = 9.5.sp,
+      lineHeight = 11.sp,
       maxLines = 1,
       letterSpacing = 0.sp
     )

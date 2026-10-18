@@ -15,16 +15,16 @@
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/compose)
 [![Minimum SDK](https://img.shields.io/badge/Min%20SDK-24-informational)](https://developer.android.com/)
-[![Branch](https://img.shields.io/badge/Branch-experiment%2Ftheo--liquid--glass-8A63D2)](https://github.com/Kentaakakashi/Theo-AI-mobile/tree/experiment/theo-liquid-glass)
+[![Branch](https://img.shields.io/badge/Branch-main-181717)](https://github.com/Kentaakakashi/Theo-AI-mobile/tree/main)
 
-[**Explore the code**](https://github.com/Kentaakakashi/Theo-AI-mobile/tree/experiment/theo-liquid-glass) · [Screen automation](SCREEN_AUTOMATION.md) · [Liquid Glass design](LIQUID_GLASS_DESIGN.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+[**Explore the code**](https://github.com/Kentaakakashi/Theo-AI-mobile/tree/main) · [Screen automation](SCREEN_AUTOMATION.md) · [Liquid Glass design](LIQUID_GLASS_DESIGN.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 </div>
 
 ---
 
 > [!NOTE]
-> **Experimental branch:** This README describes documented capabilities and the direction of the project. Items marked **Planned** are goals, not promises that the feature is already implemented. Check the source and test the current build to confirm availability.
+> **Main branch:** This README describes documented capabilities and the direction of the project. Items marked **Planned** are goals, not promises that the feature is already implemented. Check the source and test the current build to confirm availability.
 
 ## The idea
 
@@ -113,9 +113,9 @@ Theo already has memory/history functionality, but the existing Memory experienc
 
 The preferred starting point is local persistence with the database already used by Theo, or native Room/SQLite where appropriate. Begin with lightweight local search; a hosted vector database should not be required. This section is a **roadmap**, not a claim that all these controls are implemented today.
 
-## The Liquid Glass experiment
+## The Liquid Glass interface
 
-The `experiment/theo-liquid-glass` branch explores a more atmospheric assistant interface: dark ink/navy foundations, subtle blue-violet light, translucent surfaces, optical highlights, and floating navigation.
+The main branch includes Theo's atmospheric assistant interface: dark ink/navy foundations, subtle blue-violet light, translucent surfaces, optical highlights, and floating navigation.
 
 Design priorities:
 
@@ -192,7 +192,7 @@ Theo is an Android project built with Kotlin and Jetpack Compose.
    ```bash
    git clone https://github.com/Kentaakakashi/Theo-AI-mobile.git
    cd Theo-AI-mobile
-   git checkout experiment/theo-liquid-glass
+   git checkout main
    ```
 
 2. Open the project in a compatible Android Studio installation and let Gradle sync using the SDK required by the project.

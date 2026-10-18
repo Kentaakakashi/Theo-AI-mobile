@@ -144,10 +144,10 @@ fun MemoryMatrixScreen(
         IconButton(
           onClick = { showAddDialog = true },
           modifier = Modifier
-            .size(36.dp)
+            .size(40.dp)
             .clip(CircleShape)
-            .background(TheoCyan.copy(alpha = 0.2f))
-            .border(1.dp, TheoCyan, CircleShape)
+            .liquidGlassSurface(CircleShape, tint = Color(0x297BCBFF), gloss = 0.13f)
+            .border(0.8.dp, Color.White.copy(alpha = 0.16f), CircleShape)
             .testTag("add_memory_btn")
         ) {
           Icon(
@@ -164,11 +164,10 @@ fun MemoryMatrixScreen(
         modifier = Modifier
           .fillMaxWidth()
           .padding(top = 10.dp)
-          .clip(RoundedCornerShape(12.dp))
-          .background(Color.Transparent)
-                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
-          .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
-          .padding(10.dp)
+          .clip(RoundedCornerShape(20.dp))
+          .liquidGlassSurface(RoundedCornerShape(20.dp), tint = TheoSurfaceGlass, gloss = 0.10f)
+          .border(0.7.dp, Color.White.copy(alpha = 0.085f), RoundedCornerShape(20.dp))
+          .padding(horizontal = 14.dp, vertical = 12.dp)
       ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
           Icon(
@@ -192,11 +191,10 @@ fun MemoryMatrixScreen(
       Row(
         modifier = Modifier
           .fillMaxWidth()
-          .clip(RoundedCornerShape(12.dp))
-          .background(Color.Transparent)
-                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceCard, gloss = 0.08f)
-          .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
-          .padding(horizontal = 12.dp, vertical = 8.dp),
+          .clip(RoundedCornerShape(20.dp))
+          .liquidGlassSurface(RoundedCornerShape(20.dp), tint = TheoSurfaceGlass, gloss = 0.10f)
+          .border(0.7.dp, Color.White.copy(alpha = 0.095f), RoundedCornerShape(20.dp))
+          .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
         Icon(
@@ -241,12 +239,20 @@ fun MemoryMatrixScreen(
       ) {
         categories.forEach { cat ->
           val isSelected = selectedCategory == cat
+          val pillShape = RoundedCornerShape(50.dp)
           Box(
             modifier = Modifier
-              .clip(RoundedCornerShape(12.dp))
-              .background(if (isSelected) TheoCyan.copy(alpha = 0.09f) else TheoSurfaceCard)
-              .liquidGlassSurface(RoundedCornerShape(12.dp), tint = if (isSelected) Color(0xFF123047) else TheoSurfaceCard, gloss = 0.08f)
-              .border(1.dp, if (isSelected) TheoCyan.copy(alpha = 0.32f) else Color.Transparent, RoundedCornerShape(12.dp))
+              .clip(pillShape)
+              .liquidGlassSurface(
+                pillShape,
+                tint = if (isSelected) Color(0x3B3F85BB) else Color(0x201B2C44),
+                gloss = 0.08f
+              )
+              .border(
+                0.7.dp,
+                if (isSelected) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.065f),
+                pillShape
+              )
               .clickable { onCategorySelect(cat) }
               .padding(horizontal = 12.dp, vertical = 6.dp)
           ) {
@@ -304,7 +310,7 @@ fun MemoryMatrixScreen(
             )
           }
           item {
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(14.dp))
           }
         }
       }
@@ -392,11 +398,11 @@ private fun MemoryCardItem(
   Box(
     modifier = Modifier
       .fillMaxWidth()
-      .clip(RoundedCornerShape(12.dp))
+      .clip(RoundedCornerShape(20.dp))
       .background(Color.Transparent)
-                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
-      .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
-      .padding(12.dp)
+                .liquidGlassSurface(RoundedCornerShape(20.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+      .border(0.7.dp, Color.White.copy(alpha = 0.085f), RoundedCornerShape(20.dp))
+      .padding(14.dp)
       .testTag("memory_item_card")
   ) {
     Column {
@@ -408,9 +414,9 @@ private fun MemoryCardItem(
         // Category chip
         Box(
           modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(TheoViolet.copy(alpha = 0.2f))
-            .border(1.dp, TheoViolet.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(10.dp))
+            .background(TheoViolet.copy(alpha = 0.12f))
+            .border(0.6.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(10.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {
           Text(

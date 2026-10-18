@@ -154,7 +154,7 @@ fun ActivityHistoryScreen(
             ActivityTimelineItem(activity = activity)
           }
           item {
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(14.dp))
           }
         }
       }
@@ -176,11 +176,11 @@ private fun ActivityTimelineItem(activity: ActivityEntity) {
   Box(
     modifier = Modifier
       .fillMaxWidth()
-      .clip(RoundedCornerShape(12.dp))
+      .clip(RoundedCornerShape(20.dp))
       .background(Color.Transparent)
-                .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
-      .neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
-      .padding(12.dp)
+                .liquidGlassSurface(RoundedCornerShape(20.dp), tint = TheoSurfaceGlass, gloss = 0.10f)
+      .border(0.7.dp, Color.White.copy(alpha = 0.085f), RoundedCornerShape(20.dp))
+      .padding(14.dp)
   ) {
     Row(verticalAlignment = Alignment.Top) {
       Box(
@@ -188,7 +188,7 @@ private fun ActivityTimelineItem(activity: ActivityEntity) {
           .size(32.dp)
           .clip(CircleShape)
           .background(tintColor.copy(alpha = 0.15f))
-          .border(1.dp, tintColor.copy(alpha = 0.5f), CircleShape),
+          .border(1.dp, tintColor.copy(alpha = 0.24f), CircleShape),
         contentAlignment = Alignment.Center
       ) {
         Icon(

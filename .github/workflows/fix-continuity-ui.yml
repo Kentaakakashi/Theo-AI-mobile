@@ -10,15 +10,13 @@ permissions:
 
 jobs:
   patch:
-    if: ${{ !contains(github.event.head_commit.message, '[skip-theo-fixer]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Apply Theo fixes
-        shell: bash
+      - name: Patch Theo sources
         run: |
           python3 <<'PY'
           from pathlib import Path
@@ -26,18 +24,8 @@ jobs:
 
           root = Path('.')
 
-          # ------------------------------------------------------------
-          # Short-term conversational context shared by the parser/engine.
-          # ------------------------------------------------------------
-          context = root / 'app/src/main/java/com/example/service/ConversationContext.kt'
-          context.write_text(r'''package com.example.service
+          (root / 'app/src/main/java/com/example/service/ConversationContext.kt').write_text('''package com.example.service
 
-/**
- * Small in-process conversation buffer used to keep immediate chat continuity.
- * The Room chat history remains the source of truth for the UI; this buffer only
- * supplies recent turns to the active AI request so Theo does not treat every
- * message as a brand-new conversation.
- */
 internal object ConversationContext {
   private data class Turn(val role: String, val text: String)
   private const val MAX_TURNS = 12
@@ -45,7 +33,6 @@ internal object ConversationContext {
   private val turns = ArrayDeque<Turn>()
 
   fun recordUser(text: String) = record("User", text)
-
   fun recordAssistant(text: String) = record("Theo", text)
 
   private fun record(role: String, text: String) {
@@ -66,120 +53,190 @@ internal object ConversationContext {
   }
 
   fun forPrompt(maxTurns: Int = 8): String = synchronized(lock) {
-    turns.takeLast(maxTurns).joinToString("\n") { turn ->
-      "${turn.role}: ${turn.text}"
-    }.take(7000)
+    turns.takeLast(maxTurns).joinToString("\\n") { "${it.role}: ${it.text}" }.take(7000)
   }
 }
 ''')
 
-          # ------------------------------------------------------------
-          # System UI bridge: the accessibility service can open Android's
-          # notification/quick-settings shade when a system-setting task asks for it.
-          # ------------------------------------------------------------
-          bridge = root / 'app/src/main/java/com/example/service/SystemUiAutomationBridge.kt'
-          bridge.write_text(r'''package com.example.service
+          (root / 'app/src/main/java/com/example/service/SystemUiAutomationBridge.kt').write_text('''package com.example.service
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** Coordinates explicit system-UI tasks without pretending an app has root access. */
 internal object SystemUiAutomationBridge {
   private val openNotificationShade = AtomicBoolean(false)
-
-  fun requestNotificationShade() {
-    openNotificationShade.set(true)
-  }
-
-  fun consumeNotificationShadeRequest(): Boolean =
-    openNotificationShade.compareAndSet(true, false)
+  fun requestNotificationShade() { openNotificationShade.set(true) }
+  fun consumeNotificationShadeRequest(): Boolean = openNotificationShade.compareAndSet(true, false)
 }
 ''')
 
-          # ------------------------------------------------------------
-          # Action parser: understand Extra Dim and the natural follow-up
-          # "turn it off" when the immediately preceding user request was about it.
-          # ------------------------------------------------------------
           p = root / 'app/src/main/java/com/example/service/ActionIntentParser.kt'
           s = p.read_text()
-          marker = '''    // Screen inspection is a native Android action, not a prompt for the chat model to guess.\n'''
-          insert = '''    // System display controls live in Android's Quick Settings. Ask the native\n    // accessibility bridge to open the notification shade before the planner reads it.\n    val explicitExtraDim = Regex(\n      "^(?:please\\\\s+)?(?:turn|switch)\\\\s+(off|on|disable|enable)\\\\s+(?:my\\\\s+)?extra\\\\s+dim(?:\\\\s+feature)?$",\n      flags\n    ).matchEntire(trimmed)\n    if (explicitExtraDim != null) {\n      val mode = explicitExtraDim.groupValues[1].lowercase()\n      val normalizedMode = if (mode == "off" || mode == "disable") "off" else "on"\n      SystemUiAutomationBridge.requestNotificationShade()\n      return "screen:current|task:turn $normalizedMode Extra Dim"\n    }\n\n    val followUpExtraDim = Regex(\n      "^(?:please\\\\s+)?(?:turn|switch)\\\\s+(?:it|that)\\\\s+(off|on)$",\n      flags\n    ).matchEntire(trimmed)\n    if (followUpExtraDim != null && ConversationContext.previousUserMentions("extra dim")) {\n      val normalizedMode = if (followUpExtraDim.groupValues[1].equals("off", true)) "off" else "on"\n      SystemUiAutomationBridge.requestNotificationShade()\n      return "screen:current|task:turn $normalizedMode Extra Dim"\n    }\n\n'''
-          if marker not in s:
-              raise SystemExit('ActionIntentParser marker not found')
-          s = s.replace(marker, insert + marker, 1)
-          p.write_text(s)
+          marker = '    // Screen inspection is a native Android action, not a prompt for the chat model to guess.\n'
+          insert = '''    val explicitExtraDim = Regex(
+      "^(?:please\\s+)?(?:turn|switch)\\s+(off|on|disable|enable)\\s+(?:my\\s+)?extra\\s+dim(?:\\s+feature)?$",
+      flags
+    ).matchEntire(trimmed)
+    if (explicitExtraDim != null) {
+      val mode = explicitExtraDim.groupValues[1].lowercase()
+      val normalizedMode = if (mode == "off" || mode == "disable") "off" else "on"
+      SystemUiAutomationBridge.requestNotificationShade()
+      return "screen:current|task:turn $normalizedMode Extra Dim"
+    }
 
-          # ------------------------------------------------------------
-          # Accessibility service: consume the system-UI request immediately
-          # before taking the first planner snapshot.
-          # ------------------------------------------------------------
+    val followUpExtraDim = Regex(
+      "^(?:please\\s+)?(?:turn|switch)\\s+(?:it|that)\\s+(off|on)$",
+      flags
+    ).matchEntire(trimmed)
+    if (followUpExtraDim != null && ConversationContext.previousUserMentions("extra dim")) {
+      val normalizedMode = if (followUpExtraDim.groupValues[1].equals("off", true)) "off" else "on"
+      SystemUiAutomationBridge.requestNotificationShade()
+      return "screen:current|task:turn $normalizedMode Extra Dim"
+    }
+
+'''
+          assert marker in s
+          p.write_text(s.replace(marker, insert + marker, 1))
+
           p = root / 'app/src/main/java/com/example/service/TheoAccessibilityService.kt'
           s = p.read_text()
-          marker = '''  fun captureActiveScreen(): ScreenSnapshot? {\n    val root = findExternalWindowRoot() ?: return null\n'''
-          replacement = '''  fun captureActiveScreen(): ScreenSnapshot? {\n    if (SystemUiAutomationBridge.consumeNotificationShadeRequest()) {\n      // GLOBAL_ACTION_NOTIFICATIONS is the Android accessibility API for opening\n      // the notification/Quick Settings shade. It does not require root/ADB.\n      runCatching { performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS) }\n      SystemClock.sleep(300L)\n    }\n    val root = findExternalWindowRoot() ?: return null\n'''
-          if marker not in s:
-              raise SystemExit('TheoAccessibilityService marker not found')
-          s = s.replace(marker, replacement, 1)
-          p.write_text(s)
+          marker = '  fun captureActiveScreen(): ScreenSnapshot? {\n    val root = findExternalWindowRoot() ?: return null\n'
+          replacement = '''  fun captureActiveScreen(): ScreenSnapshot? {
+    if (SystemUiAutomationBridge.consumeNotificationShadeRequest()) {
+      runCatching { performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS) }
+      SystemClock.sleep(300L)
+    }
+    val root = findExternalWindowRoot() ?: return null
+'''
+          assert marker in s
+          p.write_text(s.replace(marker, replacement, 1))
 
-          # ------------------------------------------------------------
-          # AI continuity: feed recent turns to Gemini and local Qwen.
-          # ------------------------------------------------------------
           p = root / 'app/src/main/java/com/example/service/TheoAiEngine.kt'
           s = p.read_text()
-          marker = '''    val startTime = System.currentTimeMillis()\n    onProgress("Analyzing your request")\n'''
-          replacement = '''    val startTime = System.currentTimeMillis()\n    ConversationContext.recordUser(prompt)\n    onProgress("Analyzing your request")\n'''
-          if marker not in s:
-              raise SystemExit('TheoAiEngine start marker not found')
+          marker = '    val startTime = System.currentTimeMillis()\n    onProgress("Analyzing your request")\n'
+          assert marker in s
+          s = s.replace(marker, '    val startTime = System.currentTimeMillis()\n    ConversationContext.recordUser(prompt)\n    onProgress("Analyzing your request")\n', 1)
+
+          marker = '''    // Build memory context string
+    val memoryContext = if (memories.isNotEmpty()) {
+      ("Known Operator Memory Context:\\n" + memories.take(8).joinToString("\\n") { "- ${it.key.take(120)}: ${it.value.take(300)} [${it.category.take(60)}]" }).take(3000)
+    } else {
+      "No operator memory stored yet."
+    }
+'''
+          replacement = '''    val persistentMemoryContext = if (memories.isNotEmpty()) {
+      ("Known Operator Memory Context:\\n" + memories.take(8).joinToString("\\n") { "- ${it.key.take(120)}: ${it.value.take(300)} [${it.category.take(60)}]" }).take(3000)
+    } else {
+      "No operator memory stored yet."
+    }
+    val recentConversationContext = ConversationContext.forPrompt()
+    val memoryContext = buildString {
+      append(persistentMemoryContext)
+      if (recentConversationContext.isNotBlank()) {
+        append("\\n\\nRecent Conversation Context (use this to resolve follow-ups):\\n")
+        append(recentConversationContext)
+      }
+    }.take(9000)
+'''
+          assert marker in s
           s = s.replace(marker, replacement, 1)
 
-          marker = '''    // Build memory context string\n    val memoryContext = if (memories.isNotEmpty()) {\n      ("Known Operator Memory Context:\\n" + memories.take(8).joinToString("\\n") { "- ${it.key.take(120)}: ${it.value.take(300)} [${it.category.take(60)}]" }).take(3000)\n    } else {\n      "No operator memory stored yet."\n    }\n'''
-          replacement = '''    // Build both persistent memory and recent conversational context.\n    // The previous implementation sent only Memory tab facts to Gemini, so every\n    // ordinary reply effectively started a fresh conversation.\n    val persistentMemoryContext = if (memories.isNotEmpty()) {\n      ("Known Operator Memory Context:\\n" + memories.take(8).joinToString("\\n") { "- ${it.key.take(120)}: ${it.value.take(300)} [${it.category.take(60)}]" }).take(3000)\n    } else {\n      "No operator memory stored yet."\n    }\n    val recentConversationContext = ConversationContext.forPrompt()\n    val memoryContext = buildString {\n      append(persistentMemoryContext)\n      if (recentConversationContext.isNotBlank()) {\n        append("\\n\\nRecent Conversation Context (use this to resolve follow-ups):\\n")\n        append(recentConversationContext)\n      }\n    }.take(9000)\n'''
-          if marker not in s:
-              raise SystemExit('TheoAiEngine memory marker not found')
-          s = s.replace(marker, replacement, 1)
-
-          marker = '''    // Attach memory and action metadata\n    result.copy(\n'''
-          replacement = '''    // Keep the latest successful AI turn available to the next request.\n    ConversationContext.recordAssistant(result.responseText)\n\n    // Attach memory and action metadata\n    result.copy(\n'''
-          if marker not in s:
-              raise SystemExit('TheoAiEngine result marker not found')
-          s = s.replace(marker, replacement, 1)
+          marker = '    // Attach memory and action metadata\n    result.copy(\n'
+          assert marker in s
+          s = s.replace(marker, '    ConversationContext.recordAssistant(result.responseText)\n\n    // Attach memory and action metadata\n    result.copy(\n', 1)
           p.write_text(s)
 
-          # ------------------------------------------------------------
-          # UI: one scroll surface for the entire Home/orb + conversation.
-          # The orb is item 0, so normal message scrolling naturally pushes it
-          # upward. Scrolling back to the top reveals the same orb again.
-          # ------------------------------------------------------------
           p = root / 'app/src/main/java/com/example/ui/screens/CoreAssistantScreen.kt'
           s = p.read_text()
           start = s.index('      if (messages.isEmpty()) {')
           end = s.index('      AnimatedVisibility(', start)
-          replacement = '''      LazyColumn(\n        state = listState,\n        modifier = Modifier.weight(1f).fillMaxWidth(),\n        verticalArrangement = Arrangement.spacedBy(5.dp)\n      ) {\n        item(key = "theo_home_stage") {\n          TheoHomeStage(\n            uiState = uiState,\n            onOrbClick = onOrbClick,\n            onSendMessage = onSendMessage,\n            onInputChange = onInputChange,\n            modifier = Modifier\n              .fillMaxWidth()\n              .height(560.dp)\n          )\n        }\n\n        item(key = "conversation_header") {\n          Row(\n            modifier = Modifier\n              .fillMaxWidth()\n              .padding(horizontal = 20.dp, vertical = 7.dp),\n            verticalAlignment = Alignment.CenterVertically\n          ) {\n            Box(\n              modifier = Modifier\n                .size(30.dp)\n                .clip(CircleShape)\n                .background(Color.White.copy(alpha = 0.055f)),\n              contentAlignment = Alignment.Center\n            ) {\n              Icon(\n                imageVector = Icons.Default.AutoAwesome,\n                contentDescription = null,\n                tint = TheoCyan,\n                modifier = Modifier.size(16.dp)\n              )\n            }\n            Spacer(Modifier.width(10.dp))\n            Column(modifier = Modifier.weight(1f)) {\n              Text(\n                text = "Conversation",\n                color = TheoTextPrimary,\n                fontSize = 13.sp,\n                fontWeight = FontWeight.SemiBold\n              )\n              Text(\n                text = when (uiState.assistantState) {\n                  com.example.model.AssistantState.IDLE -> "Theo is here with you"\n                  com.example.model.AssistantState.LISTENING -> "Listening for your next command"\n                  com.example.model.AssistantState.THINKING -> "Working on your request"\n                  com.example.model.AssistantState.SPEAKING -> "Replying to you"\n                  com.example.model.AssistantState.OFFLINE -> "Check the active AI provider"\n                },\n                color = TheoTextMuted,\n                fontSize = 11.sp,\n                maxLines = 1\n              )\n            }\n            Text(\n              text = messages.size.toString(),\n              color = TheoTextMuted,\n              fontSize = 11.sp,\n              fontWeight = FontWeight.Medium\n            )\n          }\n        }\n\n        items(messages, key = { it.id }) { message ->\n          ChatMessageBubble(message = message, onExecuteAction = onExecuteAction)\n        }\n\n        if (uiState.streamingText.isNotBlank()) {\n          item(key = "live_gemini_stream") {\n            Column(\n              modifier = Modifier\n                .fillMaxWidth()\n                .padding(vertical = 4.dp, horizontal = 12.dp)\n            ) {\n              Text(\n                text = "Theo is replying",\n                color = TheoTextSecondary,\n                fontSize = 11.sp,\n                fontWeight = FontWeight.Medium,\n                modifier = Modifier.padding(start = 8.dp, bottom = 5.dp)\n              )\n              Box(\n                modifier = Modifier\n                  .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp))\n                  .background(Color.Transparent)\n                  .liquidGlassSurface(\n                    shape = RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp),\n                    tint = Color(0x8A1B1B1B),\n                    gloss = 0.12f\n                  )\n                  .padding(horizontal = 15.dp, vertical = 13.dp)\n              ) {\n                Text(\n                  text = uiState.streamingText,\n                  color = TheoTextPrimary,\n                  fontSize = 14.sp,\n                  lineHeight = 21.sp\n                )\n              }\n            }\n          }\n        }\n        item { Spacer(Modifier.height(8.dp)) }\n      }\n\n'''
+          replacement = '''      LazyColumn(
+        state = listState,
+        modifier = Modifier.weight(1f).fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+      ) {
+        item(key = "theo_home_stage") {
+          TheoHomeStage(
+            uiState = uiState,
+            onOrbClick = onOrbClick,
+            onSendMessage = onSendMessage,
+            onInputChange = onInputChange,
+            modifier = Modifier.fillMaxWidth().height(560.dp)
+          )
+        }
+
+        item(key = "conversation_header") {
+          Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Box(
+              modifier = Modifier.size(30.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.055f)),
+              contentAlignment = Alignment.Center
+            ) {
+              Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(16.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+              Text("Conversation", color = TheoTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+              Text(
+                when (uiState.assistantState) {
+                  com.example.model.AssistantState.IDLE -> "Theo is here with you"
+                  com.example.model.AssistantState.LISTENING -> "Listening for your next command"
+                  com.example.model.AssistantState.THINKING -> "Working on your request"
+                  com.example.model.AssistantState.SPEAKING -> "Replying to you"
+                  com.example.model.AssistantState.OFFLINE -> "Check the active AI provider"
+                },
+                color = TheoTextMuted,
+                fontSize = 11.sp,
+                maxLines = 1
+              )
+            }
+            Text(messages.size.toString(), color = TheoTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+          }
+        }
+
+        items(messages, key = { it.id }) { message ->
+          ChatMessageBubble(message = message, onExecuteAction = onExecuteAction)
+        }
+
+        if (uiState.streamingText.isNotBlank()) {
+          item(key = "live_gemini_stream") {
+            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 12.dp)) {
+              Text("Theo is replying", color = TheoTextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 8.dp, bottom = 5.dp))
+              Box(
+                modifier = Modifier
+                  .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp))
+                  .background(Color.Transparent)
+                  .liquidGlassSurface(RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp), tint = Color(0x8A1B1B1B), gloss = 0.12f)
+                  .padding(horizontal = 15.dp, vertical = 13.dp)
+              ) {
+                Text(uiState.streamingText, color = TheoTextPrimary, fontSize = 14.sp, lineHeight = 21.sp)
+              }
+            }
+          }
+        }
+        item { Spacer(Modifier.height(8.dp)) }
+      }
+
+'''
           s = s[:start] + replacement + s[end:]
-
-          # Adjust the auto-scroll target because the home stage + conversation header\n          # now occupy the first two LazyColumn items.\n          old = '''      val lastMessageIndex = (messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)\n        .coerceAtLeast(0)\n      listState.animateScrollToItem(lastMessageIndex)\n'''
-          new = '''      val lastMessageIndex = (2 + messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)\n        .coerceAtLeast(0)\n      listState.animateScrollToItem(lastMessageIndex)\n'''
-          if old not in s:
-              raise SystemExit('CoreAssistantScreen scroll marker not found')
-          s = s.replace(old, new, 1)
-          p.write_text(s)
-
-          # Make sure the screen can still compile after the structural replacement.
-          print('Theo fixes applied')
+          old = '''      val lastMessageIndex = (messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)
+        .coerceAtLeast(0)
+      listState.animateScrollToItem(lastMessageIndex)
+'''
+          new = '''      val lastMessageIndex = (2 + messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)
+        .coerceAtLeast(0)
+      listState.animateScrollToItem(lastMessageIndex)
+'''
+          assert old in s
+          p.write_text(s.replace(old, new, 1))
+          print('patch complete')
           PY
 
-      - name: Commit patched sources and remove fixer
-        shell: bash
+      - name: Commit fixes
         run: |
           git config user.name "Theo Fixer"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          rm -f .github/workflows/fix-continuity-ui.yml
-          git add app/src/main/java/com/example/service/ConversationContext.kt \
-                  app/src/main/java/com/example/service/SystemUiAutomationBridge.kt \
-                  app/src/main/java/com/example/service/ActionIntentParser.kt \
-                  app/src/main/java/com/example/service/TheoAccessibilityService.kt \
-                  app/src/main/java/com/example/service/TheoAiEngine.kt \
-                  app/src/main/java/com/example/ui/screens/CoreAssistantScreen.kt \
-                  .github/workflows/fix-continuity-ui.yml
+          git add app/src/main/java/com/example/service app/src/main/java/com/example/ui/screens/CoreAssistantScreen.kt
           git commit -m "Fix chat continuity, scrolling hero, and system UI automation [skip-theo-fixer]"
           git push origin HEAD:experiment/theo-liquid-glass

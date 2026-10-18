@@ -53,7 +53,6 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
@@ -67,9 +66,11 @@ private data class DockDestination(
 )
 
 /**
- * Theo's navigation is a real optical lens, not a coloured selected pill.
- * The lens is deliberately transparent: the backdrop supplies the visual material while the
- * content underneath remains readable. Long-press + horizontal drag moves the lens between tabs.
+ * Theo's navigation uses a transparent optical lens.
+ *
+ * IMPORTANT: do not blur the lens backdrop. The dock items beneath the lens must remain crisp;
+ * the lens should change their apparent position/scale/refraction, not turn them into a frosted
+ * blur. The only softness comes from the glass edge/highlight and the surrounding material.
  */
 @Composable
 fun TheoBottomNavigation(
@@ -139,16 +140,17 @@ fun TheoBottomNavigation(
               backdrop = screenBackdrop,
               shape = { dockShape },
               effects = {
-                blur(8.dp.toPx())
+                // Keep the dock material itself subtle. Do not apply a large blur here: this
+                // would make the content seen through the selected lens look permanently soft.
                 lens(
-                  refractionHeight = 14.dp.toPx(),
-                  refractionAmount = 10.dp.toPx(),
+                  refractionHeight = 8.dp.toPx(),
+                  refractionAmount = 5.dp.toPx(),
                   depthEffect = true,
                   chromaticAberration = false
                 )
               },
-              highlight = { Highlight.Default.copy(alpha = 0.22f) },
-              shadow = { Shadow(alpha = 0.10f) }
+              highlight = { Highlight.Default.copy(alpha = 0.16f) },
+              shadow = { Shadow(alpha = 0.08f) }
             )
           } else {
             Modifier.border(1.dp, Color.White.copy(alpha = 0.12f), dockShape)
@@ -210,8 +212,7 @@ fun TheoBottomNavigation(
         }
       }
 
-      // This is the only selected-state material. There is intentionally no painted colour fill.
-      // The backdrop underneath is refracted through this transparent optical surface.
+      // Transparent lens only. No colour fill and, critically, no blur.
       Box(
         modifier = Modifier
           .offset(x = liveLeft)
@@ -225,18 +226,20 @@ fun TheoBottomNavigation(
                 backdrop = lensBackdrop,
                 shape = { lensShape },
                 effects = {
-                  blur((9f + lift * 5f).dp.toPx())
+                  // The lens refracts the crisp dock content instead of blurring it.
                   lens(
-                    refractionHeight = (26f + lift * 10f).dp.toPx(),
-                    refractionAmount = (34f + lift * 18f).dp.toPx(),
+                    refractionHeight = (30f + lift * 8f).dp.toPx(),
+                    refractionAmount = (42f + lift * 14f).dp.toPx(),
                     depthEffect = true,
-                    chromaticAberration = true
+                    chromaticAberration = false
                   )
                 },
                 highlight = {
-                  Highlight.Default.copy(alpha = (0.30f + lift * 0.22f).coerceAtMost(0.55f))
+                  Highlight.Default.copy(
+                    alpha = (0.22f + lift * 0.16f).coerceAtMost(0.42f)
+                  )
                 },
-                shadow = { Shadow(alpha = 0.08f + lift * 0.08f) }
+                shadow = { Shadow(alpha = 0.06f + lift * 0.05f) }
               )
             } else {
               Modifier.border(1.dp, Color.White.copy(alpha = 0.16f), lensShape)

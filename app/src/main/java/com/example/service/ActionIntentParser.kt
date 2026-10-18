@@ -13,7 +13,7 @@ internal object ActionIntentParser {
     fun match(pattern: String): MatchResult? = Regex(pattern, flags).matchEntire(trimmed)
 
     val explicitExtraDim = Regex(
-      "^(?:please\s+)?(?:turn|switch)\s+(off|on|disable|enable)\s+(?:my\s+)?extra\s+dim(?:\s+feature)?$",
+      """^(?:please\s+)?(?:turn|switch)\s+(off|on|disable|enable)\s+(?:my\s+)?extra\s+dim(?:\s+feature)?$""",
       flags
     ).matchEntire(trimmed)
     if (explicitExtraDim != null) {
@@ -24,7 +24,7 @@ internal object ActionIntentParser {
     }
 
     val followUpExtraDim = Regex(
-      "^(?:please\s+)?(?:turn|switch)\s+(?:it|that)\s+(off|on)$",
+      """^(?:please\s+)?(?:turn|switch)\s+(?:it|that)\s+(off|on)$""",
       flags
     ).matchEntire(trimmed)
     if (followUpExtraDim != null && ConversationContext.previousUserMentions("extra dim")) {

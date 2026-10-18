@@ -105,20 +105,20 @@ fun SettingsScreen(
       .background(Color.Transparent)
       .hudScanlines()
       .statusBarsPadding()
-      .navigationBarsPadding()
+
   ) {
     Column(
       modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
-        .padding(horizontal = 16.dp)
+        .padding(horizontal = 18.dp)
     ) {
       Spacer(modifier = Modifier.height(8.dp))
       // Title
       Text(
         text = "Settings",
         color = TheoTextPrimary,
-        fontSize = 28.sp,
+        fontSize = 26.sp,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = (-0.65).sp
       )

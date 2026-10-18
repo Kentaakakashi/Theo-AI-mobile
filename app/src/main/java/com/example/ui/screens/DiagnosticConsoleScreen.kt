@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,11 +68,12 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
       .fillMaxSize()
       .background(Color.Transparent)
       .hudScanlines()
-      .padding(horizontal = 14.dp, vertical = 10.dp)
+      .statusBarsPadding()
+      .padding(horizontal = 18.dp, vertical = 8.dp)
   ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
       Column(Modifier.weight(1f)) {
-        Text("Diagnostics", color = TheoTextPrimary, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp)
+        Text("Diagnostics", color = TheoTextPrimary, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp)
         Text("Recent model, app and automation events", color = TheoTextSecondary, fontFamily = FontFamily.SansSerif, fontSize = 11.sp)
       }
       Icon(Icons.Default.Terminal, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(28.dp))

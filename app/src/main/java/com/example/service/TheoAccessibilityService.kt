@@ -335,6 +335,10 @@ class TheoAccessibilityService : AccessibilityService() {
   }
 
   fun captureActiveScreen(): ScreenSnapshot? {
+    if (SystemUiAutomationBridge.consumeNotificationShadeRequest()) {
+      runCatching { performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS) }
+      SystemClock.sleep(300L)
+    }
     val root = findExternalWindowRoot() ?: return null
     val activePackage = root.packageName?.toString().orEmpty()
     if (activePackage.isBlank() || activePackage == packageName) {

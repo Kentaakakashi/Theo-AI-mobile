@@ -88,7 +88,7 @@ fun CoreAssistantScreen(
 
   LaunchedEffect(messages.size, uiState.streamingText) {
     if (messages.isNotEmpty() || uiState.streamingText.isNotBlank()) {
-      val lastMessageIndex = (messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)
+      val lastMessageIndex = (2 + messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)
         .coerceAtLeast(0)
       listState.animateScrollToItem(lastMessageIndex)
     }
@@ -109,126 +109,73 @@ fun CoreAssistantScreen(
         onOpenSettings = onOpenSettings
       )
 
-      if (messages.isEmpty()) {
-        TheoHomeStage(
-          uiState = uiState,
-          onOrbClick = onOrbClick,
-          onSendMessage = onSendMessage,
-          onInputChange = onInputChange,
-          modifier = Modifier.weight(1f).fillMaxWidth()
-        )
-      } else {
-        // Keep the Theo landing/orb experience mounted after the first message.
-        // The conversation is deliberately rendered BELOW it instead of replacing it.
-        Box(
-          modifier = Modifier
-            .fillMaxWidth()
-            .height(360.dp)
-        ) {
+      LazyColumn(
+        state = listState,
+        modifier = Modifier.weight(1f).fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+      ) {
+        item(key = "theo_home_stage") {
           TheoHomeStage(
             uiState = uiState,
             onOrbClick = onOrbClick,
             onSendMessage = onSendMessage,
             onInputChange = onInputChange,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxWidth().height(560.dp)
           )
         }
 
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 7.dp),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Box(
-            modifier = Modifier
-              .size(30.dp)
-              .clip(CircleShape)
-              .background(Color.White.copy(alpha = 0.055f)),
-            contentAlignment = Alignment.Center
+        item(key = "conversation_header") {
+          Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
           ) {
-            Icon(
-              imageVector = Icons.Default.AutoAwesome,
-              contentDescription = null,
-              tint = TheoCyan,
-              modifier = Modifier.size(16.dp)
-            )
+            Box(
+              modifier = Modifier.size(30.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.055f)),
+              contentAlignment = Alignment.Center
+            ) {
+              Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(16.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+              Text("Conversation", color = TheoTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+              Text(
+                when (uiState.assistantState) {
+                  com.example.model.AssistantState.IDLE -> "Theo is here with you"
+                  com.example.model.AssistantState.LISTENING -> "Listening for your next command"
+                  com.example.model.AssistantState.THINKING -> "Working on your request"
+                  com.example.model.AssistantState.SPEAKING -> "Replying to you"
+                  com.example.model.AssistantState.OFFLINE -> "Check the active AI provider"
+                },
+                color = TheoTextMuted,
+                fontSize = 11.sp,
+                maxLines = 1
+              )
+            }
+            Text(messages.size.toString(), color = TheoTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
           }
-          Spacer(Modifier.width(10.dp))
-          Column(modifier = Modifier.weight(1f)) {
-            Text(
-              text = "Conversation",
-              color = TheoTextPrimary,
-              fontSize = 13.sp,
-              fontWeight = FontWeight.SemiBold
-            )
-            Text(
-              text = when (uiState.assistantState) {
-                com.example.model.AssistantState.IDLE -> "Theo is here with you"
-                com.example.model.AssistantState.LISTENING -> "Listening for your next command"
-                com.example.model.AssistantState.THINKING -> "Working on your request"
-                com.example.model.AssistantState.SPEAKING -> "Replying to you"
-                com.example.model.AssistantState.OFFLINE -> "Check the active AI provider"
-              },
-              color = TheoTextMuted,
-              fontSize = 11.sp,
-              maxLines = 1
-            )
-          }
-          Text(
-            text = messages.size.toString(),
-            color = TheoTextMuted,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium
-          )
         }
 
-        LazyColumn(
-          state = listState,
-          modifier = Modifier.weight(1f).fillMaxWidth(),
-          verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-          items(messages, key = { it.id }) { message ->
-            ChatMessageBubble(message = message, onExecuteAction = onExecuteAction)
-          }
+        items(messages, key = { it.id }) { message ->
+          ChatMessageBubble(message = message, onExecuteAction = onExecuteAction)
+        }
 
-          if (uiState.streamingText.isNotBlank()) {
-            item(key = "live_gemini_stream") {
-              Column(
+        if (uiState.streamingText.isNotBlank()) {
+          item(key = "live_gemini_stream") {
+            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 12.dp)) {
+              Text("Theo is replying", color = TheoTextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 8.dp, bottom = 5.dp))
+              Box(
                 modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(vertical = 4.dp, horizontal = 12.dp)
+                  .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp))
+                  .background(Color.Transparent)
+                  .liquidGlassSurface(RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp), tint = Color(0x8A1B1B1B), gloss = 0.12f)
+                  .padding(horizontal = 15.dp, vertical = 13.dp)
               ) {
-                Text(
-                  text = "Theo is replying",
-                  color = TheoTextSecondary,
-                  fontSize = 11.sp,
-                  fontWeight = FontWeight.Medium,
-                  modifier = Modifier.padding(start = 8.dp, bottom = 5.dp)
-                )
-                Box(
-                  modifier = Modifier
-                    .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp))
-                    .background(Color.Transparent)
-                    .liquidGlassSurface(
-                      shape = RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp),
-                      tint = Color(0x8A1B1B1B),
-                      gloss = 0.12f
-                    )
-                    .padding(horizontal = 15.dp, vertical = 13.dp)
-                ) {
-                  Text(
-                    text = uiState.streamingText,
-                    color = TheoTextPrimary,
-                    fontSize = 14.sp,
-                    lineHeight = 21.sp
-                  )
-                }
+                Text(uiState.streamingText, color = TheoTextPrimary, fontSize = 14.sp, lineHeight = 21.sp)
               }
             }
           }
-          item { Spacer(Modifier.height(8.dp)) }
         }
+        item { Spacer(Modifier.height(8.dp)) }
       }
 
       AnimatedVisibility(

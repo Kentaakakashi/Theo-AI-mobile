@@ -12,6 +12,27 @@ internal object ActionIntentParser {
 
     fun match(pattern: String): MatchResult? = Regex(pattern, flags).matchEntire(trimmed)
 
+    val explicitExtraDim = Regex(
+      "^(?:please\s+)?(?:turn|switch)\s+(off|on|disable|enable)\s+(?:my\s+)?extra\s+dim(?:\s+feature)?$",
+      flags
+    ).matchEntire(trimmed)
+    if (explicitExtraDim != null) {
+      val mode = explicitExtraDim.groupValues[1].lowercase()
+      val normalizedMode = if (mode == "off" || mode == "disable") "off" else "on"
+      SystemUiAutomationBridge.requestNotificationShade()
+      return "screen:current|task:turn $normalizedMode Extra Dim"
+    }
+
+    val followUpExtraDim = Regex(
+      "^(?:please\s+)?(?:turn|switch)\s+(?:it|that)\s+(off|on)$",
+      flags
+    ).matchEntire(trimmed)
+    if (followUpExtraDim != null && ConversationContext.previousUserMentions("extra dim")) {
+      val normalizedMode = if (followUpExtraDim.groupValues[1].equals("off", true)) "off" else "on"
+      SystemUiAutomationBridge.requestNotificationShade()
+      return "screen:current|task:turn $normalizedMode Extra Dim"
+    }
+
     // Screen inspection is a native Android action, not a prompt for the chat model to guess.
     if (Regex(
         "^(?:please\\s+)?(?:what(?:'s| is)\\s+(?:on|in)\\s+(?:my\\s+)?(?:current\\s+)?screen|(?:look\\s+at|inspect|read|describe|analy[sz]e|check)\\s+(?:(?:my|the)\\s+)?(?:current\\s+)?screen|(?:can\\s+you\\s+)?see\\s+(?:my\\s+)?screen|what\\s+can\\s+you\\s+see\\s+on\\s+(?:my\\s+)?screen)$",

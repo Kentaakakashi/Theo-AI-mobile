@@ -91,6 +91,7 @@ These rules define your default character, not a script. Stay natural, context-a
     deviceContext: String? = null
   ): EngineResult = withContext(Dispatchers.IO) {
     val startTime = System.currentTimeMillis()
+    ConversationContext.recordUser(prompt)
     onProgress("Analyzing your request")
 
     // 1. Detect if the user is asking Theo to remember something
@@ -149,12 +150,19 @@ These rules define your default character, not a script. Stay natural, context-a
 
     onProgress("Preparing context")
 
-    // Build memory context string
-    val memoryContext = if (memories.isNotEmpty()) {
+    val persistentMemoryContext = if (memories.isNotEmpty()) {
       ("Known Operator Memory Context:\n" + memories.take(8).joinToString("\n") { "- ${it.key.take(120)}: ${it.value.take(300)} [${it.category.take(60)}]" }).take(3000)
     } else {
       "No operator memory stored yet."
     }
+    val recentConversationContext = ConversationContext.forPrompt()
+    val memoryContext = buildString {
+      append(persistentMemoryContext)
+      if (recentConversationContext.isNotBlank()) {
+        append("\n\nRecent Conversation Context (use this to resolve follow-ups):\n")
+        append(recentConversationContext)
+      }
+    }.take(9000)
     val contextualPrompt = if (!deviceContext.isNullOrBlank()) {
       """
 USER REQUEST:
@@ -193,6 +201,8 @@ Use the context only to answer this request. If it does not contain the requeste
     if (result.modelBadge.contains("ERROR") || result.modelBadge.contains("FALLBACK") || result.modelBadge.contains("EMPTY") || result.modelBadge.contains("REQUIRED")) {
       TheoDiagnosticLogger.warn("AI_ENGINE", "Query returned a diagnostic/fallback result", "modelBadge=${result.modelBadge}")
     }
+
+    ConversationContext.recordAssistant(result.responseText)
 
     // Attach memory and action metadata
     result.copy(

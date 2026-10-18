@@ -1,0 +1,216 @@
+from pathlib import Path
+
+root = Path('.')
+context_file = root / 'app/src/main/java/com/example/service/ConversationContext.kt'
+if context_file.exists():
+    print('Theo continuity fixes are already present.')
+    raise SystemExit(0)
+
+context_file.write_text('''package com.example.service
+
+internal object ConversationContext {
+  private data class Turn(val role: String, val text: String)
+  private const val MAX_TURNS = 12
+  private val lock = Any()
+  private val turns = ArrayDeque<Turn>()
+
+  fun recordUser(text: String) = record("User", text)
+  fun recordAssistant(text: String) = record("Theo", text)
+
+  private fun record(role: String, text: String) {
+    val clean = text.trim()
+    if (clean.isBlank()) return
+    synchronized(lock) {
+      turns.addLast(Turn(role, clean.take(2000)))
+      while (turns.size > MAX_TURNS) turns.removeFirst()
+    }
+  }
+
+  fun previousUserMentions(phrase: String): Boolean {
+    val needle = phrase.trim().lowercase()
+    if (needle.isBlank()) return false
+    synchronized(lock) {
+      return turns.dropLast(1).any { it.role == "User" && it.text.lowercase().contains(needle) }
+    }
+  }
+
+  fun forPrompt(maxTurns: Int = 8): String = synchronized(lock) {
+    turns.takeLast(maxTurns).joinToString("\\n") { "${it.role}: ${it.text}" }.take(7000)
+  }
+}
+''')
+
+(root / 'app/src/main/java/com/example/service/SystemUiAutomationBridge.kt').write_text('''package com.example.service
+
+import java.util.concurrent.atomic.AtomicBoolean
+
+internal object SystemUiAutomationBridge {
+  private val openNotificationShade = AtomicBoolean(false)
+  fun requestNotificationShade() { openNotificationShade.set(true) }
+  fun consumeNotificationShadeRequest(): Boolean = openNotificationShade.compareAndSet(true, false)
+}
+''')
+
+p = root / 'app/src/main/java/com/example/service/ActionIntentParser.kt'
+s = p.read_text()
+marker = '    // Screen inspection is a native Android action, not a prompt for the chat model to guess.\n'
+insert = '''    val explicitExtraDim = Regex(
+      "^(?:please\\s+)?(?:turn|switch)\\s+(off|on|disable|enable)\\s+(?:my\\s+)?extra\\s+dim(?:\\s+feature)?$",
+      flags
+    ).matchEntire(trimmed)
+    if (explicitExtraDim != null) {
+      val mode = explicitExtraDim.groupValues[1].lowercase()
+      val normalizedMode = if (mode == "off" || mode == "disable") "off" else "on"
+      SystemUiAutomationBridge.requestNotificationShade()
+      return "screen:current|task:turn $normalizedMode Extra Dim"
+    }
+
+    val followUpExtraDim = Regex(
+      "^(?:please\\s+)?(?:turn|switch)\\s+(?:it|that)\\s+(off|on)$",
+      flags
+    ).matchEntire(trimmed)
+    if (followUpExtraDim != null && ConversationContext.previousUserMentions("extra dim")) {
+      val normalizedMode = if (followUpExtraDim.groupValues[1].equals("off", true)) "off" else "on"
+      SystemUiAutomationBridge.requestNotificationShade()
+      return "screen:current|task:turn $normalizedMode Extra Dim"
+    }
+
+'''
+assert marker in s
+p.write_text(s.replace(marker, insert + marker, 1))
+
+p = root / 'app/src/main/java/com/example/service/TheoAccessibilityService.kt'
+s = p.read_text()
+marker = '  fun captureActiveScreen(): ScreenSnapshot? {\n    val root = findExternalWindowRoot() ?: return null\n'
+replacement = '''  fun captureActiveScreen(): ScreenSnapshot? {
+    if (SystemUiAutomationBridge.consumeNotificationShadeRequest()) {
+      runCatching { performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS) }
+      SystemClock.sleep(300L)
+    }
+    val root = findExternalWindowRoot() ?: return null
+'''
+assert marker in s
+p.write_text(s.replace(marker, replacement, 1))
+
+p = root / 'app/src/main/java/com/example/service/TheoAiEngine.kt'
+s = p.read_text()
+marker = '    val startTime = System.currentTimeMillis()\n    onProgress("Analyzing your request")\n'
+assert marker in s
+s = s.replace(marker, '    val startTime = System.currentTimeMillis()\n    ConversationContext.recordUser(prompt)\n    onProgress("Analyzing your request")\n', 1)
+
+marker = '''    // Build memory context string
+    val memoryContext = if (memories.isNotEmpty()) {
+      ("Known Operator Memory Context:\\n" + memories.take(8).joinToString("\\n") { "- ${it.key.take(120)}: ${it.value.take(300)} [${it.category.take(60)}]" }).take(3000)
+    } else {
+      "No operator memory stored yet."
+    }
+'''
+replacement = '''    val persistentMemoryContext = if (memories.isNotEmpty()) {
+      ("Known Operator Memory Context:\\n" + memories.take(8).joinToString("\\n") { "- ${it.key.take(120)}: ${it.value.take(300)} [${it.category.take(60)}]" }).take(3000)
+    } else {
+      "No operator memory stored yet."
+    }
+    val recentConversationContext = ConversationContext.forPrompt()
+    val memoryContext = buildString {
+      append(persistentMemoryContext)
+      if (recentConversationContext.isNotBlank()) {
+        append("\\n\\nRecent Conversation Context (use this to resolve follow-ups):\\n")
+        append(recentConversationContext)
+      }
+    }.take(9000)
+'''
+assert marker in s
+s = s.replace(marker, replacement, 1)
+
+marker = '    // Attach memory and action metadata\n    result.copy(\n'
+assert marker in s
+s = s.replace(marker, '    ConversationContext.recordAssistant(result.responseText)\n\n    // Attach memory and action metadata\n    result.copy(\n', 1)
+p.write_text(s)
+
+p = root / 'app/src/main/java/com/example/ui/screens/CoreAssistantScreen.kt'
+s = p.read_text()
+start = s.index('      if (messages.isEmpty()) {')
+end = s.index('      AnimatedVisibility(', start)
+replacement = '''      LazyColumn(
+        state = listState,
+        modifier = Modifier.weight(1f).fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+      ) {
+        item(key = "theo_home_stage") {
+          TheoHomeStage(
+            uiState = uiState,
+            onOrbClick = onOrbClick,
+            onSendMessage = onSendMessage,
+            onInputChange = onInputChange,
+            modifier = Modifier.fillMaxWidth().height(560.dp)
+          )
+        }
+
+        item(key = "conversation_header") {
+          Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Box(
+              modifier = Modifier.size(30.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.055f)),
+              contentAlignment = Alignment.Center
+            ) {
+              Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(16.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+              Text("Conversation", color = TheoTextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+              Text(
+                when (uiState.assistantState) {
+                  com.example.model.AssistantState.IDLE -> "Theo is here with you"
+                  com.example.model.AssistantState.LISTENING -> "Listening for your next command"
+                  com.example.model.AssistantState.THINKING -> "Working on your request"
+                  com.example.model.AssistantState.SPEAKING -> "Replying to you"
+                  com.example.model.AssistantState.OFFLINE -> "Check the active AI provider"
+                },
+                color = TheoTextMuted,
+                fontSize = 11.sp,
+                maxLines = 1
+              )
+            }
+            Text(messages.size.toString(), color = TheoTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+          }
+        }
+
+        items(messages, key = { it.id }) { message ->
+          ChatMessageBubble(message = message, onExecuteAction = onExecuteAction)
+        }
+
+        if (uiState.streamingText.isNotBlank()) {
+          item(key = "live_gemini_stream") {
+            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 12.dp)) {
+              Text("Theo is replying", color = TheoTextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 8.dp, bottom = 5.dp))
+              Box(
+                modifier = Modifier
+                  .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp))
+                  .background(Color.Transparent)
+                  .liquidGlassSurface(RoundedCornerShape(topStart = 5.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp), tint = Color(0x8A1B1B1B), gloss = 0.12f)
+                  .padding(horizontal = 15.dp, vertical = 13.dp)
+              ) {
+                Text(uiState.streamingText, color = TheoTextPrimary, fontSize = 14.sp, lineHeight = 21.sp)
+              }
+            }
+          }
+        }
+        item { Spacer(Modifier.height(8.dp)) }
+      }
+
+'''
+s = s[:start] + replacement + s[end:]
+old = '''      val lastMessageIndex = (messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)
+        .coerceAtLeast(0)
+      listState.animateScrollToItem(lastMessageIndex)
+'''
+new = '''      val lastMessageIndex = (2 + messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)
+        .coerceAtLeast(0)
+      listState.animateScrollToItem(lastMessageIndex)
+'''
+assert old in s
+p.write_text(s.replace(old, new, 1))
+
+print('Theo fixes patched.')

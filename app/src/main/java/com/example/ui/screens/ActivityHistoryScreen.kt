@@ -70,12 +70,12 @@ fun ActivityHistoryScreen(
       .background(Color.Transparent)
       .hudScanlines()
       .statusBarsPadding()
-      .navigationBarsPadding()
+
   ) {
     Column(
       modifier = Modifier
         .fillMaxSize()
-        .padding(horizontal = 16.dp)
+        .padding(horizontal = 18.dp)
     ) {
       Spacer(modifier = Modifier.height(8.dp))
       // Top HUD Title
@@ -88,7 +88,7 @@ fun ActivityHistoryScreen(
           Text(
             text = "Activity",
             color = TheoTextPrimary,
-            fontSize = 26.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = (-0.5).sp
           )

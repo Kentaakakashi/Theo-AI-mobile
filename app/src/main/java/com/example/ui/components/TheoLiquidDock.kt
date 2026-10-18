@@ -65,9 +65,9 @@ private data class DockDestination(
 /**
  * Theo's navigation dock.
  *
- * The dock is deliberately achromatic. The whole dock gets a quiet liquid-glass surface while
- * the moving selection lens is the stronger optical element. The lens must not become a bright
- * white blob: it uses low-alpha edge light and refraction rather than a painted highlight.
+ * The dock and its moving destination lens are both optical, achromatic glass. The dock samples
+ * the live scene behind it while the lens samples the dock's crisp contents, giving the selected
+ * item the stronger BitChord-style liquid/refraction treatment without smearing the labels.
  */
 @Composable
 fun TheoBottomNavigation(
@@ -126,15 +126,14 @@ fun TheoBottomNavigation(
       modifier = Modifier
         .fillMaxWidth()
         .height(72.dp)
-        // A restrained neutral glass body. This is intentionally translucent instead of black
-        // painted chrome, so the dock reads as one liquid surface with the lens inside it.
         .liquidGlassSurface(
           shape = dockShape,
-          tint = Color.White.copy(alpha = 0.055f),
+          tint = Color.White.copy(alpha = 0.045f),
           gloss = 0.075f,
           refraction = 7.dp,
+          // No blur: the live scene should remain recognizable through the dock.
           blurRadius = 0.dp,
-          opticalGlass = false
+          opticalGlass = true
         )
         .pointerInput(safeTab, itemWidthPx) {
           detectDragGesturesAfterLongPress(
@@ -216,10 +215,9 @@ fun TheoBottomNavigation(
               )
             },
             highlight = {
-              // BitChord-style optical edge, not a white glossy disk.
-              Highlight.Default.copy(alpha = 0.055f + lift * 0.025f)
+              Highlight.Default.copy(alpha = 0.045f + lift * 0.018f)
             },
-            shadow = { Shadow(alpha = 0.035f + lift * 0.025f) }
+            shadow = { Shadow(alpha = 0.03f + lift * 0.02f) }
           )
       )
     }

@@ -46,8 +46,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import com.example.ui.components.TheoThinkingCapsule
 import com.example.ui.components.neonBorder
 import com.example.data.MessageEntity
@@ -120,8 +118,22 @@ fun CoreAssistantScreen(
           modifier = Modifier.weight(1f).fillMaxWidth()
         )
       } else {
-        // Compact context line. The transcript is the content; this should not become another
-        // full-width dashboard card competing with every message.
+        // Keep the Theo landing/orb experience mounted after the first message.
+        // The conversation is deliberately rendered BELOW it instead of replacing it.
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(360.dp)
+        ) {
+          TheoHomeStage(
+            uiState = uiState,
+            onOrbClick = onOrbClick,
+            onSendMessage = onSendMessage,
+            onInputChange = onInputChange,
+            modifier = Modifier.fillMaxSize()
+          )
+        }
+
         Row(
           modifier = Modifier
             .fillMaxWidth()
@@ -335,7 +347,6 @@ fun CoreAssistantScreen(
         }
       )
     }
-  }
 
     uiState.pendingAppSelection?.let { request ->
       AlertDialog(
@@ -369,4 +380,5 @@ fun CoreAssistantScreen(
         }
       )
     }
+  }
 }

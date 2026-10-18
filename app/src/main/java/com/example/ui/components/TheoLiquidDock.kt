@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -39,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -50,7 +50,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.lens
@@ -66,11 +65,11 @@ private data class DockDestination(
 )
 
 /**
- * Theo's navigation uses a transparent optical lens.
+ * Theo's navigation dock.
  *
- * IMPORTANT: do not blur the lens backdrop. The dock items beneath the lens must remain crisp;
- * the lens should change their apparent position/scale/refraction, not turn them into a frosted
- * blur. The only softness comes from the glass edge/highlight and the surrounding material.
+ * The dock itself stays optically neutral and crisp. The moving lens samples the dock content
+ * backdrop directly, so icons/text underneath it remain sharp instead of being blurred twice by
+ * the full-screen backdrop.
  */
 @Composable
 fun TheoBottomNavigation(
@@ -88,11 +87,7 @@ fun TheoBottomNavigation(
     )
   }
 
-  val screenBackdrop = LocalTheoGlassBackdrop.current
   val tabContentBackdrop = rememberLayerBackdrop()
-  val lensBackdrop = if (screenBackdrop != null) {
-    rememberCombinedBackdrop(screenBackdrop, tabContentBackdrop)
-  } else null
 
   BoxWithConstraints(
     modifier = modifier
@@ -133,30 +128,8 @@ fun TheoBottomNavigation(
       modifier = Modifier
         .fillMaxWidth()
         .height(72.dp)
-        .clip(dockShape)
-        .then(
-          if (screenBackdrop != null) {
-            Modifier.drawBackdrop(
-              backdrop = screenBackdrop,
-              shape = { dockShape },
-              effects = {
-                // Keep the dock material itself subtle. Do not apply a large blur here: this
-                // would make the content seen through the selected lens look permanently soft.
-                lens(
-                  refractionHeight = 8.dp.toPx(),
-                  refractionAmount = 5.dp.toPx(),
-                  depthEffect = true,
-                  chromaticAberration = false
-                )
-              },
-              highlight = { Highlight.Default.copy(alpha = 0.16f) },
-              shadow = { Shadow(alpha = 0.08f) }
-            )
-          } else {
-            Modifier.border(1.dp, Color.White.copy(alpha = 0.12f), dockShape)
-          }
-        )
-        .border(1.dp, Color.White.copy(alpha = 0.12f), dockShape)
+        .background(Color.Black.copy(alpha = 0.10f), dockShape)
+        .border(1.dp, Color.White.copy(alpha = 0.14f), dockShape)
         .pointerInput(safeTab, itemWidthPx) {
           detectDragGesturesAfterLongPress(
             onDragStart = {
@@ -212,45 +185,37 @@ fun TheoBottomNavigation(
         }
       }
 
-      // Transparent lens only. No colour fill and, critically, no blur.
+      // The lens samples ONLY the dock's crisp content backdrop. It does not sample the
+      // already-blurred full-screen backdrop, which was the source of the muddy icons/text.
       Box(
         modifier = Modifier
           .offset(x = liveLeft)
           .width(lensWidth)
           .height(62.dp)
           .padding(vertical = 3.dp)
-          .clip(lensShape)
-          .then(
-            if (lensBackdrop != null) {
-              Modifier.drawBackdrop(
-                backdrop = lensBackdrop,
-                shape = { lensShape },
-                effects = {
-                  // The lens refracts the crisp dock content instead of blurring it.
-                  lens(
-                    refractionHeight = (30f + lift * 8f).dp.toPx(),
-                    refractionAmount = (42f + lift * 14f).dp.toPx(),
-                    depthEffect = true,
-                    chromaticAberration = false
-                  )
-                },
-                highlight = {
-                  Highlight.Default.copy(
-                    alpha = (0.22f + lift * 0.16f).coerceAtMost(0.42f)
-                  )
-                },
-                shadow = { Shadow(alpha = 0.06f + lift * 0.05f) }
-              )
-            } else {
-              Modifier.border(1.dp, Color.White.copy(alpha = 0.16f), lensShape)
-            }
-          )
-          .border(1.dp, Color.White.copy(alpha = 0.14f), lensShape)
           .graphicsLayer {
             scaleX = 1f + lift * 0.08f + dragStrain * 0.08f
             scaleY = 1f + lift * 0.035f - dragStrain * 0.02f
             rotationZ = -dragDirection * dragStrain * 0.8f
           }
+          .drawBackdrop(
+            backdrop = tabContentBackdrop,
+            shape = { lensShape },
+            effects = {
+              lens(
+                refractionHeight = (30f + lift * 8f).dp.toPx(),
+                refractionAmount = (42f + lift * 14f).dp.toPx(),
+                depthEffect = true,
+                chromaticAberration = false
+              )
+            },
+            highlight = {
+              Highlight.Default.copy(
+                alpha = (0.20f + lift * 0.14f).coerceAtMost(0.38f)
+              )
+            },
+            shadow = { Shadow(alpha = 0.055f + lift * 0.045f) }
+          )
       )
     }
   }

@@ -85,8 +85,6 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 dependencies {
   // Kyant0 Backdrop 1.0.0: SDK 36-compatible shader refraction, blur and optical highlights (Apache-2.0).
   implementation("io.github.kyant0:backdrop:1.0.0")
-  // BuildItCode LiquidGlass 0.8.0: live backdrop capture, AGSL refraction and glass rim for Theo's dock (MIT).
-  implementation("com.github.BuildItCode:glass:0.8.0")
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
   // implementation(libs.accompanist.permissions)

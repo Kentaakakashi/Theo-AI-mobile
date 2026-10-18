@@ -2,8 +2,6 @@ package com.example.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -67,9 +65,9 @@ private data class DockDestination(
 /**
  * Theo's navigation dock.
  *
- * The dock itself stays optically neutral and crisp. The moving lens samples the dock content
- * backdrop directly, so icons/text underneath it remain sharp instead of being blurred twice by
- * the full-screen backdrop.
+ * The dock is deliberately achromatic. The whole dock gets a quiet liquid-glass surface while
+ * the moving selection lens is the stronger optical element. The lens must not become a bright
+ * white blob: it uses low-alpha edge light and refraction rather than a painted highlight.
  */
 @Composable
 fun TheoBottomNavigation(
@@ -128,8 +126,16 @@ fun TheoBottomNavigation(
       modifier = Modifier
         .fillMaxWidth()
         .height(72.dp)
-        .background(Color.Black.copy(alpha = 0.10f), dockShape)
-        .border(1.dp, Color.White.copy(alpha = 0.14f), dockShape)
+        // A restrained neutral glass body. This is intentionally translucent instead of black
+        // painted chrome, so the dock reads as one liquid surface with the lens inside it.
+        .liquidGlassSurface(
+          shape = dockShape,
+          tint = Color.White.copy(alpha = 0.055f),
+          gloss = 0.075f,
+          refraction = 7.dp,
+          blurRadius = 0.dp,
+          opticalGlass = false
+        )
         .pointerInput(safeTab, itemWidthPx) {
           detectDragGesturesAfterLongPress(
             onDragStart = {
@@ -185,8 +191,8 @@ fun TheoBottomNavigation(
         }
       }
 
-      // The lens samples ONLY the dock's crisp content backdrop. It does not sample the
-      // already-blurred full-screen backdrop, which was the source of the muddy icons/text.
+      // Optical lens only. Keep the specular edge extremely restrained; the refracted content is
+      // the glass, not a white fill painted over the destination.
       Box(
         modifier = Modifier
           .offset(x = liveLeft)
@@ -210,11 +216,10 @@ fun TheoBottomNavigation(
               )
             },
             highlight = {
-              Highlight.Default.copy(
-                alpha = (0.20f + lift * 0.14f).coerceAtMost(0.38f)
-              )
+              // BitChord-style optical edge, not a white glossy disk.
+              Highlight.Default.copy(alpha = 0.055f + lift * 0.025f)
             },
-            shadow = { Shadow(alpha = 0.055f + lift * 0.045f) }
+            shadow = { Shadow(alpha = 0.035f + lift * 0.025f) }
           )
       )
     }

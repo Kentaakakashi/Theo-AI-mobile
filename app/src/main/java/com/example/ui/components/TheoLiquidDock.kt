@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -82,7 +83,7 @@ fun TheoBottomNavigation(
       .fillMaxWidth()
       .widthIn(max = 460.dp)
       .navigationBarsPadding()
-      .padding(horizontal = 16.dp, bottom = 8.dp),
+      .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
     contentAlignment = Alignment.Center
   ) {
     val itemWidth = maxWidth / tabs.size

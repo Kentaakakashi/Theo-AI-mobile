@@ -57,7 +57,8 @@ fun TheoHomeStage(
   modifier: Modifier = Modifier
 ) {
   BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-    val orbSize = minOf(196.dp, maxWidth * 0.54f, maxHeight * 0.34f).coerceAtLeast(126.dp)
+    val availableHeight = maxHeight
+    val orbSize = minOf(196.dp, maxWidth * 0.54f, availableHeight * 0.34f).coerceAtLeast(126.dp)
     Column(
       modifier = Modifier
         .fillMaxSize()
@@ -65,7 +66,7 @@ fun TheoHomeStage(
         .padding(horizontal = 20.dp),
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Spacer(Modifier.height(if (maxHeight < 620.dp) 3.dp else 9.dp))
+      Spacer(Modifier.height(if (availableHeight < 620.dp) 3.dp else 9.dp))
 
       TheoOrb(
         state = uiState.assistantState,
@@ -102,7 +103,7 @@ fun TheoHomeStage(
         modifier = Modifier.padding(horizontal = 10.dp)
       )
 
-      Spacer(Modifier.height(if (maxHeight < 620.dp) 14.dp else 20.dp))
+      Spacer(Modifier.height(if (availableHeight < 620.dp) 14.dp else 20.dp))
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,

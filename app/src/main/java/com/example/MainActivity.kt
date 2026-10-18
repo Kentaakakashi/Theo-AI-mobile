@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.service.TheoDiagnosticLogger
 import com.example.ui.components.LocalTheoGlassBackdrop
+import com.example.ui.components.TheoBottomNavigation
 import com.example.ui.screens.ActivityHistoryScreen
 import com.example.ui.screens.CoreAssistantScreen
 import com.example.ui.screens.DiagnosticConsoleScreen

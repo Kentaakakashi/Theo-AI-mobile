@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -21,19 +21,6 @@ jobs:
     steps:
       - name: Check out Theo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Apply one-time Theo source fixes
-        run: |
-          python3 scripts/apply_theo_fixes.py
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "Theo Build Fixer"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add app/src/main/java/com/example/service app/src/main/java/com/example/ui/screens/CoreAssistantScreen.kt scripts/apply_theo_fixes.py
-            git commit -m "Apply Theo continuity, scrolling, and system UI fixes [skip-theo-fixer]"
-            git push origin HEAD:experiment/theo-liquid-glass
-          fi
 
       - name: Set up Java
         uses: actions/setup-java@v4

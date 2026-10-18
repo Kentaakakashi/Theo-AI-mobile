@@ -1,269 +1,244 @@
+<!--
+  Theo — Personal AI for Android
+  Keep this README honest: distinguish shipped/documented behavior from planned work.
+-->
+
+<div align="center">
+
 # Theo
 
-**Theo is a native Android AI assistant designed to help you understand your screen, interact with apps, and carry out multi-step tasks—with an atmospheric Liquid Glass interface and configurable AI engines.**
+### Your phone. Your assistant. Your rules.
 
-> **Branch:** `experiment/theo-liquid-glass`  
-> **Status:** Experimental development branch. Features described as planned below are roadmap goals, not claims that they are already implemented.
+**A personal Android AI assistant built to understand your screen, work with your apps, and help turn instructions into actions.**
 
-Theo is being developed as a personal, phone-first assistant. The project combines a Kotlin/Jetpack Compose Android app with AI planning, local app data, and Android's Accessibility Service APIs. The goal is to make Theo useful beyond answering questions: it should be able to inspect context, plan actions, execute them carefully, and verify what actually happened.
+[![Android](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
+[![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
+[![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/compose)
+[![Minimum SDK](https://img.shields.io/badge/Min%20SDK-24-informational)](https://developer.android.com/)
+[![Branch](https://img.shields.io/badge/Branch-experiment%2Ftheo--liquid--glass-8A63D2)](https://github.com/Kentaakakashi/Theo-AI-mobile/tree/experiment/theo-liquid-glass)
 
-## Contents
+[**Explore the code**](https://github.com/Kentaakakashi/Theo-AI-mobile/tree/experiment/theo-liquid-glass) · [Screen automation](SCREEN_AUTOMATION.md) · [Liquid Glass design](LIQUID_GLASS_DESIGN.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
-- [Highlights](#highlights)
-- [How Theo works](#how-theo-works)
-- [Screen-aware automation](#screen-aware-automation)
-- [AI engines and local inference](#ai-engines-and-local-inference)
-- [Memory and history](#memory-and-history)
-- [Liquid Glass interface](#liquid-glass-interface)
-- [Privacy and safety](#privacy-and-safety)
-- [Roadmap](#roadmap)
-- [Development and build](#development-and-build)
-- [Project documentation](#project-documentation)
-- [Credits and third-party projects](#credits-and-third-party-projects)
+</div>
 
-## Highlights
+---
 
-The current codebase and its documentation describe the following capabilities and design choices:
+> [!NOTE]
+> **Experimental branch:** This README describes documented capabilities and the direction of the project. Items marked **Planned** are goals, not promises that the feature is already implemented. Check the source and test the current build to confirm availability.
 
-- **Native Android app:** Kotlin and Jetpack Compose, with Android-native UI and system integrations.
-- **AI planning:** Gemini and a configured local Qwen endpoint are documented options for the screen-action planner.
-- **Local model runtime:** The project includes a llama.cpp-based Android runtime dependency for direct on-device GGUF inference on `arm64-v8a`. Actual model availability, memory use and device performance depend on the model and device configuration.
-- **Screen-aware automation:** Uses Android Accessibility Service APIs to inspect accessible UI elements and perform a limited set of structured actions.
-- **Screen understanding:** On Android 11 and newer, the documented automation path can use a one-shot accessibility screenshot when needed.
-- **Semantic-first interactions:** Prefers accessible controls over fixed coordinates. A cautious coordinate fallback is documented for screens that expose no actionable accessibility nodes.
-- **Task safeguards:** Limited action steps, failure limits, clarification when uncertain, and confirmations for potentially sensitive actions.
-- **App launching:** Resolves requested apps against installed launchable apps and asks the user to choose when a match is ambiguous.
-- **Music-request flow:** Documented behavior can open a provider search and continue into the screen-action loop; playback must not be claimed without visible evidence.
-- **Local app data:** Room is included in the Android dependencies; the project describes existing memory/history and database functionality. The exact capabilities of the current memory experience should be checked against the implementation.
-- **Liquid Glass experiment:** Uses a shared Compose glass engine for selected surfaces, while keeping repeated list items lighter for performance.
-- **Diagnostics:** The project documents a LOGS tab for concrete screenshot failures where available.
+## The idea
 
-This is an experimental branch. The repository's code and the documentation linked below are the source of truth for what works in a particular build.
+Most assistants stop at answering. **Theo is being built to help you get things done on your phone.**
 
-## How Theo works
+Ask Theo to inspect the screen, open an app, find a control, or work through a multi-step task. Theo's screen-aware automation uses Android accessibility information, a configured AI planner, and step-by-step verification to make actions more grounded in what is actually on screen.
 
-At a high level, the screen-aware task flow is:
+The long-term direction is a personal, local-first assistant: useful memory, reusable skills, reliable task execution, and integrations that you can inspect and control.
 
-1. **Understand the request.** Theo interprets the user's instruction and determines whether it requires ordinary conversation, app launching, or screen-aware actions.
-2. **Inspect the current state.** For a screen task, Theo takes a fresh accessibility-tree snapshot. An explicit screen-description request uses the screen-inspection path.
-3. **Plan one structured step.** The configured planner proposes a supported action.
-4. **Validate and execute.** Theo accepts only known action types, such as clicking an accessible node, typing into an editable node, scrolling, going back, waiting, finishing, or asking for clarification.
-5. **Inspect again.** The accessibility tree is read again after each step so the next action can be based on the updated UI.
-6. **Stop safely when needed.** Unclear actions, unsupported output, repeated failures, or sensitive actions can stop execution or request user input.
-7. **Verify the outcome.** Dispatching a tap or opening an app is not proof that the requested task succeeded. Theo should rely on visible evidence before claiming completion.
+## What Theo is working toward
 
-The documented screen-action planner is limited to **12 planned steps per task**. Two consecutive failed accessibility actions stop the run. These limits help avoid uncontrolled loops.
+| Capability | What it means |
+|---|---|
+| 👀 **Screen awareness** | Inspect accessible screen content and use screenshot analysis when supported and needed. |
+| 🧭 **Action planning** | Turn a request into small, structured actions instead of blindly replaying a long sequence. |
+| 📱 **Android automation** | Launch apps and interact with exposed controls through Android's Accessibility Service APIs. |
+| ✅ **Verification** | Re-check the UI after actions and avoid claiming success without evidence. |
+| 🧠 **Personal memory** | Existing memory/history functionality, with a richer editable memory system planned. |
+| 🪄 **Liquid Glass UI** | Atmospheric, translucent Compose surfaces designed around Theo's assistant experience. |
+| 🧰 **Reusable skills** *(Planned)* | Save successful workflows and run them again with editable steps and safety checks. |
+| 🔒 **Local-first options** | Use local storage and explore on-device inference; cloud providers remain configuration-dependent. |
 
-## Screen-aware automation
+## How it works
 
-Theo uses Android's native `AccessibilityService` API to inspect the active app's accessibility tree and perform semantic interactions.
+```mermaid
+flowchart TD
+    A["You give Theo a request"] --> B["Understand intent"]
+    B --> C{"Does it need screen actions?"}
+    C -- "No" --> D["Respond using configured AI"]
+    C -- "Yes" --> E["Inspect current UI"]
+    E --> F["Plan one supported action"]
+    F --> G{"Sensitive or unclear?"}
+    G -- "Needs approval" --> H["Ask you to confirm or clarify"]
+    H --> F
+    G -- "Safe to proceed" --> I["Execute action"]
+    I --> J["Inspect UI again"]
+    J --> K{"Outcome verified?"}
+    K -- "No" --> L["Recover, retry within limits, or stop"]
+    L --> E
+    K -- "Yes" --> M["Continue or report result"]
+```
 
-### Enable it
+Theo's documented screen-action loop is deliberately bounded: up to **12 steps per task**, with execution stopped after **two consecutive failed accessibility actions**. Sensitive operations such as sending, deleting, purchasing, sharing, or submitting should require confirmation.
 
-1. Open Theo and go to **Settings**.
-2. Find **Screen-aware Automation** and tap **Enable**.
-3. Android opens its Accessibility settings.
-4. Manually enable **Theo Screen Automation**.
-5. Return to Theo and retry the request.
+## Current documented capabilities
 
-Android requires the user to enable this service; Theo cannot grant the permission silently.
+- **Native Android app** built with Kotlin and Jetpack Compose.
+- **Screen-aware automation** using Android's `AccessibilityService` APIs.
+- **Semantic-first interactions** that prefer accessible controls over fixed coordinates.
+- **App resolution** based on installed launchable apps, with a chooser for ambiguous matches.
+- **Screen inspection** for requests such as “What is on my screen?”
+- **Screenshot-assisted understanding** using the documented one-shot screenshot path on Android 11+ when needed.
+- **Structured actions** such as click, type, scroll, back, wait, finish, and ask for clarification.
+- **Action safeguards** including bounded steps, failure limits, confirmation checkpoints, and outcome verification.
+- **AI configuration options** documented for Gemini and a configured local Qwen endpoint.
+- **On-device inference groundwork** through a llama.cpp-based Android runtime dependency for `arm64-v8a` GGUF models.
+- **Memory/history and local database groundwork** in the existing project.
+- **Liquid Glass experiment** using a shared Compose glass engine for selected high-value surfaces.
 
-### Supported behavior documented by the project
+The exact behavior depends on the code, configuration, selected provider, model, Android version, and target app. The presence of a runtime dependency does not mean a model is bundled or ready to use automatically.
 
-- Resolve installed apps by launchable app name. If the match is ambiguous, show an app chooser rather than opening an arbitrary app.
-- Respond to requests such as “What is on my screen?”, “Look at my screen”, or “Describe the current screen” using screen inspection rather than guessing from chat context.
-- Prefer accessibility nodes when actionable controls are available.
-- Use a one-shot screenshot on Android 11+ when visual understanding is needed and the accessibility tree does not expose actionable controls.
-- Accept validated actions: click a node, type into an editable node, scroll, go back, wait, finish, or ask the user to clarify.
-- Briefly outline a semantic click target in cyan before activating it.
-- Use a cautious normalized-coordinate tap fallback only when actionable accessibility nodes are unavailable and the intended control can be identified.
-- Ask for confirmation before potentially sensitive actions such as sending, deleting, purchasing, sharing, or submitting.
-- Stop rather than guess when model output is malformed or the intended control cannot be identified.
+## AI, local inference & cost
 
-### Limitations
+Theo's direction is **local-first where practical, configurable where necessary**.
 
-- Android 10 and earlier do not support the documented native screenshot path.
-- Secure or DRM-protected windows may block screenshots or appear black.
-- Accessibility behavior varies between apps. Some apps expose few useful controls, and coordinate fallback is less reliable than semantic actions.
-- Android may interrupt tasks due to app lifecycle, permission, battery, or system restrictions.
-- A model response saying “done” is not independent evidence that an action succeeded.
+- **Local inference:** The project includes a llama.cpp-based Android runtime dependency intended for GGUF inference on `arm64-v8a`. You still need a compatible model and enough device memory and compute.
+- **Configured providers:** The screen-action documentation describes Gemini and a local Qwen endpoint as planner options. Check the current app configuration for the provider actually in use.
+- **Cost:** Local inference can avoid hosted model charges, but performance depends on the model and device. Cloud providers may have quotas, network requirements, or costs.
+- **No false offline promises:** Not every feature is guaranteed to work offline in every configuration.
 
-See [SCREEN_AUTOMATION.md](SCREEN_AUTOMATION.md) for the detailed behavior and enablement instructions.
+The roadmap should not introduce a paid API, hosted database, or subscription as a mandatory dependency.
 
-## AI engines and local inference
+## Memory that belongs to you
 
-Theo's current project configuration documents **Gemini** and a **configured local Qwen endpoint** as options for the screen-action planner. The Gradle dependencies also include a llama.cpp-based Android runtime intended for on-device GGUF inference on `arm64-v8a`.
+Theo already has memory/history functionality, but the existing Memory experience is intended to become much more useful.
 
-These are different concepts: a local inference runtime does not automatically mean a model is bundled, downloaded, configured, or fast enough for every device. Check the app's actual configuration and model setup before assuming a particular local model is ready to use.
+### Planned memory upgrade
 
-### Cost and connectivity
+- Improve the **existing Memory page in the dock** and add a Settings entry that opens the same page and data.
+- Create, search, categorize, pin, edit, disable, export, import, and delete memories.
+- Support commands like “remember this”, “forget that”, “that's wrong”, and “what do you remember about me?”
+- Correct old memories instead of collecting contradictory copies.
+- Let you review AI-suggested memories and disable automatic saving.
+- Retrieve only relevant memories for each conversation or task.
+- Keep passwords, tokens, and payment secrets out of memory by default.
 
-- Local inference can avoid sending prompts to a hosted model, but requires a compatible model file and sufficient device resources.
-- Cloud AI providers may have quotas, rate limits, network requirements, or costs depending on the account and configuration.
-- The repository does not promise that every AI feature works offline.
-- No future feature in the roadmap should require a paid service as its only implementation path.
+The preferred starting point is local persistence with the database already used by Theo, or native Room/SQLite where appropriate. Begin with lightweight local search; a hosted vector database should not be required. This section is a **roadmap**, not a claim that all these controls are implemented today.
 
-## Memory and history
+## The Liquid Glass experiment
 
-The project documents existing memory/history functionality and includes Room database dependencies. The goal is for Theo to retain useful user-approved context between conversations rather than behave as if every conversation starts from zero.
+The `experiment/theo-liquid-glass` branch explores a more atmospheric assistant interface: dark ink/navy foundations, subtle blue-violet light, translucent surfaces, optical highlights, and floating navigation.
 
-**Important:** The memory redesign below is a planned improvement, not a claim that all of these controls already exist in the current build.
+Design priorities:
 
-### Planned memory improvements
+- Keep Theo's existing identity and useful screens.
+- Use glass effects where they add value, not on every repeated row.
+- Keep chat, settings, and memory content readable.
+- Adapt to different phone widths, keyboard states, and system insets.
+- Avoid unnecessary rendering cost on mid-range devices.
 
-- Upgrade the existing Memory page in the dock instead of creating a separate, disconnected memory system.
-- Add a Settings entry that opens the same memory screen and underlying records.
-- Let the user create, search, edit, categorize, pin, disable, export, import, and delete memories.
-- Support explicit instructions such as “remember this”, “forget that”, “that's wrong”, and “what do you remember about me?”
-- Use corrections to update outdated facts rather than create contradictory duplicates.
-- Mark suggested or uncertain memories for review instead of silently treating guesses as facts.
-- Retrieve only relevant, enabled memories for a conversation or task, rather than injecting the entire memory database into every prompt.
-- Provide controls for automatic memory, review-before-saving, and clearing all memories.
-- Keep secrets such as passwords and API tokens out of memory by default.
+The design notes document [Kyant0's Backdrop / AndroidLiquidGlass](https://github.com/Kyant0/AndroidLiquidGlass) as the shared glass engine for selected Compose surfaces. See [LIQUID_GLASS_DESIGN.md](LIQUID_GLASS_DESIGN.md) for design decisions and validation notes.
 
-The intended first implementation is local-first: reuse the current database if appropriate, or use Room/SQLite with local full-text search. A hosted vector database should not be required. Memory should remain editable and useful even when no AI provider is available; AI-based extraction can be optional.
+**A successful build does not prove the UI looks right.** Test the actual app on a device, including long chats, keyboard-open behavior, scrolling, and navigation insets.
 
-## Liquid Glass interface
+## Privacy & safety
 
-The `experiment/theo-liquid-glass` branch is a UI experiment based on `feature/screen-aware-automation`.
+Accessibility and screen analysis can involve sensitive information. Theo should make the data flow clear and keep consequential actions under your control.
 
-The design direction is a spacious, atmospheric assistant interface rather than a dense, boxed dashboard:
+The screen-automation documentation states that:
 
-- Ink/navy backgrounds with restrained blue and violet lighting.
-- Translucent surfaces, subtle optical edge lighting and consistent corner radii.
-- Floating glass navigation, with a glass header and composer where the effect adds value.
-- Responsive hero and chat sizing rather than fixed dimensions designed for one phone.
-- Consistent screen gutters and typography; monospace is reserved for diagnostics and literal technical data.
-- Expensive refraction effects restricted to high-value surfaces such as the dock, header and composer.
-- Lighter translucent materials for repeated chat bubbles, memory rows, settings rows and action chips to reduce rendering cost.
-
-The active shared glass engine documented by the project is [Kyant0/AndroidLiquidGlass / Backdrop](https://github.com/Kyant0/AndroidLiquidGlass). Other projects were evaluated as references; see [LIQUID_GLASS_DESIGN.md](LIQUID_GLASS_DESIGN.md).
-
-**Build success is not visual verification.** The UI still needs to be checked on a real device for navigation insets, keyboard behavior, long chats, different screen widths, refraction and scrolling performance.
-
-## Privacy and safety
-
-Screen automation is powerful and may expose private content, so its behavior should remain explicit and conservative.
-
-The current screen-automation documentation states that:
-
-- Theo does not record accessibility events or store screen text as a background activity.
+- Screen text is used in response to user-requested screen tasks rather than recorded as a background activity.
 - Passwords and current editable field values are excluded from the accessibility tree.
-- Screenshots used for analysis are held in memory and cleared after analysis; Theo does not save them through this path.
-- During a user-requested screen task or inspection, visible labels are sent to the configured planner.
-- If cloud vision is configured, the screenshot may be sent to Groq or Gemini for that request.
-- Sensitive-looking actions require confirmation.
-- Uncertain or unsupported actions should stop or ask for clarification instead of being guessed.
+- Screenshots for the documented analysis path are held in memory and cleared after analysis rather than saved through that path.
+- Visible labels are sent to the configured planner during a screen task.
+- If cloud vision is configured, screenshots may be sent to Groq or Gemini for that request.
+- Sensitive-looking actions require confirmation, and uncertain actions should stop or ask for clarification.
 
-Do not assume that all processing is local just because Theo runs on Android. The configured provider determines whether a request or screenshot leaves the device. Review [SCREEN_AUTOMATION.md](SCREEN_AUTOMATION.md) and the app's actual settings before using screen inspection with sensitive content.
+**Running on your phone does not automatically mean every AI request stays on your phone.** The configured provider matters. Review [SCREEN_AUTOMATION.md](SCREEN_AUTOMATION.md) and the app's settings before using screen inspection with private content.
 
-### Planned privacy improvements
+### Planned privacy controls
 
-- A privacy dashboard showing which data is local and which is sent to configured AI providers.
-- Separate controls for memory, chat history, screen analysis and optional diagnostics.
-- Export and deletion controls for local data.
+- A dashboard explaining what stays local and what is sent to an AI provider.
+- Separate controls for memory, chat history, screen analysis, and diagnostics.
+- Clear export and deletion controls for local data.
 - No mandatory paid analytics or cloud-sync service.
-- Clear disclosure before screen content is sent to a cloud provider.
 
 ## Roadmap
 
-The items below are **planned improvements** and should not be read as features already available.
+The following are **planned improvements** and should not be interpreted as shipped features.
 
-### Phase 1 — Reliable personal memory
+| Phase | Focus | Intended outcome |
+|---|---|---|
+| **01** | Memory reliability | Editable persistent memories, retrieval, corrections, export/import, and clear controls. |
+| **02** | Agent reliability | Better task status, bounded recovery, cancellation, and verified outcomes. |
+| **03** | Skills & task queue | Save and replay user-approved workflows; track longer tasks where Android permits. |
+| **04** | Integrations & knowledge | Safer app-specific workflows and a searchable local knowledge vault. |
+| **05** | Voice & routines | Optional native speech, user-controlled reminders, and proactive assistance. |
+| **Ongoing** | Privacy & polish | Clear data flows, device testing, performance, and UI consistency. |
 
-- Improve the existing dock Memory page and add a Settings entry to the same page.
-- Add reliable local persistence, search, categories, edit/delete, export/import and duplicate correction.
-- Retrieve relevant memories into future conversations and tasks.
-- Add user-controlled saving, review and forget controls.
+### Principles for every new feature
 
-### Phase 2 — More reliable task execution
+1. **Local-first by default** where practical.
+2. **Free paths first**; paid services must remain optional.
+3. **User control** over saved memories, routines, and externally visible actions.
+4. **Verification over vibes** — never claim an action succeeded without evidence.
+5. **Extend, don't replace** working Theo features.
+6. **Test on a real phone**, not only in a successful CI build.
 
-- Show task status and a step-by-step timeline.
-- Improve bounded retries, re-inspection and recovery after failed actions.
-- Add clear cancellation and useful failure explanations.
-- Verify results before claiming success.
+## Build & development
 
-### Phase 3 — Reusable skills and task queue
+Theo is an Android project built with Kotlin and Jetpack Compose.
 
-- Save successful workflows as named, editable skills.
-- Add parameters, trigger phrases, dry-run previews and per-step logs.
-- Persist long-task status and add cancellation/retry controls.
-- Use Android notifications and background APIs only where supported by Android's lifecycle and permission rules.
+| Setting | Value |
+|---|---|
+| Application ID | `com.aistudio.theoai.qxntp` |
+| Minimum Android SDK | 24 (Android 7.0) |
+| Target SDK | 36 |
+| Compile SDK | 36 (minor API level 1) |
+| Java compatibility | 11 |
 
-### Phase 4 — Integrations and knowledge vault
+### Build from source
 
-- Improve app matching and app-specific workflows.
-- Add a local searchable vault for user-selected notes, snippets, links and project documentation.
-- Explore Discord and BitChord integrations using supported APIs, intents, media sessions, or verified accessibility actions.
-- Do not claim direct app control until the actual integration has been tested.
+1. Clone the repository and check out the branch:
 
-### Phase 5 — Voice and proactive assistance
+   ```bash
+   git clone https://github.com/Kentaakakashi/Theo-AI-mobile.git
+   cd Theo-AI-mobile
+   git checkout experiment/theo-liquid-glass
+   ```
 
-- Add optional Android-native speech input and text-to-speech.
-- Let users customize Theo's conversational style.
-- Add opt-in routines, reminders and user-approved suggestions.
-- Add a privacy dashboard and final polish.
+2. Open the project in a compatible Android Studio installation and let Gradle sync using the SDK required by the project.
+3. Review `.env.example` and the provider configuration. Create a local `.env` only if required.
+4. Never commit real API keys, tokens, keystores, or other secrets.
+5. Build the debug APK:
 
-### Future feature design principles
+   ```bash
+   ./gradlew assembleDebug
+   ```
 
-- Prefer local storage and open-source components.
-- Avoid paid APIs, hosted databases and subscriptions as mandatory dependencies.
-- Reuse Theo's existing planner, action types, database, navigation and verification systems.
-- Keep consequential actions behind explicit confirmation.
-- Preserve the existing UI and functionality while extending it.
-- Document which features work offline and which require a configured AI provider.
+6. Install it on a test device. To test screen automation, manually enable Theo's Accessibility Service in Android Settings.
 
-## Development and build
+### Before calling a change complete
 
-Theo is an Android project using Kotlin and Jetpack Compose.
+- Build the exact branch commit and inspect errors.
+- Run available tests.
+- Verify permissions, confirmations, and failure behavior.
+- Test on the target device with keyboard open, long chats, and different screen sizes.
+- Verify that the task result is actually visible before reporting success.
 
-### Project configuration
+Release builds may require signing configuration. Never commit signing keys or credentials.
 
-- **Application ID:** `com.aistudio.theoai.qxntp`
-- **Minimum SDK:** 24 (Android 7.0)
-- **Target SDK:** 36
-- **Compile SDK:** 36, minor API level 1
-- **Java compatibility:** 11
-- **Primary UI framework:** Jetpack Compose
-- **Local database dependency:** Room
-- **AI/network dependencies:** include provider integrations, Retrofit/OkHttp and related libraries; check the current Gradle files for the exact configuration.
-- **Local inference dependency:** llama.cpp-based Android runtime for `arm64-v8a`.
+## Project docs
 
-### Build locally
+| Document | What's inside |
+|---|---|
+| [`SCREEN_AUTOMATION.md`](SCREEN_AUTOMATION.md) | Enabling automation, supported actions, execution limits, privacy, and limitations. |
+| [`LIQUID_GLASS_DESIGN.md`](LIQUID_GLASS_DESIGN.md) | Visual direction, rendering choices, and device-validation checklist. |
+| [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Third-party components and license notices. |
+| [`.env.example`](.env.example) | Example configuration; never place real secrets in Git. |
 
-1. Clone the repository and check out `experiment/theo-liquid-glass`.
-2. Open the project in a compatible version of Android Studio with the Android SDK required by the Gradle configuration.
-3. Review `.env.example` and the project's provider configuration. Create a local `.env` only if required by the current setup. Never commit real API keys or secrets.
-4. Allow Gradle to sync and resolve dependencies.
-5. Build and run the debug variant using Android Studio, or run the Gradle wrapper task `assembleDebug` from the project root.
-6. Install on a test device and manually enable the Accessibility Service if testing screen automation.
-7. Verify the actual task behavior and UI on-device.
+## References & acknowledgements
 
-A release build may require signing configuration. Never publish signing keys or credentials.
+Theo is built on Android's native platform and open-source tooling. The project documentation notes that its screen-automation approach was informed by [MobileAgent-Android](https://github.com/GiggleWang/MobileAgent-Android), adapted for Theo's Kotlin/Compose app and configured AI clients. The Liquid Glass experiment uses the Backdrop/AndroidLiquidGlass project for selected surfaces.
 
-### CI and device testing
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the project's notices and licensing details. Always review upstream licenses before reusing code.
 
-- Build the exact commit being tested.
-- Review the build logs and test results.
-- Verify screen automation, sensitive-action confirmation and failure handling.
-- Check the Liquid Glass UI on the target phone, including keyboard-open behavior, navigation insets, long chats and scrolling.
-- Do not describe a build as visually verified merely because CI passes.
+---
 
-## Project documentation
+<div align="center">
 
-- [Screen-aware automation](SCREEN_AUTOMATION.md) — setup, action types, limits, privacy and known limitations.
-- [Liquid Glass design](LIQUID_GLASS_DESIGN.md) — design intent, rendering choices and device-validation checklist.
-- [Third-party notices](THIRD_PARTY_NOTICES.md) — third-party projects and license notices.
-- [Example environment configuration](.env.example) — configuration template; do not put real secrets in Git.
+**Theo is a work in progress.**
 
-## Credits and third-party projects
+Built around a simple idea: make your phone assistant more personal, more capable, and more honest about what it can do.
 
-Theo builds on Android and open-source tooling. The project documents the use of Kyant0's Backdrop/AndroidLiquidGlass engine for selected Compose surfaces and notes that its screen-automation architecture was informed by MobileAgent-Android (MIT), adapted to Theo's existing Kotlin/Compose app and configured AI clients.
+[Repository](https://github.com/Kentaakakashi/Theo-AI-mobile) · [Issues](https://github.com/Kentaakakashi/Theo-AI-mobile/issues) · [Roadmap](#roadmap)
 
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the repository's complete notices and license information. Check each upstream project's current license before copying or redistributing code.
-
-## Project status
-
-Theo is actively evolving. The screen-aware automation and Liquid Glass work described in this branch are documented design/implementation areas; the memory overhaul, reusable skills, richer task queue, knowledge vault, privacy dashboard, and other roadmap items are future goals until implemented and tested.
-
-Contributions and experiments should preserve existing behavior, document new permissions and data flows, and include tests or reproducible device-verification steps where possible.
+</div>

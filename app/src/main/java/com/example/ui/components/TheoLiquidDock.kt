@@ -36,7 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -45,11 +45,9 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.builditcode.glass.BackdropFilter
-import com.builditcode.glass.glassBorder
-import com.builditcode.glass.layeredBackdropCapture
-
-internal const val THEO_DOCK_BACKDROP_LAYER = "theo_dock_background"
+import com.example.ui.theme.TheoCyan
+import com.example.ui.theme.TheoTextPrimary
+import com.example.ui.theme.TheoTextSecondary
 
 private data class DockDestination(
   val label: String,
@@ -58,8 +56,9 @@ private data class DockDestination(
 )
 
 /**
- * Floating live-glass navigation. It captures the whole scene behind it, with a separate glass
- * lens for the selected tab. Geometry and destinations are tuned for Theo's compact phone layout.
+ * Floating liquid-glass navigation built on Theo's existing Kyant Backdrop renderer.
+ * Only the dock and selected island opt into optical refraction; the rest of the scrolling UI
+ * uses the lighter surface tier so the effect does not become a device-wide blur workload.
  */
 @Composable
 fun TheoBottomNavigation(
@@ -99,32 +98,19 @@ fun TheoBottomNavigation(
       modifier = Modifier
         .fillMaxWidth()
         .height(72.dp)
-        .layeredBackdropCapture(
-          layerName = THEO_DOCK_BACKDROP_LAYER,
+        .clip(dockShape)
+        .liquidGlassSurface(
           shape = dockShape,
-          filter = BackdropFilter.Glass(
-            shape = dockShape,
-            blurRadiusIntensity = 4.0f,
-            refraction = 0.22f,
-            dispersion = 0.06f,
-            edge = 0.26f,
-            tint = Color(0x27101A2C)
-          )
+          tint = Color(0x2B111D31),
+          gloss = 0.14f,
+          refraction = 10.dp,
+          blurRadius = 6.dp,
+          opticalGlass = true
         )
-        .glassBorder(
-          shape = dockShape,
-          borderColor = Color.White.copy(alpha = 0.23f),
-          borderWidth = 0.8.dp,
-          gapSize = 0.12f,
-          softness = 0.055f,
-          overlayBrush = Brush.verticalGradient(
-            colors = listOf(
-              Color.White.copy(alpha = 0.085f),
-              Color.Transparent,
-              Color(0xFF07101E).copy(alpha = 0.07f)
-            )
-          )
+        .then(
+          Modifier.background(Color.White.copy(alpha = 0.012f), dockShape)
         )
+        .border(0.8.dp, Color.White.copy(alpha = 0.20f), dockShape)
     ) {
       Box(
         modifier = Modifier
@@ -132,32 +118,16 @@ fun TheoBottomNavigation(
           .width((itemWidth - 10.dp).coerceAtLeast(40.dp))
           .fillMaxHeight()
           .padding(vertical = 4.dp)
-          .layeredBackdropCapture(
-            layerName = THEO_DOCK_BACKDROP_LAYER,
+          .clip(islandShape)
+          .liquidGlassSurface(
             shape = islandShape,
-            filter = BackdropFilter.Glass(
-              shape = islandShape,
-              blurRadiusIntensity = 3.2f,
-              refraction = 0.24f,
-              dispersion = 0.08f,
-              edge = 0.30f,
-              tint = Color(0x3271B8E5)
-            )
+            tint = Color(0x3573BDEB),
+            gloss = 0.17f,
+            refraction = 12.dp,
+            blurRadius = 6.dp,
+            opticalGlass = true
           )
-          .glassBorder(
-            shape = islandShape,
-            borderColor = Color.White.copy(alpha = 0.23f),
-            borderWidth = 0.65.dp,
-            gapSize = 0.14f,
-            softness = 0.06f,
-            overlayBrush = Brush.verticalGradient(
-              listOf(
-                Color.White.copy(alpha = 0.095f),
-                Color(0x1676BFE9),
-                Color(0x1008101B)
-              )
-            )
-          )
+          .border(0.65.dp, Color.White.copy(alpha = 0.22f), islandShape)
       )
 
       Row(

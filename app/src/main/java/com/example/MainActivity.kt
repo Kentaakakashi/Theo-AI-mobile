@@ -25,12 +25,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.builditcode.glass.LocalBackdropLayerManager
-import com.builditcode.glass.layeredBackdropSource
-import com.builditcode.glass.rememberBackdropManager
 import com.example.service.TheoDiagnosticLogger
 import com.example.ui.components.LocalTheoGlassBackdrop
-import com.example.ui.components.THEO_DOCK_BACKDROP_LAYER
 import com.example.ui.screens.ActivityHistoryScreen
 import com.example.ui.screens.CoreAssistantScreen
 import com.example.ui.screens.DiagnosticConsoleScreen
@@ -98,7 +94,6 @@ fun TheoMainContent(viewModel: TheoViewModel) {
       center = glowB
     )
   })
-  val dockBackdropManager = rememberBackdropManager(defaultScaleFactor = 0.5f, defaultDebounceMs = 16L)
   val uiState by viewModel.uiState.collectAsState()
   val messages by viewModel.messages.collectAsState()
   val memories by viewModel.memories.collectAsState()
@@ -110,7 +105,6 @@ fun TheoMainContent(viewModel: TheoViewModel) {
   }
 
   CompositionLocalProvider(
-    LocalBackdropLayerManager provides dockBackdropManager,
     LocalTheoGlassBackdrop provides ambientBackdrop
   ) {
     Box(
@@ -123,7 +117,6 @@ fun TheoMainContent(viewModel: TheoViewModel) {
       Box(
         modifier = Modifier
           .fillMaxSize()
-          .layeredBackdropSource(THEO_DOCK_BACKDROP_LAYER)
           .layerBackdrop(ambientBackdrop)
       ) {
       Canvas(Modifier.fillMaxSize()) {

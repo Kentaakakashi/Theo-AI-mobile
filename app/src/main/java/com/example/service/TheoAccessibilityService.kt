@@ -240,7 +240,7 @@ class TheoAccessibilityService : AccessibilityService() {
     screenSenseJob?.cancel()
     screenSenseJob = screenSenseScope.launch {
       TheoDiagnosticLogger.info("SCREEN_SENSE", "Live screen sense started", "intervalMs=5000")
-      showAutomationOverlay("Live Screen Sense", "Watching is active", "Frames sampled about every 5 seconds; cloud analysis is on. Nothing is saved.", 0L)
+      val memoryEnabled = PersistentScreenMemoryStore.hasFolder(this@TheoAccessibilityService)\n      showAutomationOverlay("Live Screen Sense", "Watching is active", if (memoryEnabled) "Screen descriptions are remembered in your selected folder; raw screenshots are not saved." else "No memory folder selected: screen sense works, but long-term learning is off.", 0L)
       while (isActive && isLiveScreenSenseRunning) {
         if (screenSensePaused) {
           delay(500L)
@@ -267,7 +267,7 @@ class TheoAccessibilityService : AccessibilityService() {
           isLiveScreenSenseRunning = false
           break
         }
-        val result = runCatching { ScreenVisionAnalyzer().describe(jpeg, groq, keys) }
+        val memoryContext = PersistentScreenMemoryStore.loadRecentContext(this@TheoAccessibilityService, activePackage)\n        val result = runCatching { ScreenVisionAnalyzer().describe(jpeg, groq, keys, memoryContext) }
           .getOrElse { VisionDescription(null, "none", it.localizedMessage ?: "Vision analysis failed.") }
         if (!isLiveScreenSenseRunning || !isActive) break
         if (result.text != null) {

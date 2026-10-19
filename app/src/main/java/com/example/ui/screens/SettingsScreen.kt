@@ -90,6 +90,8 @@ fun SettingsScreen(
   isNotificationAccessEnabled: Boolean,
   isScreenAutomationRunning: Boolean,
   isLiveScreenSenseEnabled: Boolean,
+  hasPersistentScreenMemoryFolder: Boolean,
+  onChoosePersistentScreenMemoryFolder: () -> Unit,
   onConfigureScreenAutomation: () -> Unit,
   onConfigureNotificationAccess: () -> Unit = {},
   onToggleLiveScreenSense: () -> Unit,
@@ -697,6 +699,25 @@ fun SettingsScreen(
             fontSize = 11.sp,
             lineHeight = 16.sp
           )
+          Text(
+            text = if (hasPersistentScreenMemoryFolder) "Persistent app memory folder: connected" else "Persistent app memory: not configured",
+            color = if (hasPersistentScreenMemoryFolder) TheoOnlineGreen else TheoWarningAmber,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold
+          )
+          Text(
+            text = "Theo can save screen descriptions and recall what it learned about each app. Screenshots themselves are never stored. Choose a folder outside Theo so the memory file can survive app updates and normally an uninstall.",
+            color = TheoTextSecondary,
+            fontSize = 11.sp,
+            lineHeight = 16.sp
+          )
+          Button(
+            onClick = onChoosePersistentScreenMemoryFolder,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceCard)
+          ) {
+            Text(if (hasPersistentScreenMemoryFolder) "Change Persistent Memory Folder" else "Choose Persistent Memory Folder", color = TheoCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+          }
           Button(
             onClick = onToggleLiveScreenSense,
             modifier = Modifier.fillMaxWidth(),

@@ -271,7 +271,8 @@ class TheoAccessibilityService : AccessibilityService() {
           .getOrElse { VisionDescription(null, "none", it.localizedMessage ?: "Vision analysis failed.") }
         if (!isLiveScreenSenseRunning || !isActive) break
         if (result.text != null) {
-          showAutomationOverlay("Live Screen Sense", "Updated · ${result.provider}", result.text.take(700), 0L)
+          val remembered = PersistentScreenMemoryStore.recordObservation(this@TheoAccessibilityService, activePackage, result.text)
+          showAutomationOverlay("Live Screen Sense", "Updated · ${result.provider}", (result.text + if (remembered) "\n\nMemory saved for this app." else "").take(700), 0L)
           TheoDiagnosticLogger.info("SCREEN_SENSE", "Screen analysis updated", "provider=${result.provider}; chars=${result.text.length}")
         } else {
           showAutomationOverlay("Live Screen Sense", "Vision unavailable", result.error ?: "No description returned.", 0L)

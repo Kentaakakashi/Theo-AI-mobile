@@ -136,6 +136,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     // Clear the obsolete host URL on upgrade; local inference no longer uses a Termux bridge.
     prefs.edit().remove("termux_host").apply()
     TheoAccessibilityService.overlayStopHandler = { stopScreenAutomation() }
+    TheoAccessibilityService.overlayChatHandler = { text -> sendMessage(text) }
     TheoAccessibilityService.overlayPauseToggleHandler = {
       if (screenAutomationJob?.isActive == true) toggleScreenAutomationPause()
       else TheoAccessibilityService.instance?.toggleLiveScreenSensePause() ?: false
@@ -1552,6 +1553,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       latencyMs = 0L,
       actionTag = actionTag
     ))
+    TheoAccessibilityService.instance?.showOverlayChatReply(text)
     if (_uiState.value.isSpeechEnabled) {
       val spokenStatus = if (badge == "SCREEN AUTOMATION") {
         when {

@@ -89,7 +89,7 @@ internal object PersistentScreenMemoryStore {
 
   private fun writeRecords(context: Context, tree: Uri, records: JSONArray) {
     val file = findMemoryFile(context, tree)
-      ?: DocumentsContract.createDocument(context.contentResolver, tree, "application/json", FILE_NAME)
+      ?: DocumentsContract.createDocument(context.contentResolver, DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree)), "application/json", FILE_NAME)
       ?: throw IOException("Android could not create Theo_Screen_Memory.json in the selected folder.")
     context.contentResolver.openOutputStream(file, "wt")?.bufferedWriter()?.use {
       it.write(records.toString(2))

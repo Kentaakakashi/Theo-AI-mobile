@@ -1,9 +1,12 @@
 package com.example
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
@@ -24,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.service.TheoDiagnosticLogger
 import com.example.ui.components.LocalTheoGlassBackdrop
@@ -96,6 +100,18 @@ fun TheoMainContent(viewModel: TheoViewModel) {
     )
   })
   val uiState by viewModel.uiState.collectAsState()
+  val context = LocalContext.current
+  val memoryFolderPicker = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.OpenDocumentTree()
+  ) { uri ->
+    if (uri != null) {
+      val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+      val permissionGranted = runCatching {
+        context.contentResolver.takePersistableUriPermission(uri, flags)
+      }.isSuccess
+      if (permissionGranted) viewModel.setPersistentScreenMemoryFolder(uri.toString())
+    }
+  }
   val messages by viewModel.messages.collectAsState()
   val memories by viewModel.memories.collectAsState()
   val activities by viewModel.activities.collectAsState()
@@ -194,8 +210,12 @@ fun TheoMainContent(viewModel: TheoViewModel) {
             isScreenAutomationEnabled = uiState.isScreenAutomationEnabled,
             isNotificationAccessEnabled = uiState.isNotificationAccessEnabled,
             isScreenAutomationRunning = uiState.isScreenAutomationRunning,
+            isLiveScreenSenseEnabled = uiState.isLiveScreenSenseEnabled,
+            hasPersistentScreenMemoryFolder = uiState.hasPersistentScreenMemoryFolder,
+            onChoosePersistentScreenMemoryFolder = { memoryFolderPicker.launch(null) },
             onConfigureScreenAutomation = { viewModel.openAccessibilitySettings() },
             onConfigureNotificationAccess = { viewModel.openNotificationAccessSettings() },
+            onToggleLiveScreenSense = { viewModel.toggleLiveScreenSense() },
             onStopScreenAutomation = { viewModel.stopScreenAutomation() }
           )
         }

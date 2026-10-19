@@ -12,8 +12,8 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 /**
- * One-shot cloud screen interpretation. Image bytes are held only in memory and are not logged
- * or written to disk. Groq Qwen vision is primary; configured Gemini keys are fallback.
+ * Cloud screen interpretation. Image bytes are held only in memory and are not logged
+ * or written to disk. Gemini is primary; configured Groq vision is the alternate provider.
  */
 internal class ScreenVisionAnalyzer {
   private val client = OkHttpClient.Builder()

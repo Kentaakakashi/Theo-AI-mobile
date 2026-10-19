@@ -592,8 +592,20 @@ class TheoAccessibilityService : AccessibilityService() {
         if (removed) delay(100L)
       }
       val first = captureActiveScreenJpegOnce()
-      if (first.succeeded || first.error?.contains("internal screenshot error", ignoreCase = true) != true) return first
-      delay(350L)
+      if (first.succeeded) return first
+      val firstError = first.error.orEmpty().lowercase()
+      // Retry transient screenshot service/rate-limit/conversion failures once. Permanent
+      // policy or permission failures will not improve by hammering the capture API.
+      val permanentFailure = listOf(
+        "denied screenshot access",
+        "secure content",
+        "blocked screenshot capture",
+        "invalid display",
+        "invalid window",
+        "android 11 or newer"
+      ).any { firstError.contains(it) }
+      if (permanentFailure) return first
+      delay(if (firstError.contains("rate-limited")) 500L else 350L)
       val retry = captureActiveScreenJpegOnce()
       if (retry.succeeded) {
         TheoDiagnosticLogger.info("SCREEN_VISION", "Screenshot retry recovered")

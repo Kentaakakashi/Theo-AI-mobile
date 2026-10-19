@@ -881,7 +881,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
               val targetPackage = expectedPackageName
               val transitionStartedAt = System.currentTimeMillis()
               // System App Lock and biometric prompts can appear after any action.
-              val transitionTimeoutMs = 120_000L
+              val transitionTimeoutMs = 15_000L
               var observedPackage = snapshot.packageName
               publishAutomationOverlay(
                 task = task,
@@ -926,7 +926,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                 )
               }
               if (snapshot?.packageName != targetPackage) {
-                finalMessage = "Theo waited 2 minutes for $targetPackage, but Android kept showing $observedPackage. Unlock the phone/app or finish the app chooser, then start the task again. Theo did not interact with that other screen."
+                finalMessage = "Theo waited 15 seconds for $targetPackage, but Android kept showing $observedPackage. Unlock the phone/app or finish the app chooser, then start the task again. Theo did not interact with that other screen."
                 break
               }
           }

@@ -28,3 +28,10 @@ Theo uses Android's native Accessibility Service API to inspect the active app's
 ## Reference project and license
 
 The accessibility-service lifecycle and step-by-step action-loop architecture were informed by [MobileAgent-Android](https://github.com/GiggleWang/MobileAgent-Android), licensed under MIT. The service and task flow have been adapted to Theo's existing Kotlin/Compose app and configured AI clients. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+
+### Floating Theo panel
+
+- The live panel can be dragged by its header and includes a small message composer that sends text into Theo's normal chat pipeline.
+- Theo's panel is temporarily removed from the display while a screenshot is captured, then restored, so its own Stop/Pause/chat controls are not described as part of the target app.
+- Chat replies can be surfaced in the panel while the user remains in the target app. Tap Hide to dismiss the panel without stopping the task; Pause/Resume and Stop retain their task-control roles.

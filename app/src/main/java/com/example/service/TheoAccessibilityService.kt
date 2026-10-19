@@ -47,7 +47,7 @@ class TheoAccessibilityService : AccessibilityService() {
     private const val MAX_DEPTH = 12
     @Volatile var overlayStopHandler: (() -> Unit)? = null
     @Volatile var overlayPauseToggleHandler: (() -> Boolean)? = null
-    @Volatile var overlayChatHandler: ((String) -> Unit)? = null
+    @Volatile var overlayChatHandler: ((String) -> Boolean)? = null
 
     fun isEnabled(context: Context): Boolean {
       val expected = ComponentName(context, TheoAccessibilityService::class.java).flattenToString()
@@ -158,8 +158,13 @@ class TheoAccessibilityService : AccessibilityService() {
             val params = overlayLayoutParams ?: return@setOnClickListener
             params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
             runCatching { manager.updateViewLayout(root, params) }
-            requestFocus()
-            (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+            // Wait until WindowManager applies the focusability change before asking Android
+            // to show the IME; requesting it in the same click can be ignored on some builds.
+            post {
+              requestFocus()
+              (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)
+                ?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+            }
           }
         }
         val send = android.widget.Button(this).apply {
@@ -169,16 +174,22 @@ class TheoAccessibilityService : AccessibilityService() {
           setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(0, 229, 255)))
           setOnClickListener {
             val message = messageInput.text?.toString()?.trim().orEmpty()
-            if (message.isNotBlank()) {
-              val handler = overlayChatHandler
-              if (handler == null) {
-                statusText.text = "Open Theo once, then try sending again."
-              } else {
-                handler.invoke(message)
-                messageInput.text?.clear()
-                statusText.text = "Message sent to Theo · reply will appear in the panel when available."
-              }
+            if (message.isBlank()) {
+              statusText.text = "Type a message for Theo first."
+              return@setOnClickListener
             }
+            val handler = overlayChatHandler
+            val accepted = handler?.invoke(message) == true
+            if (!accepted) {
+              statusText.text = if (handler == null) {
+                "Open Theo once, then try sending again."
+              } else {
+                "Theo is busy with the current request. Your message is still here; try again when Theo is ready."
+              }
+              return@setOnClickListener
+            }
+            messageInput.text?.clear()
+            statusText.text = "Message queued · waiting for Theo's reply."
             (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.hideSoftInputFromWindow(messageInput.windowToken, 0)
             messageInput.clearFocus()
             overlayLayoutParams?.let { params ->
@@ -230,15 +241,19 @@ class TheoAccessibilityService : AccessibilityService() {
         root.addView(detailText)
         root.addView(composer)
         root.addView(buttons)
+        val display = resources.displayMetrics
+        val horizontalMargin = (12 * density).toInt()
+        val cardWidth = minOf((320 * density).toInt(), (display.widthPixels - horizontalMargin * 2).coerceAtLeast(1))
         val params = WindowManager.LayoutParams(
-          (320 * density).toInt(),
+          cardWidth,
           WindowManager.LayoutParams.WRAP_CONTENT,
           WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
           WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
           PixelFormat.TRANSLUCENT
         ).apply {
-          gravity = Gravity.TOP or Gravity.END
-          x = (10 * density).toInt()
+          // START gravity makes drag coordinates intuitive: finger right = panel right.
+          gravity = Gravity.TOP or Gravity.START
+          x = horizontalMargin
           y = (92 * density).toInt()
         }
         var downRawX = 0f
@@ -253,8 +268,11 @@ class TheoAccessibilityService : AccessibilityService() {
               true
             }
             MotionEvent.ACTION_MOVE -> {
-              params.x = (downX - (event.rawX - downRawX).toInt()).coerceAtLeast(0)
-              params.y = (downY + (event.rawY - downRawY).toInt()).coerceAtLeast(0)
+              val bounds = resources.displayMetrics
+              val maxX = (bounds.widthPixels - root.width).coerceAtLeast(0)
+              val maxY = (bounds.heightPixels - root.height).coerceAtLeast(0)
+              params.x = (downX + (event.rawX - downRawX).toInt()).coerceIn(0, maxX)
+              params.y = (downY + (event.rawY - downRawY).toInt()).coerceIn(0, maxY)
               runCatching { manager.updateViewLayout(root, params) }
               true
             }

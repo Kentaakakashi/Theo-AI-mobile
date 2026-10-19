@@ -56,4 +56,34 @@ internal object AutomationTaskVerifier {
     value.lowercase(java.util.Locale.ROOT)
       .replace(Regex("\\s+"), " ")
       .trim()
+
+  /**
+   * Match complete visible phrases rather than arbitrary substrings. Thus "hi" matches
+   * "Hi!" but does not match the middle of "this".
+   */
+  fun containsVisiblePhrase(visibleText: String, expectedPhrase: String): Boolean {
+    val visible = normalizePhraseForMatching(visibleText)
+    val expected = normalizePhraseForMatching(expectedPhrase)
+    if (visible.isBlank() || expected.isBlank()) return false
+    return " $visible ".contains(" $expected ")
+  }
+
+  fun verifyRequestedMessage(expectation: MessageExpectation, visibleText: String): MessageVerificationResult =
+    MessageVerificationResult(
+      recipientVisible = containsVisiblePhrase(visibleText, expectation.recipient),
+      bodyVisible = containsVisiblePhrase(visibleText, expectation.body)
+    )
+
+  private fun normalizePhraseForMatching(value: String): String =
+    value.lowercase(java.util.Locale.ROOT)
+      .replace(Regex("""[^\p{L}\p{N}]+"""), " ")
+      .replace(Regex("\\s+"), " ")
+      .trim()
+}
+
+internal data class MessageVerificationResult(
+  val recipientVisible: Boolean,
+  val bodyVisible: Boolean
+) {
+  val verified: Boolean get() = recipientVisible && bodyVisible
 }

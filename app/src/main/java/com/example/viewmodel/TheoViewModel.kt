@@ -136,7 +136,13 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     // Clear the obsolete host URL on upgrade; local inference no longer uses a Termux bridge.
     prefs.edit().remove("termux_host").apply()
     TheoAccessibilityService.overlayStopHandler = { stopScreenAutomation() }
-    TheoAccessibilityService.overlayChatHandler = { text -> sendMessage(text) }
+    TheoAccessibilityService.overlayChatHandler = { text ->
+      val ready = text.isNotBlank() && _uiState.value.assistantState != AssistantState.THINKING
+      if (ready) {
+        sendMessage(text)
+        _uiState.value.assistantState == AssistantState.THINKING
+      } else false
+    }
     TheoAccessibilityService.overlayPauseToggleHandler = {
       if (screenAutomationJob?.isActive == true) toggleScreenAutomationPause()
       else TheoAccessibilityService.instance?.toggleLiveScreenSensePause() ?: false
@@ -1211,14 +1217,24 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
                     .filterNot { it.editable }
                     .map { it.label }
                     .filter { it.isNotBlank() }
-                  val visibleText = com.example.service.AutomationTaskVerifier.normalizeVisibleText(visibleLabels.joinToString(" "))
-                  val recipientVisible = visibleText.contains(com.example.service.AutomationTaskVerifier.normalizeVisibleText(requestedMessage.recipient))
-                  val bodyVisible = visibleText.contains(com.example.service.AutomationTaskVerifier.normalizeVisibleText(requestedMessage.body))
-                  finalMessage = if (recipientVisible && bodyVisible) {
-                    "The current conversation visibly contains the requested recipient and message text. Theo did not tap Send again. The app's delivery status is not independently exposed, so delivery is not being claimed."
+                  val visibleText = visibleLabels.joinToString(" ")
+                  val verification = com.example.service.AutomationTaskVerifier
+                    .verifyRequestedMessage(requestedMessage, visibleText)
+                  finalMessage = if (verification.verified) {
+                    "Verified on the current screen: the requested recipient and complete message text are visible in the conversation. Theo did not tap Send again. The app's delivery/read status is not independently exposed, so delivery is not being claimed."
                   } else {
-                    "Theo's planner marked the message task complete, but the current accessible screen does not independently show both the requested recipient and message text. To prevent a duplicate, Theo did not press Send again. Check the conversation before retrying."
+                    val missingEvidence = buildList {
+                      if (!verification.recipientVisible) add("the recipient '${requestedMessage.recipient}'")
+                      if (!verification.bodyVisible) add("the complete message text")
+                    }.joinToString(" and ")
+                    "Theo's planner marked the message task complete, but the current screen did not verify $missingEvidence. To prevent duplicate messages, Theo did not press Send again. Check the conversation before retrying."
                   }
+                  publishAutomationOverlay(
+                    task = task,
+                    status = if (verification.verified) "Message visible · verified" else "Message not verified",
+                    detail = finalMessage,
+                    autoHideMs = 9_000L
+                  )
                 } else {
                   finalMessage = "Theo's configured AI provider judged the task complete from the visible accessibility tree. Review the target app to verify the final state."
                 }

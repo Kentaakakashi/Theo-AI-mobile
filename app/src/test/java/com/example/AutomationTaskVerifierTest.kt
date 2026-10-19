@@ -68,4 +68,24 @@ class AutomationTaskVerifierTest {
         .contains(AutomationTaskVerifier.normalizeVisibleText("hello there"))
     )
   }
+
+  @Test
+  fun visiblePhraseMatchingAvoidsAccidentalSubstringMatches() {
+    assertTrue(AutomationTaskVerifier.containsVisiblePhrase("Kenta Kakashi · Hi!", "Kenta"))
+    assertTrue(AutomationTaskVerifier.containsVisiblePhrase("Kenta Kakashi · Hi!", "Hi"))
+    assertFalse(AutomationTaskVerifier.containsVisiblePhrase("This is a chat", "Hi"))
+    assertFalse(AutomationTaskVerifier.containsVisiblePhrase("Kentaro sent hello", "Kenta"))
+  }
+
+  @Test
+  fun messageCompletionRequiresRecipientAndBodyOnVisibleScreen() {
+    val expectation = AutomationTaskVerifier.requestedMessage("Message Kenta saying Hi")!!
+    val verified = AutomationTaskVerifier.verifyRequestedMessage(expectation, "Kenta Kakashi · Hi!")
+    assertTrue(verified.verified)
+
+    val missingBody = AutomationTaskVerifier.verifyRequestedMessage(expectation, "Kenta Kakashi · Message")
+    assertTrue(missingBody.recipientVisible)
+    assertFalse(missingBody.bodyVisible)
+    assertFalse(missingBody.verified)
+  }
 }

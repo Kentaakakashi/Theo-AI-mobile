@@ -89,8 +89,10 @@ fun SettingsScreen(
   isScreenAutomationEnabled: Boolean,
   isNotificationAccessEnabled: Boolean,
   isScreenAutomationRunning: Boolean,
+  isLiveScreenSenseEnabled: Boolean,
   onConfigureScreenAutomation: () -> Unit,
   onConfigureNotificationAccess: () -> Unit = {},
+  onToggleLiveScreenSense: () -> Unit,
   onStopScreenAutomation: () -> Unit,
   modifier: Modifier = Modifier
 ) {
@@ -652,6 +654,61 @@ fun SettingsScreen(
             colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceCard)
           ) {
             Text(if (isNotificationAccessEnabled) "Manage Notification Access" else "Enable Notification & Playback Access", color = TheoCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+          }
+        }
+      }
+
+      Spacer(modifier = Modifier.height(20.dp))
+
+      // Live Screen Sense is separate from task automation and only runs after an explicit toggle.
+      SettingsSectionHeader(icon = Icons.Default.Refresh, title = "Live Screen Sense")
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .clip(RoundedCornerShape(12.dp))
+          .background(Color.Transparent)
+          .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.14f)
+          .border(1.dp, if (isLiveScreenSenseEnabled) TheoCyan.copy(alpha = 0.55f) else TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+          .padding(14.dp)
+      ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+              Text(
+                text = if (isLiveScreenSenseEnabled) "SCREEN SENSE ACTIVE" else "Screen Sense is off",
+                color = if (isLiveScreenSenseEnabled) TheoOnlineGreen else TheoTextPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+              )
+              Text(
+                text = "Periodic screen understanding with a floating live capsule.",
+                color = TheoTextSecondary,
+                fontSize = 11.sp
+              )
+            }
+            Box(
+              modifier = Modifier.size(8.dp).clip(CircleShape)
+                .background(if (isLiveScreenSenseEnabled) TheoOnlineGreen else TheoTextMuted)
+            )
+          }
+          Text(
+            text = "When enabled, Theo captures a frame about every 5 seconds while another app is foregrounded, then asks Gemini to describe what is visible. If Gemini fails and a Groq key is configured, Groq may be used as an alternate. Frames are sent over the internet for analysis, held in memory only, and not saved by Theo. This is periodic sampling—not a continuous video stream. Avoid enabling it on passwords, banking, private chats, or other sensitive screens. Android 11+ and Theo's Accessibility permission are required.",
+            color = TheoTextSecondary,
+            fontSize = 11.sp,
+            lineHeight = 16.sp
+          )
+          Button(
+            onClick = onToggleLiveScreenSense,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+              containerColor = if (isLiveScreenSenseEnabled) TheoErrorRed.copy(alpha = 0.18f) else TheoCyan
+            )
+          ) {
+            Text(
+              if (isLiveScreenSenseEnabled) "Stop Live Screen Sense" else "Start Live Screen Sense",
+              color = if (isLiveScreenSenseEnabled) TheoErrorRed else TheoDarkBackground,
+              fontWeight = FontWeight.Bold
+            )
           }
         }
       }

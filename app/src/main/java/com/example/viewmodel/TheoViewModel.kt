@@ -74,7 +74,8 @@ data class TheoUiState(
   val pendingAppSelection: PendingAppSelection? = null,
   val isScreenAutomationEnabled: Boolean = false,
   val isNotificationAccessEnabled: Boolean = false,
-  val isScreenAutomationRunning: Boolean = false
+  val isScreenAutomationRunning: Boolean = false,
+  val isLiveScreenSenseEnabled: Boolean = false
 )
 
 class TheoViewModel(application: Application) : AndroidViewModel(application) {
@@ -133,7 +134,10 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     // Clear the obsolete host URL on upgrade; local inference no longer uses a Termux bridge.
     prefs.edit().remove("termux_host").apply()
     TheoAccessibilityService.overlayStopHandler = { stopScreenAutomation() }
-    TheoAccessibilityService.overlayPauseToggleHandler = { toggleScreenAutomationPause() }
+    TheoAccessibilityService.overlayPauseToggleHandler = {
+      if (screenAutomationJob?.isActive == true) toggleScreenAutomationPause()
+      else TheoAccessibilityService.instance?.toggleLiveScreenSensePause() ?: false
+    }
     com.example.service.TheoAutomationForegroundService.onStopRequested = { stopScreenAutomation() }
     TheoDiagnosticLogger.info("VIEW_MODEL", "TheoViewModel initialized", "model=${_uiState.value.activeModel}")
     val interruptedAt = prefs.getLong("screen_automation_started_at", 0L)
@@ -164,7 +168,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     _uiState.update {
       it.copy(
         isScreenAutomationEnabled = TheoAccessibilityService.isEnabled(getApplication()),
-        isNotificationAccessEnabled = TheoNotificationListenerService.isEnabled(getApplication())
+        isNotificationAccessEnabled = TheoNotificationListenerService.isEnabled(getApplication()),
+        isLiveScreenSenseEnabled = TheoAccessibilityService.instance?.isLiveScreenSenseRunning == true
       )
     }
   }
@@ -177,6 +182,25 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
     } catch (error: Exception) {
       TheoDiagnosticLogger.error("NOTIFICATION_ACCESS", "Could not open notification access settings", error)
       appendMessageAsync("Android could not open Notification access settings. Open Settings and search for Notification access.")
+    }
+  }
+
+  fun toggleLiveScreenSense() {
+    val service = TheoAccessibilityService.instance
+    if (service?.isLiveScreenSenseRunning == true) {
+      service.stopLiveScreenSense()
+      _uiState.update { it.copy(isLiveScreenSenseEnabled = false) }
+      return
+    }
+    if (!TheoAccessibilityService.isEnabled(getApplication()) || service == null) {
+      openAccessibilitySettings()
+      appendMessageAsync("Enable Theo Screen Automation in Android Accessibility settings first. Screen Sense uses that permission to capture periodic screenshots; Android still shows its normal accessibility indicator.")
+      return
+    }
+    val started = service.startLiveScreenSense()
+    _uiState.update { it.copy(isLiveScreenSenseEnabled = started) }
+    if (started) {
+      appendMessageAsync("Live Screen Sense is on. Theo samples the screen about every 5 seconds while another app is foregrounded. Frames are sent to your configured vision provider for analysis, held in memory only, and never saved by Theo. Tap Stop in the floating overlay or switch it off in Settings to end it.")
     }
   }
 
@@ -1489,6 +1513,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   fun stopScreenAutomation() {
+    TheoAccessibilityService.instance?.stopLiveScreenSense()
+    _uiState.update { it.copy(isLiveScreenSenseEnabled = false) }
     screenAutomationJob?.cancel()
     screenAutomationJob = null
     com.example.service.TheoAutomationForegroundService.stop(getApplication<Application>())

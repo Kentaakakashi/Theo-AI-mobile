@@ -75,7 +75,8 @@ data class TheoUiState(
   val isScreenAutomationEnabled: Boolean = false,
   val isNotificationAccessEnabled: Boolean = false,
   val isScreenAutomationRunning: Boolean = false,
-  val isLiveScreenSenseEnabled: Boolean = false
+  val isLiveScreenSenseEnabled: Boolean = false,
+  val hasPersistentScreenMemoryFolder: Boolean = false
 )
 
 class TheoViewModel(application: Application) : AndroidViewModel(application) {
@@ -104,7 +105,8 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       } catch (e: Exception) {
         AnimationIntensity.HIGH
       },
-      isSpeechEnabled = prefs.getBoolean("speech_enabled", true)
+      isSpeechEnabled = prefs.getBoolean("speech_enabled", true),
+      hasPersistentScreenMemoryFolder = com.example.service.PersistentScreenMemoryStore.hasFolder(application)
     )
   )
   val uiState: StateFlow<TheoUiState> = _uiState.asStateFlow()
@@ -183,6 +185,12 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       TheoDiagnosticLogger.error("NOTIFICATION_ACCESS", "Could not open notification access settings", error)
       appendMessageAsync("Android could not open Notification access settings. Open Settings and search for Notification access.")
     }
+  }
+
+  fun setPersistentScreenMemoryFolder(uri: String) {
+    com.example.service.PersistentScreenMemoryStore.setFolderUri(getApplication(), uri)
+    _uiState.update { it.copy(hasPersistentScreenMemoryFolder = true) }
+    appendMessageAsync("Theo memory folder connected. New screen descriptions and app-specific observations can now persist outside Theo and be reused after app updates or reinstall, provided the folder remains available.")
   }
 
   fun toggleLiveScreenSense() {

@@ -19,7 +19,13 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -66,6 +72,11 @@ class TheoAccessibilityService : AccessibilityService() {
   }
 
   private val overlayHandler = Handler(Looper.getMainLooper())
+  private val screenSenseScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+  @Volatile var isLiveScreenSenseRunning: Boolean = false
+    private set
+  @Volatile private var screenSensePaused: Boolean = false
+  private var screenSenseJob: Job? = null
   private var automationOverlay: View? = null
   private var overlayStatusView: android.widget.TextView? = null
   private var overlayDetailView: android.widget.TextView? = null
@@ -207,6 +218,88 @@ class TheoAccessibilityService : AccessibilityService() {
     }
   }
 
+  /**
+   * Opt-in periodic screen understanding. Android's accessibility screenshot API is not
+   * a continuous video stream, so frames are sampled about every five seconds.
+   */
+  fun startLiveScreenSense(): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+      showAutomationOverlay("Screen Sense unavailable", "Android 11+ required", "Native accessibility screenshots require Android 11 or newer.", 5000L)
+      return false
+    }
+    if (isLiveScreenSenseRunning) return true
+    val prefs = getSharedPreferences("theo_prefs", Context.MODE_PRIVATE)
+    val geminiKeys = parseGeminiApiKeys(prefs.getString("gemini_api_key", "").orEmpty())
+    val groqKey = prefs.getString("groq_api_key", "").orEmpty().trim()
+    if (geminiKeys.isEmpty() && groqKey.isBlank()) {
+      showAutomationOverlay("Screen Sense unavailable", "No vision API configured", "Add a Gemini API key in Theo Settings first.", 6000L)
+      return false
+    }
+    isLiveScreenSenseRunning = true
+    screenSensePaused = false
+    screenSenseJob?.cancel()
+    screenSenseJob = screenSenseScope.launch {
+      TheoDiagnosticLogger.info("SCREEN_SENSE", "Live screen sense started", "intervalMs=5000")
+      showAutomationOverlay("Live Screen Sense", "Watching is active", "Frames sampled about every 5 seconds; cloud analysis is on. Nothing is saved.", 0L)
+      while (isActive && isLiveScreenSenseRunning) {
+        if (screenSensePaused) {
+          delay(500L)
+          continue
+        }
+        val activePackage = getActiveWindowPackageName()
+        if (activePackage.isNullOrBlank() || activePackage == packageName) {
+          showAutomationOverlay("Live Screen Sense", "Paused while Theo is open", "Switch to another app to let Theo inspect its visible screen.", 0L)
+          delay(1500L)
+          continue
+        }
+        val capture = captureActiveScreenJpeg()
+        val jpeg = capture.jpegBytes
+        if (jpeg == null) {
+          showAutomationOverlay("Live Screen Sense", "Capture unavailable", capture.error ?: "Android did not provide a screenshot.", 0L)
+          delay(5000L)
+          continue
+        }
+        val latestPrefs = getSharedPreferences("theo_prefs", Context.MODE_PRIVATE)
+        val keys = parseGeminiApiKeys(latestPrefs.getString("gemini_api_key", "").orEmpty())
+        val groq = latestPrefs.getString("groq_api_key", "").orEmpty()
+        if (keys.isEmpty() && groq.isBlank()) {
+          showAutomationOverlay("Live Screen Sense", "Paused · no vision key", "Add a Gemini key in Settings, then restart Screen Sense.", 0L)
+          isLiveScreenSenseRunning = false
+          break
+        }
+        val result = runCatching { ScreenVisionAnalyzer().describe(jpeg, groq, keys) }
+          .getOrElse { VisionDescription(null, "none", it.localizedMessage ?: "Vision analysis failed.") }
+        if (!isLiveScreenSenseRunning || !isActive) break
+        if (result.text != null) {
+          showAutomationOverlay("Live Screen Sense", "Updated · ${result.provider}", result.text.take(700), 0L)
+          TheoDiagnosticLogger.info("SCREEN_SENSE", "Screen analysis updated", "provider=${result.provider}; chars=${result.text.length}")
+        } else {
+          showAutomationOverlay("Live Screen Sense", "Vision unavailable", result.error ?: "No description returned.", 0L)
+          TheoDiagnosticLogger.warn("SCREEN_SENSE", "Screen analysis failed", result.error ?: "unknown")
+        }
+        delay(5000L)
+      }
+      TheoDiagnosticLogger.info("SCREEN_SENSE", "Live screen sense loop ended")
+    }
+    return true
+  }
+
+  fun toggleLiveScreenSensePause(): Boolean {
+    if (!isLiveScreenSenseRunning) return false
+    screenSensePaused = !screenSensePaused
+    setAutomationPaused(screenSensePaused)
+    return screenSensePaused
+  }
+
+  fun stopLiveScreenSense() {
+    isLiveScreenSenseRunning = false
+    screenSensePaused = false
+    screenSenseJob?.cancel()
+    screenSenseJob = null
+    TheoDiagnosticLogger.info("SCREEN_SENSE", "Live screen sense stopped")
+    hideAutomationOverlay()
+  }
+
   override fun onServiceConnected() {
     super.onServiceConnected()
     instance = this
@@ -293,6 +386,8 @@ class TheoAccessibilityService : AccessibilityService() {
   override fun onInterrupt() = Unit
 
   override fun onDestroy() {
+    stopLiveScreenSense()
+    screenSenseScope.coroutineContext[Job]?.cancel()
     hideAutomationOverlay()
     if (instance === this) instance = null
     super.onDestroy()

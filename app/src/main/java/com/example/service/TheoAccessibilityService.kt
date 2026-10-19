@@ -12,6 +12,8 @@ import android.os.Handler
 import android.os.SystemClock
 import android.os.Looper
 import android.view.Gravity
+import android.view.MotionEvent
+import android.view.inputmethod.InputMethodManager
 import android.view.View
 import android.view.WindowManager
 import android.os.Build
@@ -26,6 +28,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -44,6 +47,7 @@ class TheoAccessibilityService : AccessibilityService() {
     private const val MAX_DEPTH = 12
     @Volatile var overlayStopHandler: (() -> Unit)? = null
     @Volatile var overlayPauseToggleHandler: (() -> Boolean)? = null
+    @Volatile var overlayChatHandler: ((String) -> Unit)? = null
 
     fun isEnabled(context: Context): Boolean {
       val expected = ComponentName(context, TheoAccessibilityService::class.java).flattenToString()
@@ -81,6 +85,8 @@ class TheoAccessibilityService : AccessibilityService() {
   private var overlayStatusView: android.widget.TextView? = null
   private var overlayDetailView: android.widget.TextView? = null
   private var overlayPauseButton: android.widget.Button? = null
+  private var overlayLayoutParams: WindowManager.LayoutParams? = null
+  @Volatile private var overlayTemporarilyHidden = false
   private var overlayHideRunnable: Runnable? = null
 
   /** Small floating status card shown only during explicitly requested automation. */
@@ -94,19 +100,21 @@ class TheoAccessibilityService : AccessibilityService() {
         val density = resources.displayMetrics.density
         val root = android.widget.LinearLayout(this).apply {
           orientation = android.widget.LinearLayout.VERTICAL
-          setPadding((14 * density).toInt(), (12 * density).toInt(), (14 * density).toInt(), (12 * density).toInt())
+          setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
           background = GradientDrawable().apply {
-            setColor(Color.rgb(18, 23, 38))
-            setStroke((1.5f * density).toInt().coerceAtLeast(1), Color.rgb(0, 229, 255))
-            cornerRadius = 18 * density
+            setColor(Color.rgb(12, 16, 27))
+            setStroke((1.2f * density).toInt().coerceAtLeast(1), Color.rgb(0, 229, 255))
+            cornerRadius = 22 * density
           }
-          elevation = 20 * density
+          elevation = 24 * density
         }
         val heading = android.widget.TextView(this).apply {
-          text = "◈ THEO · LIVE TASK"
+          text = "◈ THEO  ·  LIVE"
           setTextColor(Color.rgb(0, 229, 255))
           textSize = 12f
           typeface = android.graphics.Typeface.DEFAULT_BOLD
+          setPadding(0, 0, 0, (4 * density).toInt())
+          contentDescription = "Drag to move Theo live panel"
         }
         val taskView = android.widget.TextView(this).apply {
           setTextColor(Color.WHITE)
@@ -117,35 +125,95 @@ class TheoAccessibilityService : AccessibilityService() {
         val statusText = android.widget.TextView(this).apply {
           setTextColor(Color.rgb(190, 202, 225))
           textSize = 12f
-          setPadding(0, (6 * density).toInt(), 0, 0)
-          maxLines = 3
+          setPadding(0, (5 * density).toInt(), 0, 0)
+          maxLines = 2
         }
         val detailText = android.widget.TextView(this).apply {
           setTextColor(Color.rgb(135, 151, 180))
           textSize = 11f
-          setPadding(0, (5 * density).toInt(), 0, (8 * density).toInt())
-          maxLines = 4
+          setPadding(0, (4 * density).toInt(), 0, (7 * density).toInt())
+          maxLines = 3
         }
+        val composer = android.widget.LinearLayout(this).apply {
+          orientation = android.widget.LinearLayout.HORIZONTAL
+          gravity = Gravity.CENTER_VERTICAL
+          setPadding(0, (3 * density).toInt(), 0, (4 * density).toInt())
+        }
+        val messageInput = android.widget.EditText(this).apply {
+          hint = "Message Theo…"
+          setHintTextColor(Color.rgb(120, 133, 157))
+          setTextColor(Color.WHITE)
+          textSize = 13f
+          maxLines = 2
+          setSingleLine(false)
+          imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEND
+          inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+          background = GradientDrawable().apply {
+            setColor(Color.rgb(27, 33, 48))
+            cornerRadius = 14 * density
+            setStroke((1 * density).toInt().coerceAtLeast(1), Color.rgb(57, 72, 95))
+          }
+          setPadding((10 * density).toInt(), (8 * density).toInt(), (8 * density).toInt(), (8 * density).toInt())
+          setOnClickListener {
+            val params = overlayLayoutParams ?: return@setOnClickListener
+            params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+            runCatching { manager.updateViewLayout(root, params) }
+            requestFocus()
+            (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+          }
+        }
+        val send = android.widget.Button(this).apply {
+          text = "Send"
+          isAllCaps = false
+          setTextColor(Color.rgb(5, 15, 24))
+          setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(0, 229, 255)))
+          setOnClickListener {
+            val message = messageInput.text?.toString()?.trim().orEmpty()
+            if (message.isNotBlank()) {
+              val handler = overlayChatHandler
+              if (handler == null) {
+                statusText.text = "Open Theo once, then try sending again."
+              } else {
+                handler.invoke(message)
+                messageInput.text?.clear()
+                statusText.text = "Message sent to Theo · reply will appear in the panel when available."
+              }
+            }
+            (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.hideSoftInputFromWindow(messageInput.windowToken, 0)
+            messageInput.clearFocus()
+            overlayLayoutParams?.let { params ->
+              params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+              runCatching { manager.updateViewLayout(root, params) }
+            }
+          }
+        }
+        messageInput.setOnEditorActionListener { _, actionId, _ ->
+          if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND) {
+            send.performClick()
+            true
+          } else false
+        }
+        composer.addView(messageInput, android.widget.LinearLayout.LayoutParams(0, (44 * density).toInt(), 1f).apply {
+          marginEnd = (6 * density).toInt()
+        })
+        composer.addView(send, android.widget.LinearLayout.LayoutParams(-2, (44 * density).toInt()))
         val buttons = android.widget.LinearLayout(this).apply {
           orientation = android.widget.LinearLayout.HORIZONTAL
           gravity = Gravity.END
         }
         val close = android.widget.Button(this).apply {
-          text = "Hide"
-          isAllCaps = false
+          text = "Hide"; isAllCaps = false
           setOnClickListener { hideAutomationOverlay() }
         }
         val pause = android.widget.Button(this).apply {
-          text = "Pause"
-          isAllCaps = false
+          text = "Pause"; isAllCaps = false
           setOnClickListener {
             val nowPaused = overlayPauseToggleHandler?.invoke() ?: false
             setAutomationPaused(nowPaused)
           }
         }
         val stop = android.widget.Button(this).apply {
-          text = "Stop"
-          isAllCaps = false
+          text = "Stop"; isAllCaps = false
           setTextColor(Color.WHITE)
           setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(165, 48, 70)))
           setOnClickListener {
@@ -153,16 +221,17 @@ class TheoAccessibilityService : AccessibilityService() {
             overlayStopHandler?.invoke()
           }
         }
-        buttons.addView(close, android.widget.LinearLayout.LayoutParams(-2, (42 * density).toInt()))
-        buttons.addView(pause, android.widget.LinearLayout.LayoutParams(-2, (42 * density).toInt()))
-        buttons.addView(stop, android.widget.LinearLayout.LayoutParams(-2, (42 * density).toInt()))
+        buttons.addView(close, android.widget.LinearLayout.LayoutParams(-2, (40 * density).toInt()))
+        buttons.addView(pause, android.widget.LinearLayout.LayoutParams(-2, (40 * density).toInt()))
+        buttons.addView(stop, android.widget.LinearLayout.LayoutParams(-2, (40 * density).toInt()))
         root.addView(heading)
         root.addView(taskView)
         root.addView(statusText)
         root.addView(detailText)
+        root.addView(composer)
         root.addView(buttons)
         val params = WindowManager.LayoutParams(
-          (300 * density).toInt(),
+          (320 * density).toInt(),
           WindowManager.LayoutParams.WRAP_CONTENT,
           WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
           WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
@@ -172,7 +241,29 @@ class TheoAccessibilityService : AccessibilityService() {
           x = (10 * density).toInt()
           y = (92 * density).toInt()
         }
+        var downRawX = 0f
+        var downRawY = 0f
+        var downX = 0
+        var downY = 0
+        heading.setOnTouchListener { _, event ->
+          when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+              downRawX = event.rawX; downRawY = event.rawY
+              downX = params.x; downY = params.y
+              true
+            }
+            MotionEvent.ACTION_MOVE -> {
+              params.x = (downX - (event.rawX - downRawX).toInt()).coerceAtLeast(0)
+              params.y = (downY + (event.rawY - downRawY).toInt()).coerceAtLeast(0)
+              runCatching { manager.updateViewLayout(root, params) }
+              true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> true
+            else -> false
+          }
+        }
         try {
+          overlayLayoutParams = params
           manager.addView(root, params)
           automationOverlay = root
           overlayStatusView = statusText
@@ -199,6 +290,15 @@ class TheoAccessibilityService : AccessibilityService() {
     }
   }
 
+  /** Push a chat reply into the floating panel without switching away from the target app. */
+  fun showOverlayChatReply(reply: String) {
+    overlayHandler.post {
+      if (automationOverlay == null) return@post
+      overlayStatusView?.text = "Theo replied"
+      overlayDetailView?.text = reply.take(320)
+    }
+  }
+
   fun setAutomationPaused(paused: Boolean) {
     overlayHandler.post {
       overlayPauseButton?.text = if (paused) "Resume" else "Pause"
@@ -215,6 +315,7 @@ class TheoAccessibilityService : AccessibilityService() {
       overlayStatusView = null
       overlayDetailView = null
       overlayPauseButton = null
+      overlayLayoutParams = null
     }
   }
 
@@ -458,17 +559,40 @@ class TheoAccessibilityService : AccessibilityService() {
    * Android only exposes this API on API 30+.
    */
   suspend fun captureActiveScreenJpeg(): ScreenCaptureResult {
-    val first = captureActiveScreenJpegOnce()
-    if (first.succeeded || first.error?.contains("internal screenshot error", ignoreCase = true) != true) return first
-    // A single bounded retry can recover transient OEM screenshot failures.
-    kotlinx.coroutines.delay(350L)
-    val retry = captureActiveScreenJpegOnce()
-    if (retry.succeeded) {
-      TheoDiagnosticLogger.info("SCREEN_VISION", "Screenshot retry recovered")
-      return retry
+    val view = automationOverlay
+    val params = overlayLayoutParams
+    val manager = getSystemService(WINDOW_SERVICE) as? WindowManager
+    var removed = false
+    try {
+      if (view != null && params != null && manager != null) {
+        withContext(Dispatchers.Main.immediate) {
+          if (automationOverlay === view && !overlayTemporarilyHidden) {
+            runCatching { manager.removeView(view) }.onSuccess { removed = true; overlayTemporarilyHidden = true }
+          }
+        }
+        // Let SurfaceFlinger present a clean frame without Theo's own floating controls.
+        if (removed) delay(100L)
+      }
+      val first = captureActiveScreenJpegOnce()
+      if (first.succeeded || first.error?.contains("internal screenshot error", ignoreCase = true) != true) return first
+      delay(350L)
+      val retry = captureActiveScreenJpegOnce()
+      if (retry.succeeded) {
+        TheoDiagnosticLogger.info("SCREEN_VISION", "Screenshot retry recovered")
+        return retry
+      }
+      TheoDiagnosticLogger.warn("SCREEN_VISION", "Screenshot retry also failed", retry.error ?: "No reason returned")
+      return ScreenCaptureResult(null, (first.error ?: "Screenshot capture failed") + " A single retry also failed: " + (retry.error ?: "unknown screenshot error"))
+    } finally {
+      if (removed && view != null && params != null && manager != null) {
+        withContext(Dispatchers.Main.immediate) {
+          if (automationOverlay === view && overlayTemporarilyHidden) {
+            runCatching { manager.addView(view, params) }
+            overlayTemporarilyHidden = false
+          }
+        }
+      }
     }
-    TheoDiagnosticLogger.warn("SCREEN_VISION", "Screenshot retry also failed", retry.error ?: "No reason returned")
-    return ScreenCaptureResult(null, (first.error ?: "Screenshot capture failed") + " A single retry also failed: " + (retry.error ?: "unknown screenshot error"))
   }
 
   private suspend fun captureActiveScreenJpegOnce(): ScreenCaptureResult {

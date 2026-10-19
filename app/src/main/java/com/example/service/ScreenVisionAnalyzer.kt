@@ -30,28 +30,35 @@ internal class ScreenVisionAnalyzer {
   ): VisionDescription = withContext(Dispatchers.IO) {
     if (jpegBytes.isEmpty()) return@withContext VisionDescription(null, "none", "No screenshot bytes were available.")
     val base64 = Base64.encodeToString(jpegBytes, Base64.NO_WRAP)
-    val groqKey = groqApiKey.trim()
-    var groqFailure: String? = null
-    if (groqKey.isNotBlank()) {
-      val primary = requestGroq(base64, groqKey)
-      if (primary.first != null) return@withContext VisionDescription(primary.first, "Groq Qwen vision")
-      groqFailure = primary.second
-      TheoDiagnosticLogger.warn("SCREEN_VISION", "Primary vision request failed; trying Gemini fallback", primary.second)
-    } else {
-      TheoDiagnosticLogger.warn("SCREEN_VISION", "Groq key is not configured; trying Gemini fallback")
-    }
     var geminiFailure: String? = null
+
+    // Gemini is the preferred vision provider. Groq is an alternate cloud provider;
+    // the optional on-device Qwen text model is not part of this screen-sense path.
     for ((index, key) in geminiApiKeys.withIndex()) {
-      val fallback = requestGemini(base64, key)
-      if (fallback.first != null) return@withContext VisionDescription(fallback.first, "Gemini vision fallback")
-      geminiFailure = fallback.second
-      TheoDiagnosticLogger.warn("SCREEN_VISION", "Gemini vision fallback attempt failed", "keySlot=${index + 1}: ${fallback.second}")
+      val result = requestGemini(base64, key)
+      if (result.first != null) return@withContext VisionDescription(result.first, "Gemini vision", null)
+      geminiFailure = result.second
+      TheoDiagnosticLogger.warn("SCREEN_VISION", "Gemini vision attempt failed", "keySlot=${index + 1}: ${result.second}")
     }
-    val failure = buildList {
-      if (groqKey.isBlank()) add("Groq key is not configured") else add("Groq: ${groqFailure ?: "request failed"}")
-      if (geminiApiKeys.isEmpty()) add("Gemini keys are not configured") else add("Gemini: ${geminiFailure ?: "request failed"}")
-    }.joinToString("; ")
-    VisionDescription(null, "none", "No configured vision provider could describe the screenshot ($failure).")
+
+    val groqKey = groqApiKey.trim()
+    if (groqKey.isNotBlank()) {
+      val alternate = requestGroq(base64, groqKey)
+      if (alternate.first != null) return@withContext VisionDescription(alternate.first, "Groq vision fallback", null)
+      val reason = buildList {
+        if (geminiApiKeys.isEmpty()) add("Gemini key is not configured")
+        else add("Gemini: ${geminiFailure ?: "request failed"}")
+        add("Groq: ${alternate.second}")
+      }.joinToString("; ")
+      return@withContext VisionDescription(null, "none", "No configured vision provider could describe the screenshot ($reason).")
+    }
+
+    val reason = if (geminiApiKeys.isEmpty()) {
+      "No Gemini API key is configured and Groq is not configured."
+    } else {
+      "Gemini: ${geminiFailure ?: "request failed"}; Groq fallback is not configured."
+    }
+    VisionDescription(null, "none", reason)
   }
 
   private fun requestGroq(base64: String, apiKey: String): Pair<String?, String> {

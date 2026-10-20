@@ -100,6 +100,7 @@ fun TheoWebChatScreen(
         AssistantState.THINKING -> "THINKING"
         AssistantState.SPEAKING -> "SPEAKING"
         AssistantState.OFFLINE -> "OFFLINE"
+        AssistantState.ERROR -> "ERROR"
       })
       put("model", uiState.activeModel.shortBadge)
       put("input", uiState.inputText)
@@ -110,7 +111,7 @@ fun TheoWebChatScreen(
       put("pendingActionLabel", uiState.pendingScreenTargetLabel ?: JSONObject.NULL)
       put("pendingAppName", uiState.pendingAppSelection?.requestedName ?: JSONObject.NULL)
       put("pendingAppCandidates", candidates)
-      put("errorText", JSONObject.NULL)
+      put("errorText", uiState.errorText ?: JSONObject.NULL)
     }.toString()
   }
 

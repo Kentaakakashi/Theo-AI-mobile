@@ -22,11 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Launch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +33,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import com.composables.icons.lucide.R as LucideR
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -131,7 +128,7 @@ fun CoreAssistantScreen(
               modifier = Modifier.size(30.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.055f)),
               contentAlignment = Alignment.Center
             ) {
-              Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(16.dp))
+              Icon(LucideR.drawable.lucide_ic_sparkles, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -208,7 +205,7 @@ fun CoreAssistantScreen(
         title = {
           Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-              imageVector = Icons.Default.Launch,
+              painter = painterResource(id = LucideR.drawable.lucide_ic_arrow_up_right),
               contentDescription = null,
               tint = TheoCyan,
               modifier = Modifier.size(20.dp)

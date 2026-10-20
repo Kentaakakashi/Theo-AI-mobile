@@ -64,6 +64,7 @@ data class TheoUiState(
   val thinkingSteps: List<String> = emptyList(),
   val currentThinkingStep: String = "",
   val streamingText: String = "",
+  val errorText: String? = null,
   val inputText: String = "",
   val selectedCategoryFilter: String = "All",
   val memorySearchQuery: String = "",
@@ -290,6 +291,9 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       AssistantState.LISTENING -> {
         _uiState.update { it.copy(assistantState = AssistantState.IDLE) }
       }
+      AssistantState.ERROR -> {
+        _uiState.update { it.copy(assistantState = AssistantState.IDLE, errorText = null) }
+      }
       else -> {
         // No-op for thinking
       }
@@ -320,6 +324,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       it.copy(
         inputText = "",
         assistantState = AssistantState.THINKING,
+        errorText = null,
         thinkingSteps = listOf("Message received"),
         currentThinkingStep = "Message received",
         streamingText = ""
@@ -430,9 +435,11 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       dao.insertMessage(assistantMsg)
       TheoDiagnosticLogger.info("CHAT", "Assistant response stored", "badge=${result.modelBadge}, chars=${result.responseText.length}, latencyMs=${result.latencyMs}")
 
+      val isEngineError = result.modelBadge.contains("ERROR", ignoreCase = true) || result.responseText.contains("unexpected error while processing", ignoreCase = true)
       _uiState.update {
         it.copy(
-          assistantState = AssistantState.IDLE,
+          assistantState = if (isEngineError) AssistantState.ERROR else AssistantState.IDLE,
+          errorText = if (isEngineError) result.responseText else null,
           pendingActionTag = if (requiresConfirmation) actionKey else null,
           thinkingSteps = emptyList(),
           currentThinkingStep = "",

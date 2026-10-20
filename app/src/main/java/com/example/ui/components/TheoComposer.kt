@@ -118,6 +118,7 @@ fun TheoComposer(
               AssistantState.THINKING -> "Theo is working…"
               AssistantState.SPEAKING -> "Theo is replying…"
               AssistantState.OFFLINE -> "Check your connection…"
+              AssistantState.ERROR -> "Try again…"
               AssistantState.IDLE -> "Ask Theo anything"
             },
             transitionSpec = { fadeIn() togetherWith fadeOut() },

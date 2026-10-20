@@ -450,7 +450,19 @@ export function LiquidGlass({
     let now = performance.now() / 1000
     const t0 = now
 
+    // Listen at window level, but only react to pointers inside this lens.
+    // This keeps the effect interactive even when a button or chat control is
+    // layered above the canvas, without stealing that control's click/touch.
+    const isInsideLens = (e: PointerEvent) => {
+      const rect = container.getBoundingClientRect()
+      return e.clientX >= rect.left && e.clientX <= rect.right &&
+        e.clientY >= rect.top && e.clientY <= rect.bottom
+    }
     const onMove = (e: PointerEvent) => {
+      if (!isInsideLens(e)) {
+        pointerActive = false
+        return
+      }
       const [x, y] = toGl(e)
       tx = x
       ty = y
@@ -458,6 +470,7 @@ export function LiquidGlass({
       lastMove = performance.now() / 1000
     }
     const onDown = (e: PointerEvent) => {
+      if (!isInsideLens(e)) return
       const [x, y] = toGl(e)
       tx = x
       ty = y
@@ -471,9 +484,9 @@ export function LiquidGlass({
       pointerActive = false
     }
 
-    canvas.addEventListener("pointermove", onMove)
-    canvas.addEventListener("pointerdown", onDown)
-    canvas.addEventListener("pointerleave", onLeave)
+    window.addEventListener("pointermove", onMove, { passive: true })
+    window.addEventListener("pointerdown", onDown, { passive: true })
+    window.addEventListener("pointerup", onLeave, { passive: true })
 
     // ---- Frame loop ----
     let raf = 0
@@ -557,9 +570,9 @@ export function LiquidGlass({
       cancelAnimationFrame(raf)
       window.clearTimeout(resizeTimer)
       ro.disconnect()
-      canvas.removeEventListener("pointermove", onMove)
-      canvas.removeEventListener("pointerdown", onDown)
-      canvas.removeEventListener("pointerleave", onLeave)
+      window.removeEventListener("pointermove", onMove)
+      window.removeEventListener("pointerdown", onDown)
+      window.removeEventListener("pointerup", onLeave)
       gl.deleteTexture(texture)
       gl.deleteProgram(program)
     }

@@ -51,6 +51,7 @@ fun TheoHeader(
     AssistantState.THINKING -> TheoViolet
     AssistantState.SPEAKING -> TheoCyan
     AssistantState.OFFLINE -> Color(0xFFFF8295)
+    AssistantState.ERROR -> Color(0xFFFF3F69)
   }
   val stateLabel = when (assistantState) {
     AssistantState.IDLE -> "Ready"
@@ -58,6 +59,7 @@ fun TheoHeader(
     AssistantState.THINKING -> "Thinking"
     AssistantState.SPEAKING -> "Speaking"
     AssistantState.OFFLINE -> "Offline"
+    AssistantState.ERROR -> "Error"
   }
   val shape = RoundedCornerShape(24.dp)
 

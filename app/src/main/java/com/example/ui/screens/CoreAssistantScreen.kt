@@ -128,7 +128,7 @@ fun CoreAssistantScreen(
               modifier = Modifier.size(30.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.055f)),
               contentAlignment = Alignment.Center
             ) {
-              Icon(LucideR.drawable.lucide_ic_sparkles, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(16.dp))
+              Icon(painter = painterResource(id = LucideR.drawable.lucide_ic_sparkles), contentDescription = null, tint = TheoCyan, modifier = Modifier.size(16.dp))
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {

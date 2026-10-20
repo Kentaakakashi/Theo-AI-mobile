@@ -16,11 +16,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -30,6 +25,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import com.composables.icons.lucide.R as LucideR
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -73,7 +70,7 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
         Text("Diagnostics", color = TheoTextPrimary, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp)
         Text("Recent model, app and automation events", color = TheoTextSecondary, fontFamily = FontFamily.SansSerif, fontSize = 11.sp)
       }
-      Icon(Icons.Default.Terminal, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(28.dp))
+      Icon(painter = painterResource(id = LucideR.drawable.lucide_ic_terminal), contentDescription = null, tint = TheoCyan, modifier = Modifier.size(28.dp))
     }
     Spacer(Modifier.height(10.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
@@ -83,14 +80,14 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
     }
     Spacer(Modifier.height(8.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-      Button(onClick = { TheoDiagnosticLogger.info("DIAGNOSTICS", "Manual refresh requested") }, colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceGlass), modifier = Modifier.weight(1f)) {
-        Icon(Icons.Default.Refresh, null, tint = TheoCyan, modifier = Modifier.size(15.dp)); Text("Refresh", color = TheoCyan, fontSize = 10.sp)
+      Button(onClick = { TheoDiagnosticLogger.info("DIAGNOSTICS", "User-added diagnostic marker") }, colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceGlass), modifier = Modifier.weight(1f)) {
+        Icon(painter = painterResource(id = LucideR.drawable.lucide_ic_plus), contentDescription = null, tint = TheoCyan, modifier = Modifier.size(15.dp)); Text("Add marker", color = TheoCyan, fontSize = 10.sp)
       }
       Button(onClick = { clipboard.setText(AnnotatedString(TheoDiagnosticLogger.exportText())) }, colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceGlass), modifier = Modifier.weight(1f)) {
-        Icon(Icons.Default.ContentCopy, null, tint = TheoCyan, modifier = Modifier.size(15.dp)); Text("Copy logs", color = TheoCyan, fontSize = 10.sp)
+        Icon(painter = painterResource(id = LucideR.drawable.lucide_ic_copy), contentDescription = null, tint = TheoCyan, modifier = Modifier.size(15.dp)); Text("Copy logs", color = TheoCyan, fontSize = 10.sp)
       }
       Button(onClick = { TheoDiagnosticLogger.clear() }, colors = ButtonDefaults.buttonColors(containerColor = TheoSurfaceGlass), modifier = Modifier.weight(1f).testTag("clear_diagnostics")) {
-        Icon(Icons.Default.DeleteSweep, null, tint = TheoErrorRed, modifier = Modifier.size(15.dp)); Text("Clear", color = TheoErrorRed, fontSize = 10.sp)
+        Icon(painter = painterResource(id = LucideR.drawable.lucide_ic_trash_2), contentDescription = null, tint = TheoErrorRed, modifier = Modifier.size(15.dp)); Text("Clear", color = TheoErrorRed, fontSize = 10.sp)
       }
     }
     Spacer(Modifier.height(8.dp))

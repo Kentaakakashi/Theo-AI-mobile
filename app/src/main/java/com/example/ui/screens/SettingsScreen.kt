@@ -20,16 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Animation
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CloudQueue
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,6 +36,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import com.composables.icons.lucide.R as LucideR
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -134,7 +126,7 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(16.dp))
 
       // Section 1: Model Selection
-      SettingsSectionHeader(icon = Icons.Default.CloudQueue, title = "AI model")
+      SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_cloud, title = "AI model")
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AiModelType.entries.forEach { model ->
           val isSelected = selectedModel == model
@@ -213,7 +205,7 @@ fun SettingsScreen(
 
       // Native on-device Qwen model setup: the model weights are downloaded once,
       // then loaded directly by llama.cpp inside this app (no localhost server).
-      SettingsSectionHeader(icon = Icons.Default.PhoneAndroid, title = "On-device Qwen Runtime")
+      SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_smartphone, title = "On-device Qwen Runtime")
       Box(
         modifier = Modifier
           .fillMaxWidth()
@@ -246,7 +238,7 @@ fun SettingsScreen(
               Text("Preparing local Qwen…", color = TheoCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             } else {
               Icon(
-                imageVector = Icons.Default.Refresh,
+                painter = painterResource(id = LucideR.drawable.lucide_ic_refresh_cw),
                 contentDescription = null,
                 tint = TheoCyan,
                 modifier = Modifier.size(15.dp)
@@ -279,7 +271,7 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(20.dp))
 
       // Section 3: Gemini Cloud API Keys
-      SettingsSectionHeader(icon = Icons.Default.Key, title = "Gemini API keys")
+      SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_key_round, title = "Gemini API keys")
       val configuredApiKeys = parseGeminiApiKeys(apiKeyInput)
       var apiKeyDraft by remember { mutableStateOf("") }
       var editingApiKeyIndex by remember { mutableStateOf<Int?>(null) }
@@ -311,7 +303,7 @@ fun SettingsScreen(
               CircularProgressIndicator(modifier = Modifier.size(15.dp), strokeWidth = 2.dp, color = TheoCyan)
               Spacer(modifier = Modifier.width(7.dp))
             } else {
-              Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(15.dp))
+              Icon(painter = painterResource(id = LucideR.drawable.lucide_ic_refresh_cw), contentDescription = null, tint = TheoCyan, modifier = Modifier.size(15.dp))
               Spacer(modifier = Modifier.width(7.dp))
             }
             Text("Test Gemini API", color = TheoCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
@@ -430,7 +422,7 @@ fun SettingsScreen(
               colors = ButtonDefaults.buttonColors(containerColor = TheoCyan)
             ) {
               Icon(
-                imageVector = Icons.Default.Check,
+                painter = painterResource(id = LucideR.drawable.lucide_ic_check),
                 contentDescription = null,
                 modifier = Modifier.size(16.dp)
               )
@@ -466,7 +458,7 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(20.dp))
 
       // Groq cloud vision provider credentials. Stored locally; never hard-code keys.
-      SettingsSectionHeader(icon = Icons.Default.Key, title = "Groq Qwen Vision Credentials")
+      SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_key_round, title = "Groq Qwen Vision Credentials")
       Box(
         modifier = Modifier
           .fillMaxWidth()
@@ -513,7 +505,7 @@ fun SettingsScreen(
               CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = TheoCyan)
               Spacer(modifier = Modifier.width(6.dp))
             } else {
-              Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(14.dp))
+              Icon(painter = painterResource(id = LucideR.drawable.lucide_ic_refresh_cw), contentDescription = null, tint = TheoCyan, modifier = Modifier.size(14.dp))
               Spacer(modifier = Modifier.width(6.dp))
             }
             Text("Test Groq API", color = TheoCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -540,7 +532,7 @@ fun SettingsScreen(
       }
 
       // Section 4: Motion & Battery Optimization
-      SettingsSectionHeader(icon = Icons.Default.Animation, title = "Motion & Thermal Profile")
+      SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_sliders_horizontal, title = "Motion & Thermal Profile")
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AnimationIntensity.entries.forEach { intensity ->
           val isSelected = selectedIntensity == intensity
@@ -567,7 +559,7 @@ fun SettingsScreen(
               )
               if (isSelected) {
                 Icon(
-                  imageVector = Icons.Default.Check,
+                  painter = painterResource(id = LucideR.drawable.lucide_ic_check),
                   contentDescription = null,
                   tint = TheoViolet,
                   modifier = Modifier.size(16.dp)
@@ -581,7 +573,7 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(20.dp))
 
       // Section 5: Voice & Speech Output
-      SettingsSectionHeader(icon = Icons.Default.VolumeUp, title = "Voice Synthesis (TTS)")
+      SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_volume_2, title = "Voice Synthesis (TTS)")
       Box(
         modifier = Modifier
           .fillMaxWidth()
@@ -625,7 +617,7 @@ fun SettingsScreen(
 
       Spacer(modifier = Modifier.height(20.dp))
 
-      SettingsSectionHeader(icon = Icons.Default.Security, title = "Notification & Playback Access")
+      SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_shield_check, title = "Notification & Playback Access")
       Box(
         modifier = Modifier
           .fillMaxWidth()
@@ -661,7 +653,7 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(20.dp))
 
       // Live Screen Sense is separate from task automation and only runs after an explicit toggle.
-      SettingsSectionHeader(icon = Icons.Default.Refresh, title = "Live Screen Sense")
+      SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_scan_eye, title = "Live Screen Sense")
       Box(
         modifier = Modifier
           .fillMaxWidth()
@@ -735,7 +727,7 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(20.dp))
 
       // Screen-aware automation: opt-in Android accessibility tree, no screenshot persistence.
-      SettingsSectionHeader(icon = Icons.Default.PhoneAndroid, title = "Screen-aware Automation")
+      SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_workflow, title = "Screen-aware Automation")
       Box(
         modifier = Modifier
           .fillMaxWidth()
@@ -792,7 +784,7 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(20.dp))
 
       // Section 6: Data & Chat History
-      SettingsSectionHeader(icon = Icons.Default.Delete, title = "Session Maintenance")
+      SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_message_square, title = "Data & chat history")
       Box(
         modifier = Modifier
           .fillMaxWidth()
@@ -809,13 +801,13 @@ fun SettingsScreen(
         ) {
           Column {
             Text(
-              text = "Purge Chat History",
+              text = "Clear chat history",
               color = TheoTextPrimary,
               fontSize = 14.sp,
               fontWeight = FontWeight.Bold
             )
             Text(
-              text = "Clears conversation stream (Memory Matrix is preserved)",
+              text = "Removes conversation messages. Saved memories stay.",
               color = TheoTextSecondary,
               fontSize = 11.sp
             )
@@ -826,7 +818,7 @@ fun SettingsScreen(
             colors = ButtonDefaults.buttonColors(containerColor = TheoErrorRed.copy(alpha = 0.2f)),
             modifier = Modifier.border(1.dp, TheoErrorRed.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
           ) {
-            Text("Purge", color = TheoErrorRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("Clear", color = TheoErrorRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
           }
         }
       }
@@ -837,13 +829,13 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsSectionHeader(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String) {
+private fun SettingsSectionHeader(icon: Int, title: String) {
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier.padding(bottom = 8.dp)
   ) {
     Icon(
-      imageVector = icon,
+      painter = painterResource(id = icon),
       contentDescription = null,
       tint = TheoCyan,
       modifier = Modifier.size(16.dp)

@@ -23,13 +23,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,6 +40,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import com.composables.icons.lucide.R as LucideR
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -114,7 +109,7 @@ fun MemoryMatrixScreen(
         .fillMaxSize()
         .padding(horizontal = 18.dp)
     ) {
-      // Screen Title & HUD Banner
+      // Screen header
       Spacer(modifier = Modifier.height(8.dp))
       Row(
         modifier = Modifier.fillMaxWidth(),
@@ -148,7 +143,7 @@ fun MemoryMatrixScreen(
             .testTag("add_memory_btn")
         ) {
           Icon(
-            imageVector = Icons.Default.Add,
+            painter = painterResource(id = LucideR.drawable.lucide_ic_plus),
             contentDescription = "Add memory",
             tint = TheoCyan,
             modifier = Modifier.size(18.dp)
@@ -168,7 +163,7 @@ fun MemoryMatrixScreen(
       ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
           Icon(
-            imageVector = Icons.Default.Storage,
+            painter = painterResource(id = LucideR.drawable.lucide_ic_database),
             contentDescription = null,
             tint = TheoViolet,
             modifier = Modifier.size(16.dp)
@@ -195,7 +190,7 @@ fun MemoryMatrixScreen(
         verticalAlignment = Alignment.CenterVertically
       ) {
         Icon(
-          imageVector = Icons.Default.Search,
+          painter = painterResource(id = LucideR.drawable.lucide_ic_search),
           contentDescription = "Search Memories",
           tint = TheoTextMuted,
           modifier = Modifier.size(18.dp)
@@ -216,7 +211,7 @@ fun MemoryMatrixScreen(
         )
         if (searchQuery.isNotEmpty()) {
           Icon(
-            imageVector = Icons.Default.Close,
+            painter = painterResource(id = LucideR.drawable.lucide_ic_x),
             contentDescription = "Clear Search",
             tint = TheoTextMuted,
             modifier = Modifier
@@ -275,7 +270,7 @@ fun MemoryMatrixScreen(
         ) {
           Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-              imageVector = Icons.Default.Bookmark,
+              painter = painterResource(id = LucideR.drawable.lucide_ic_bookmark),
               contentDescription = null,
               tint = TheoTextMuted,
               modifier = Modifier.size(40.dp)
@@ -430,7 +425,7 @@ private fun MemoryCardItem(
           modifier = Modifier.size(24.dp)
         ) {
           Icon(
-            imageVector = Icons.Default.DeleteOutline,
+            painter = painterResource(id = LucideR.drawable.lucide_ic_trash_2),
             contentDescription = "Delete Memory",
             tint = TheoTextMuted,
             modifier = Modifier.size(16.dp)

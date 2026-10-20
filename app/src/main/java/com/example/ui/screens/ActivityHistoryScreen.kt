@@ -19,19 +19,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import com.composables.icons.lucide.R as LucideR
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -109,7 +104,7 @@ fun ActivityHistoryScreen(
               .testTag("clear_activity_btn")
           ) {
             Icon(
-              imageVector = Icons.Default.DeleteSweep,
+              painter = painterResource(id = LucideR.drawable.lucide_ic_trash_2),
               contentDescription = "Clear Activities",
               tint = TheoTextMuted,
               modifier = Modifier.size(18.dp)
@@ -129,7 +124,7 @@ fun ActivityHistoryScreen(
         ) {
           Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-              imageVector = Icons.Default.Timeline,
+              painter = painterResource(id = LucideR.drawable.lucide_ic_activity),
               contentDescription = null,
               tint = TheoTextMuted,
               modifier = Modifier.size(42.dp)
@@ -164,10 +159,10 @@ private fun ActivityTimelineItem(activity: ActivityEntity) {
   val timeStr = SimpleDateFormat("HH:mm:ss · dd MMM", Locale.getDefault()).format(Date(activity.timestamp))
 
   val (icon, tintColor) = when (activity.type) {
-    "CHAT" -> Pair(Icons.Default.ChatBubbleOutline, TheoCyan)
-    "MEMORY" -> Pair(Icons.Default.Memory, TheoViolet)
-    "DEVICE" -> Pair(Icons.Default.PhoneAndroid, TheoOnlineGreen)
-    else -> Pair(Icons.Default.Security, TheoWarningAmber)
+    "CHAT" -> Pair(LucideR.drawable.lucide_ic_message_circle, TheoCyan)
+    "MEMORY" -> Pair(LucideR.drawable.lucide_ic_brain, TheoViolet)
+    "DEVICE" -> Pair(LucideR.drawable.lucide_ic_smartphone, TheoOnlineGreen)
+    else -> Pair(LucideR.drawable.lucide_ic_shield_check, TheoWarningAmber)
   }
 
   Box(
@@ -189,7 +184,7 @@ private fun ActivityTimelineItem(activity: ActivityEntity) {
         contentAlignment = Alignment.Center
       ) {
         Icon(
-          imageVector = icon,
+          painter = painterResource(id = icon),
           contentDescription = activity.type,
           tint = tintColor,
           modifier = Modifier.size(16.dp)

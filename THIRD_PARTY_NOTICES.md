@@ -71,11 +71,78 @@ Use: Evaluated for its live backdrop capture, AGSL refraction, dispersion and ed
 Repository: https://github.com/styropyr0/PrismalAGSL  
 Use: Studied for Compose-first AGSL refraction, highlight treatment and API fallback strategy. No PrismalAGSL source or binary dependency is included in Theo by this UI change; no license header is required for code because none is copied from that project.
 
+## Lucide icons — Compose Icons
+
+Repository: https://github.com/composablehorizons/compose-icons
+Artifact: `com.composables:icons-lucide-android:2.2.1` (Maven Central)
+Wrapper license: MIT, Copyright (c) 2025 Composable Horizons.
+Icon asset license: ISC; portions derived from Feather are MIT-licensed (Cole Bemis, 2013–2023).
+Use: Upstream Lucide Android VectorDrawable resources are used in navigation, header, composer, quick actions, chat action buttons, Settings, Memory, Activity and Diagnostics. No icon source was copied into Theo.
+
+MIT License — Composable Icons
+
+Copyright (c) 2025 Composable Horizons
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+ISC License — Lucide
+
+Copyright (c) for portions of Lucide are held by Cole Bemis 2013–2023 as part of Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2025.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+MIT License — Feather-derived portions
+
+Copyright (c) 2013–2023 Cole Bemis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ## Current shared material use
 
 - Kyant0/AndroidLiquidGlass remains Apache-2.0 and is used as a runtime dependency for selected optical glass surfaces.
-- BuildItCode/LiquidGlass remains MIT and is used as a runtime dependency for the floating navigation dock.
-- Theo uses these public APIs with Theo-specific geometry, spacing and tint settings. No source file from either upstream engine is copied into Theo by this UI change.
+- Theo uses the public Kyant APIs with Theo-specific geometry, spacing and tint settings. BuildItCode/LiquidGlass is not an active dependency: its JitPack artifact returned HTTP 401 in CI. No source file from the glass engines is copied into Theo.
 
 
 ## Compose Markdown

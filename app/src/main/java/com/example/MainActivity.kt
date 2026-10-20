@@ -33,7 +33,7 @@ import com.example.service.TheoDiagnosticLogger
 import com.example.ui.components.LocalTheoGlassBackdrop
 import com.example.ui.components.TheoBottomNavigation
 import com.example.ui.screens.ActivityHistoryScreen
-import com.example.ui.screens.CoreAssistantScreen
+import com.example.ui.screens.TheoWebChatScreen
 import com.example.ui.screens.DiagnosticConsoleScreen
 import com.example.ui.screens.MemoryMatrixScreen
 import com.example.ui.screens.SettingsScreen
@@ -166,7 +166,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
         label = "TabContentAnimation"
       ) { targetTab ->
         when (targetTab) {
-          0 -> CoreAssistantScreen(
+          0 -> TheoWebChatScreen(
             uiState = uiState,
             messages = messages,
             onSendMessage = { viewModel.sendMessage(it) },

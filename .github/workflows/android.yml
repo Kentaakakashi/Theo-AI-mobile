@@ -22,6 +22,24 @@ jobs:
       - name: Check out Theo
         uses: actions/checkout@v4
 
+      - name: Set up Node for React UI
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web-ui/package.json
+
+      - name: Build React + Tailwind UI
+        working-directory: web-ui
+        run: |
+          npm install
+          npm run build
+
+      - name: Bundle React UI into Android assets
+        run: |
+          mkdir -p app/src/main/assets/theo-web
+          cp -R web-ui/dist/. app/src/main/assets/theo-web/
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:

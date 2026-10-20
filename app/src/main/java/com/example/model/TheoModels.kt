@@ -5,7 +5,8 @@ enum class AssistantState(val label: String) {
   LISTENING("SENSORS ACTIVE"),
   THINKING("PROCESSING SYNAPSE"),
   SPEAKING("AUDIO STREAMING"),
-  OFFLINE("LOCAL SAFE MODE")
+  OFFLINE("LOCAL SAFE MODE"),
+  ERROR("ERROR — RECOVERY REQUIRED")
 }
 
 enum class AiModelType(val displayName: String, val shortBadge: String, val description: String) {

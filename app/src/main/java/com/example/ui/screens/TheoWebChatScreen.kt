@@ -10,6 +10,9 @@ import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -39,6 +42,7 @@ fun TheoWebChatScreen(
   modifier: Modifier = Modifier
 ) {
   val context = LocalContext.current
+  var pageLoaded by remember { mutableStateOf(false) }
   val assetLoader = remember {
     WebViewAssetLoader.Builder()
       .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
@@ -72,6 +76,10 @@ fun TheoWebChatScreen(
       webViewClient = object : WebViewClient() {
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest) =
           assetLoader.shouldInterceptRequest(request.url)
+
+        override fun onPageFinished(view: WebView, url: String) {
+          pageLoaded = true
+        }
       }
       loadUrl("https://appassets.androidplatform.net/assets/theo-web/index.html")
     }
@@ -118,9 +126,11 @@ fun TheoWebChatScreen(
     }.toString()
   }
 
-  LaunchedEffect(payload) {
-    val quoted = JSONObject.quote(payload)
-    webView.evaluateJavascript("window.theoUpdate && window.theoUpdate(JSON.parse($quoted));", null)
+  LaunchedEffect(payload, pageLoaded) {
+    if (pageLoaded) {
+      val quoted = JSONObject.quote(payload)
+      webView.evaluateJavascript("window.theoUpdate && window.theoUpdate(JSON.parse($quoted));", null)
+    }
   }
   DisposableEffect(webView) {
     onDispose { webView.removeJavascriptInterface("TheoBridge"); webView.destroy() }

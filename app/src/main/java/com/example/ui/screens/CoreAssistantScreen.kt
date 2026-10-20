@@ -147,6 +147,7 @@ fun CoreAssistantScreen(
                   com.example.model.AssistantState.THINKING -> "Working on your request"
                   com.example.model.AssistantState.SPEAKING -> "Replying to you"
                   com.example.model.AssistantState.OFFLINE -> "Check the active AI provider"
+                  com.example.model.AssistantState.ERROR -> "Theo hit an error — try again"
                 },
                 color = TheoTextMuted,
                 fontSize = 11.sp,

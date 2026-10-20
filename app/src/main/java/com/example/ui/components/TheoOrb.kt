@@ -75,6 +75,7 @@ fun TheoOrb(
           AssistantState.LISTENING -> 10500
           AssistantState.SPEAKING -> 6200
           AssistantState.OFFLINE -> 22000
+          AssistantState.ERROR -> 4800
           AssistantState.IDLE -> 18000
         },
         easing = LinearEasing
@@ -93,6 +94,7 @@ fun TheoOrb(
           AssistantState.LISTENING -> 1450
           AssistantState.SPEAKING -> 650
           AssistantState.OFFLINE -> 3000
+          AssistantState.ERROR -> 520
           AssistantState.IDLE -> 3400
         }
       ),
@@ -106,6 +108,7 @@ fun TheoOrb(
     AssistantState.THINKING -> TheoViolet
     AssistantState.SPEAKING -> TheoCyan
     AssistantState.OFFLINE -> TheoWarningAmber
+    AssistantState.ERROR -> Color(0xFFFF5577)
   }
   val accentColor = when (state) {
     AssistantState.IDLE -> TheoViolet
@@ -113,6 +116,7 @@ fun TheoOrb(
     AssistantState.THINKING -> TheoMagenta
     AssistantState.SPEAKING -> TheoIceBlue
     AssistantState.OFFLINE -> Color(0xFFFF8D79)
+    AssistantState.ERROR -> Color(0xFFFF1744)
   }
   val particles = remember {
     List(PARTICLE_COUNT) { i ->
@@ -150,12 +154,14 @@ fun TheoOrb(
       val thinking = if (state == AssistantState.THINKING) 1f else 0f
       val speaking = if (state == AssistantState.SPEAKING) 1f else 0f
       val offline = if (state == AssistantState.OFFLINE) 1f else 0f
-      val sphereRadius = unit * (0.305f + breathe * (0.008f + speaking * 0.018f + thinking * 0.012f))
+      val error = if (state == AssistantState.ERROR) 1f else 0f
+      val sphereRadius = unit * (0.305f + breathe * (0.008f + speaking * 0.018f + thinking * 0.012f + error * 0.02f))
       val rotY = angle * when (state) {
         AssistantState.THINKING -> 1.18f
         AssistantState.LISTENING -> 0.86f
         AssistantState.SPEAKING -> 1.45f
         AssistantState.OFFLINE -> 0.38f
+        AssistantState.ERROR -> 2.1f
         AssistantState.IDLE -> 0.52f
       }
       val rotX = 0.28f
@@ -247,6 +253,12 @@ fun TheoOrb(
             )
           }
         }
+      }
+
+      // Error mode uses a sharp coral pulse and outward ring to distinguish failure from offline status.
+      if (!lowMotion && error > 0f) {
+        val errorPulse = 0.88f + 0.12f * sin(breathe * PI.toFloat() * 2f)
+        drawCircle(color = accentColor.copy(alpha = 0.28f * errorPulse), radius = sphereRadius * 1.16f, center = Offset(cx, cy), style = Stroke(width = unit * 0.008f))
       }
 
       // Listening briefly breathes into a wider halo; speaking gets a restrained orbiting glint.

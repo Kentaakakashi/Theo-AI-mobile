@@ -23,80 +23,18 @@ const suggestions = [
 ]
 
 function ParticleOrb({ state, onClick }: { state: TheoState; onClick: () => void }) {
-  const canvas = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const element = canvas.current
-    if (!element) return
-    const ctx = element.getContext('2d')
-    if (!ctx) return
-    let frame = 0
-    let raf = 0
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const palette: Record<TheoState, [string, string]> = {
-      IDLE: ['#9bdcff', '#a78bfa'], LISTENING: ['#e6faff', '#39d9ff'],
-      THINKING: ['#a78bfa', '#f472d0'], SPEAKING: ['#38e4ee', '#a5ddff'],
-      OFFLINE: ['#fbbf24', '#fb907e'], ERROR: ['#fb7185', '#ff3f69'],
-    }
-    const particles = Array.from({ length: 380 }, (_, i) => {
-      const y = 1 - (i / 379) * 2
-      const radius = Math.sqrt(1 - y * y)
-      const theta = Math.PI * (3 - Math.sqrt(5)) * i
-      return { x: Math.cos(theta) * radius, y, z: Math.sin(theta) * radius, p: i * 2.399, size: .7 + (i % 5) * .18 }
-    })
-    const draw = () => {
-      const rect = element.getBoundingClientRect()
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      const w = Math.max(1, rect.width), h = Math.max(1, rect.height)
-      if (element.width !== Math.round(w * dpr) || element.height !== Math.round(h * dpr)) {
-        element.width = Math.round(w * dpr); element.height = Math.round(h * dpr)
-      }
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, w, h)
-      const [c1, c2] = palette[state]
-      const t = reduced ? .4 : frame * (state === 'ERROR' ? .024 : state === 'SPEAKING' ? .013 : state === 'THINKING' ? .009 : .0045)
-      const cx = w / 2, cy = h / 2
-      const r = Math.min(w, h) * (.34 + (state === 'ERROR' ? .018 * Math.sin(t * 2.5) : state === 'LISTENING' ? .018 * Math.sin(t * 1.7) : .009 * Math.sin(t)))
-      const glow = ctx.createRadialGradient(cx, cy, 1, cx, cy, r * 1.8)
-      glow.addColorStop(0, c1 + '24'); glow.addColorStop(.5, c2 + '10'); glow.addColorStop(1, '#00000000')
-      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, r * 1.8, 0, Math.PI * 2); ctx.fill()
-      if (state === 'LISTENING' || state === 'ERROR') {
-        ctx.strokeStyle = c1 + (state === 'ERROR' ? '55' : '28'); ctx.lineWidth = 1
-        for (let ring = 1; ring <= (state === 'ERROR' ? 3 : 2); ring++) {
-          const rr = r * (1.12 + ((t * (state === 'ERROR' ? 1.3 : .6) + ring * .43) % .38))
-          ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke()
-        }
-      }
-      for (let pass = 0; pass < 2; pass++) for (const p of particles) {
-        const x = p.x * Math.cos(t) - p.z * Math.sin(t)
-        const z = p.x * Math.sin(t) + p.z * Math.cos(t)
-        const depth = (z + 1) / 2
-        if ((pass === 0 && depth > .52) || (pass === 1 && depth <= .52)) continue
-        const irregular = state === 'ERROR' ? .035 * Math.sin(p.p + t * 2.8) : 0
-        const spread = state === 'OFFLINE' ? .035 : 0
-        const px = cx + x * r * (1 + irregular + spread) * (.76 + depth * .34)
-        const py = cy + p.y * r * (1 + irregular + spread) * (.76 + depth * .34)
-        const alpha = .15 + depth * .76
-        ctx.globalAlpha = alpha
-        ctx.fillStyle = (p.p % 5 > 2.4 ? c2 : c1)
-        ctx.beginPath(); ctx.arc(px, py, p.size * (.5 + depth * .75), 0, Math.PI * 2); ctx.fill()
-      }
-      ctx.globalAlpha = 1
-      if (state === 'SPEAKING' || state === 'LISTENING') {
-        const a = t * (state === 'SPEAKING' ? 1.8 : .8)
-        const gx = cx + Math.cos(a) * r * 1.13, gy = cy + Math.sin(a) * r * .5
-        const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, 12)
-        g.addColorStop(0, '#ffffffdd'); g.addColorStop(1, c1 + '00')
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(gx, gy, 12, 0, Math.PI * 2); ctx.fill()
-      }
-      frame++
-      if (!reduced) raf = requestAnimationFrame(draw)
-    }
-    draw()
-    return () => cancelAnimationFrame(raf)
-  }, [state])
-  return <button aria-label="Talk to Theo" onClick={onClick} className="relative mx-auto block h-56 w-56 max-w-full rounded-full outline-none active:scale-[.98] transition-transform"><canvas ref={canvas} className="h-full w-full" /><span className="pointer-events-none absolute inset-x-0 bottom-1 text-center text-[10px] tracking-[.28em] text-white/30">T H E O</span></button>
+  const orbState = state === 'LISTENING' ? 'listening' : state === 'THINKING' ? 'working' : state === 'SPEAKING' ? 'composing' : state === 'OFFLINE' ? 'connecting' : 'breathing'
+  const error = state === 'ERROR'
+  const speed = state === 'THINKING' ? 1.35 : state === 'SPEAKING' ? 1.2 : state === 'OFFLINE' ? 0.65 : 1
+  return <button aria-label={error ? 'Theo error state' : 'Talk to Theo'} onClick={onClick} className="relative mx-auto flex h-56 w-56 max-w-full items-center justify-center rounded-full outline-none transition-transform active:scale-[.98]">
+    <span className={`pointer-events-none absolute inset-2 rounded-full blur-2xl ${error ? 'bg-rose-500/15' : state === 'OFFLINE' ? 'bg-amber-300/10' : 'bg-cyan-300/[.08]'}`} />
+    <span className={`pointer-events-none absolute inset-[18%] rounded-full border ${error ? 'border-rose-300/30 animate-pulse motion-reduce:animate-none' : state === 'LISTENING' ? 'border-cyan-200/20 animate-pulse motion-reduce:animate-none' : 'border-white/[.07]'}`} />
+    <span className={`pointer-events-none absolute inset-[25%] rounded-full border ${error ? 'border-rose-300/20' : 'border-white/[.05]'}`} />
+    <ThinkingOrb state={orbState} size={64} theme="dark" speed={speed} aria-label={states[state].label} className="h-16 w-16 scale-[2.45]" />
+    {error && <span className="pointer-events-none absolute right-[18%] top-[19%] flex h-7 w-7 items-center justify-center rounded-full border border-rose-200/30 bg-[#260d19]/90 text-rose-200 shadow-[0_0_25px_rgba(251,63,105,.28)]"><CircleAlert size={15}/></span>}
+    <span className="pointer-events-none absolute inset-x-0 bottom-1 text-center text-[10px] tracking-[.28em] text-white/30">T H E O</span>
+  </button>
 }
-
 function callNative(method: keyof NonNullable<Window['TheoBridge']>, ...args: string[]) {
   try { window.TheoBridge?.[method]?.(...args) } catch { /* native bridge may not be ready during preview */ }
 }

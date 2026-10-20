@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,7 +44,6 @@ import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoTextMuted
 import com.example.ui.theme.TheoTextPrimary
-import com.example.ui.theme.TheoViolet
 
 @Composable
 fun TheoComposer(
@@ -66,12 +66,13 @@ fun TheoComposer(
       .clip(shape)
       .liquidGlassSurface(
         shape = shape,
-        tint = Color(0x242D3B50),
+        tint = Color(0x20FFFFFF),
         gloss = 0.085f,
         refraction = 6.dp,
         blurRadius = 4.dp,
         opticalGlass = true
       )
+      .border(0.8.dp, Color.White.copy(alpha = 0.09f), shape)
       .padding(horizontal = 6.dp, vertical = 6.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
@@ -80,7 +81,8 @@ fun TheoComposer(
       modifier = Modifier
         .size(40.dp)
         .clip(CircleShape)
-        .background(if (isListening) Color(0x3356B9D8) else Color(0x163B4B60))
+        .background(if (isListening) Color(0x38EAF5FF) else Color(0x16FFFFFF))
+        .border(0.7.dp, if (isListening) TheoCyan.copy(alpha = 0.42f) else Color.White.copy(alpha = 0.075f), CircleShape)
         .testTag("composer_mic_button")
     ) {
       Icon(
@@ -144,9 +146,10 @@ fun TheoComposer(
         .size(42.dp)
         .clip(CircleShape)
         .background(
-          if (canSend) Brush.linearGradient(listOf(TheoCyan, TheoViolet))
-          else Brush.linearGradient(listOf(Color(0x24484848), Color(0x181A1A1A)))
+          if (canSend) Brush.linearGradient(listOf(Color(0xFFEAF2F7), Color(0xFFCAD9E5)))
+          else Brush.linearGradient(listOf(Color(0x20FFFFFF), Color(0x12FFFFFF)))
         )
+        .border(0.7.dp, if (canSend) Color.White.copy(alpha = 0.52f) else Color.White.copy(alpha = 0.07f), CircleShape)
         .testTag("composer_send_button")
     ) {
       Icon(

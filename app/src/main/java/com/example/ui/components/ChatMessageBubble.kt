@@ -85,7 +85,7 @@ fun ChatMessageBubble(
               .clip(shape)
               .liquidGlassSurface(
                 shape = shape,
-                tint = Color(0x3D616161),
+                tint = Color(0x2AFFFFFF),
                 gloss = 0.09f,
                 refraction = 5.dp,
                 blurRadius = 4.dp
@@ -149,7 +149,7 @@ fun ChatMessageBubble(
               .clip(shape)
               .liquidGlassSurface(
                 shape = shape,
-                tint = Color(0x25232323),
+                tint = Color(0x20FFFFFF),
                 gloss = 0.07f,
                 refraction = 4.dp,
                 blurRadius = 3.dp

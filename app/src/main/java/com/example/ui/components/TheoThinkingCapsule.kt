@@ -92,6 +92,7 @@ fun TheoThinkingCapsule(
     AssistantState.THINKING -> "Theo is thinking"
     AssistantState.SPEAKING -> "Theo is speaking"
     AssistantState.OFFLINE -> "Theo is offline"
+    AssistantState.ERROR -> "Theo hit an error"
   }
   val detail = when (assistantState) {
     AssistantState.IDLE -> "Tell me what you want done"
@@ -100,6 +101,7 @@ fun TheoThinkingCapsule(
       ?: "Planning the next step"
     AssistantState.SPEAKING -> "Putting the answer into words"
     AssistantState.OFFLINE -> "Check your model connection"
+    AssistantState.ERROR -> "Retry the request or check Logs"
   }
 
   Column(modifier = modifier.fillMaxWidth()) {
@@ -163,6 +165,7 @@ fun TheoThinkingCapsule(
             .background(
               when (assistantState) {
                 AssistantState.OFFLINE -> Color(0xFFFF8295)
+                AssistantState.ERROR -> Color(0xFFFF3F69)
                 AssistantState.THINKING -> TheoCyan.copy(alpha = breathe)
                 AssistantState.LISTENING -> Color(0xFF72E7BA)
                 AssistantState.SPEAKING -> TheoCyan

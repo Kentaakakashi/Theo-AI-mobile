@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, AudioLines, Check, ChevronDown, CircleAlert, Command, Mic, Plus, Settings2, Sparkles, Square, Volume2, WifiOff, X } from 'lucide-react'
+import { ArrowUp, AudioLines, ChevronDown, CircleAlert, Command, Mic, Plus, Settings2, Sparkles, Square, Volume2, WifiOff, X } from 'lucide-react'
+import { ThinkingOrb } from 'thinking-orbs'
 
 type Message = { id: string; text: string; isUser: boolean; modelBadge?: string; timestamp?: number; actionTag?: string | null }
 type TheoState = 'IDLE' | 'LISTENING' | 'THINKING' | 'SPEAKING' | 'OFFLINE' | 'ERROR'
@@ -121,7 +122,8 @@ export default function App() {
   }
   const active = states[native.state] ?? states.IDLE
   const hasChat = native.messages.length > 0 || !!native.streamingText
-  const stateIcon = native.state === 'ERROR' ? <CircleAlert size={14} /> : native.state === 'OFFLINE' ? <WifiOff size={14} /> : native.state === 'SPEAKING' ? <AudioLines size={14} /> : <span className={native.state === 'THINKING' || native.state === 'LISTENING' ? 'h-1.5 w-1.5 rounded-full bg-cyan-300 animate-pulse' : 'h-1.5 w-1.5 rounded-full bg-emerald-300'} />
+  const orbState = native.state === 'LISTENING' ? 'listening' : native.state === 'THINKING' ? 'working' : native.state === 'SPEAKING' ? 'composing' : native.state === 'OFFLINE' ? 'connecting' : 'breathing'
+  const stateIcon = native.state === 'ERROR' ? <CircleAlert size={14} className="text-rose-300" /> : native.state === 'OFFLINE' ? <WifiOff size={14} /> : <ThinkingOrb state={orbState} size={64} theme="dark" speed={native.state === 'THINKING' ? 1.35 : 1} aria-label={active.label} className="h-5 w-5 shrink-0" />
   return <main className="safe-top safe-bottom relative flex h-full flex-col px-4 text-white">
     <header className="flex shrink-0 items-center justify-between py-3">
       <button onClick={() => setShowStatus(v => !v)} className="flex min-w-0 items-center gap-3 text-left">

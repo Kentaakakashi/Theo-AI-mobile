@@ -22,12 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +32,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import com.composables.icons.lucide.R as LucideR
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -58,7 +54,7 @@ import kotlin.math.roundToInt
 
 private data class DockDestination(
   val label: String,
-  val icon: androidx.compose.ui.graphics.vector.ImageVector,
+  val icon: Int,
   val testTag: String
 )
 
@@ -77,11 +73,11 @@ fun TheoBottomNavigation(
 ) {
   val tabs = remember {
     listOf(
-      DockDestination("Home", Icons.Default.AutoAwesome, "nav_core_tab"),
-      DockDestination("Memory", Icons.Default.Storage, "nav_memory_tab"),
-      DockDestination("Activity", Icons.Default.Timeline, "nav_activity_tab"),
-      DockDestination("Logs", Icons.Default.Terminal, "nav_logs_tab"),
-      DockDestination("Settings", Icons.Default.Settings, "nav_settings_tab")
+      DockDestination("Home", LucideR.drawable.lucide_ic_house, "nav_core_tab"),
+      DockDestination("Memory", LucideR.drawable.lucide_ic_brain_circuit, "nav_memory_tab"),
+      DockDestination("Activity", LucideR.drawable.lucide_ic_activity, "nav_activity_tab"),
+      DockDestination("Logs", LucideR.drawable.lucide_ic_terminal, "nav_logs_tab"),
+      DockDestination("Settings", LucideR.drawable.lucide_ic_settings, "nav_settings_tab")
     )
   }
 
@@ -256,7 +252,7 @@ private fun DockDestinationItem(
     verticalArrangement = Arrangement.Center
   ) {
     Icon(
-      imageVector = destination.icon,
+      painter = painterResource(id = destination.icon),
       contentDescription = destination.label,
       tint = Color.White.copy(alpha = 0.60f + emphasis * 0.38f),
       modifier = Modifier

@@ -16,19 +16,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Launch
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import com.composables.icons.lucide.R as LucideR
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -129,13 +125,13 @@ fun TheoHomeStage(
       ) {
         QuickActionChip(
           title = "Open an app",
-          icon = Icons.Default.Launch,
+          icon = LucideR.drawable.lucide_ic_arrow_up_right,
           modifier = Modifier.weight(1f),
           onClick = { onSendMessage("Open an app for me") }
         )
         QuickActionChip(
           title = "Plan my day",
-          icon = Icons.Default.AutoAwesome,
+          icon = LucideR.drawable.lucide_ic_sparkles,
           modifier = Modifier.weight(1f),
           onClick = { onSendMessage("Help me plan my day") }
         )
@@ -147,13 +143,13 @@ fun TheoHomeStage(
       ) {
         QuickActionChip(
           title = "Remember",
-          icon = Icons.Default.Memory,
+          icon = LucideR.drawable.lucide_ic_brain,
           modifier = Modifier.weight(1f),
           onClick = { onInputChange("Remember that ") }
         )
         QuickActionChip(
           title = "Device status",
-          icon = Icons.Default.PhoneAndroid,
+          icon = LucideR.drawable.lucide_ic_smartphone,
           modifier = Modifier.weight(1f),
           onClick = { onSendMessage("Check my battery and device status") }
         )
@@ -167,7 +163,7 @@ fun TheoHomeStage(
 @Composable
 private fun QuickActionChip(
   title: String,
-  icon: ImageVector,
+  icon: Int,
   modifier: Modifier = Modifier,
   onClick: () -> Unit
 ) {
@@ -201,7 +197,7 @@ private fun QuickActionChip(
         ),
       contentAlignment = Alignment.Center
     ) {
-      Icon(icon, contentDescription = null, tint = TheoCyan, modifier = Modifier.size(16.dp))
+      Icon(painter = painterResource(id = icon), contentDescription = null, tint = TheoCyan, modifier = Modifier.size(16.dp))
     }
     Spacer(Modifier.width(8.dp))
     Text(

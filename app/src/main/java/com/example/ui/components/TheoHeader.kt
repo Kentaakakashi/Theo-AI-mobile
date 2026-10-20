@@ -12,17 +12,14 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.GraphicEq
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import com.composables.icons.lucide.R as LucideR
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -89,7 +86,7 @@ fun TheoHeader(
       contentAlignment = Alignment.Center
     ) {
       Icon(
-        imageVector = Icons.Default.GraphicEq,
+        painter = painterResource(id = LucideR.drawable.lucide_ic_audio_lines),
         contentDescription = null,
         tint = TheoCyan,
         modifier = Modifier.size(19.dp)
@@ -143,7 +140,7 @@ fun TheoHeader(
       modifier = Modifier.size(38.dp)
     ) {
       Icon(
-        imageVector = if (isSpeechEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+        painter = painterResource(id = if (isSpeechEnabled) LucideR.drawable.lucide_ic_volume_2 else LucideR.drawable.lucide_ic_volume_x),
         contentDescription = if (isSpeechEnabled) "Disable spoken responses" else "Enable spoken responses",
         tint = if (isSpeechEnabled) TheoCyan else TheoTextMuted,
         modifier = Modifier.size(18.dp)
@@ -155,7 +152,7 @@ fun TheoHeader(
       modifier = Modifier.size(38.dp)
     ) {
       Icon(
-        imageVector = Icons.Default.Settings,
+        painter = painterResource(id = LucideR.drawable.lucide_ic_settings),
         contentDescription = "Settings",
         tint = TheoTextSecondary,
         modifier = Modifier.size(18.dp)

@@ -100,38 +100,39 @@ class TheoAccessibilityService : AccessibilityService() {
         val density = resources.displayMetrics.density
         val root = android.widget.LinearLayout(this).apply {
           orientation = android.widget.LinearLayout.VERTICAL
-          setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+          setPadding((15 * density).toInt(), (13 * density).toInt(), (15 * density).toInt(), (12 * density).toInt())
           background = GradientDrawable().apply {
-            setColor(Color.rgb(12, 16, 27))
-            setStroke((1.2f * density).toInt().coerceAtLeast(1), Color.rgb(0, 229, 255))
-            cornerRadius = 22 * density
+            setColor(Color.argb(238, 17, 19, 25))
+            setStroke((1f * density).toInt().coerceAtLeast(1), Color.argb(48, 255, 255, 255))
+            cornerRadius = 24 * density
           }
           elevation = 24 * density
         }
         val heading = android.widget.TextView(this).apply {
-          text = "◈ THEO  ·  LIVE"
-          setTextColor(Color.rgb(0, 229, 255))
-          textSize = 12f
+          text = "THEO  ·  LIVE"
+          setTextColor(Color.rgb(224, 231, 239))
+          textSize = 11f
+          letterSpacing = 0.06f
           typeface = android.graphics.Typeface.DEFAULT_BOLD
           setPadding(0, 0, 0, (4 * density).toInt())
           contentDescription = "Drag to move Theo live panel"
         }
         val taskView = android.widget.TextView(this).apply {
           setTextColor(Color.WHITE)
-          textSize = 14f
+          textSize = 15f
           typeface = android.graphics.Typeface.DEFAULT_BOLD
           maxLines = 2
         }
         val statusText = android.widget.TextView(this).apply {
-          setTextColor(Color.rgb(190, 202, 225))
+          setTextColor(Color.rgb(190, 211, 224))
           textSize = 12f
           setPadding(0, (5 * density).toInt(), 0, 0)
           maxLines = 2
         }
         val detailText = android.widget.TextView(this).apply {
-          setTextColor(Color.rgb(135, 151, 180))
-          textSize = 11f
-          setPadding(0, (4 * density).toInt(), 0, (7 * density).toInt())
+          setTextColor(Color.rgb(162, 170, 184))
+          textSize = 12f
+          setPadding(0, (5 * density).toInt(), 0, (8 * density).toInt())
           maxLines = 3
         }
         val composer = android.widget.LinearLayout(this).apply {
@@ -149,9 +150,9 @@ class TheoAccessibilityService : AccessibilityService() {
           imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEND
           inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
           background = GradientDrawable().apply {
-            setColor(Color.rgb(27, 33, 48))
-            cornerRadius = 14 * density
-            setStroke((1 * density).toInt().coerceAtLeast(1), Color.rgb(57, 72, 95))
+            setColor(Color.argb(230, 29, 32, 39))
+            cornerRadius = 16 * density
+            setStroke((1 * density).toInt().coerceAtLeast(1), Color.argb(54, 255, 255, 255))
           }
           setPadding((10 * density).toInt(), (8 * density).toInt(), (8 * density).toInt(), (8 * density).toInt())
           setOnClickListener {
@@ -171,7 +172,7 @@ class TheoAccessibilityService : AccessibilityService() {
           text = "Send"
           isAllCaps = false
           setTextColor(Color.rgb(5, 15, 24))
-          setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(0, 229, 255)))
+          setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(226, 237, 245)))
           setOnClickListener {
             val message = messageInput.text?.toString()?.trim().orEmpty()
             if (message.isBlank()) {
@@ -214,10 +215,14 @@ class TheoAccessibilityService : AccessibilityService() {
         }
         val close = android.widget.Button(this).apply {
           text = "Hide"; isAllCaps = false
+          setTextColor(Color.rgb(211, 216, 224))
+          setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(48, 51, 59)))
           setOnClickListener { hideAutomationOverlay() }
         }
         val pause = android.widget.Button(this).apply {
           text = "Pause"; isAllCaps = false
+          setTextColor(Color.rgb(226, 234, 240))
+          setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(56, 61, 70)))
           setOnClickListener {
             val nowPaused = overlayPauseToggleHandler?.invoke() ?: false
             setAutomationPaused(nowPaused)
@@ -225,16 +230,16 @@ class TheoAccessibilityService : AccessibilityService() {
         }
         val stop = android.widget.Button(this).apply {
           text = "Stop"; isAllCaps = false
-          setTextColor(Color.WHITE)
-          setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(165, 48, 70)))
+          setTextColor(Color.rgb(255, 224, 228))
+          setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(106, 42, 52)))
           setOnClickListener {
             hideAutomationOverlay()
             overlayStopHandler?.invoke()
           }
         }
-        buttons.addView(close, android.widget.LinearLayout.LayoutParams(-2, (40 * density).toInt()))
-        buttons.addView(pause, android.widget.LinearLayout.LayoutParams(-2, (40 * density).toInt()))
-        buttons.addView(stop, android.widget.LinearLayout.LayoutParams(-2, (40 * density).toInt()))
+        buttons.addView(close, android.widget.LinearLayout.LayoutParams(-2, (40 * density).toInt()).apply { marginStart = (5 * density).toInt() })
+        buttons.addView(pause, android.widget.LinearLayout.LayoutParams(-2, (40 * density).toInt()).apply { marginStart = (5 * density).toInt() })
+        buttons.addView(stop, android.widget.LinearLayout.LayoutParams(-2, (40 * density).toInt()).apply { marginStart = (5 * density).toInt() })
         root.addView(heading)
         root.addView(taskView)
         root.addView(statusText)

@@ -453,7 +453,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
 
       // Device actions already show progress in Theo's UI. Do not read the long
       // implementation/safety preamble aloud before the action even begins.
-      if (_uiState.value.isSpeechEnabled && actionKey == null) {
+      if (_uiState.value.isSpeechEnabled && actionKey == null && !isEngineError) {
         speechManager.speak(result.responseText)
       }
     }

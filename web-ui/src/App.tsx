@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUp, AudioLines, ChevronDown, CircleAlert, Command, Mic, Plus, Settings2, Sparkles, Square, Volume2, WifiOff, X } from 'lucide-react'
 import { ThinkingOrb } from 'thinking-orbs'
+import { LiquidGlass } from './components/ui/liquid-glass'
 
 type Message = { id: string; text: string; isUser: boolean; modelBadge?: string; timestamp?: number; actionTag?: string | null }
 type TheoState = 'IDLE' | 'LISTENING' | 'THINKING' | 'SPEAKING' | 'OFFLINE' | 'ERROR'
@@ -74,7 +75,9 @@ export default function App() {
       </div>
     </header>
     {showStatus && <button onClick={() => setShowStatus(false)} className="glass absolute left-4 right-4 top-16 z-20 rounded-2xl p-4 text-left"><div className="mb-1 flex items-center justify-between text-sm font-medium">Current status <X size={15}/></div><p className="text-xs text-white/50">{active.hint}</p><p className="mt-2 text-[10px] text-cyan-200/70">{native.model}</p></button>}
-    {!hasChat ? <section className="flex min-h-0 flex-1 flex-col items-center justify-center pb-4 text-center">
+    {!hasChat ? <section className="relative isolate flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-[30px] pb-4 text-center">
+      <div className="pointer-events-none absolute inset-0 opacity-80" aria-hidden="true"><LiquidGlass text={[]} backgroundColor="#080a12" textColor="#ffffff" accentColors={native.state === "ERROR" ? ["#ff5876", "#7d183b", "#ffd1da"] : native.state === "OFFLINE" ? ["#f5b942", "#6b4b1e", "#d6a96a"] : native.state === "LISTENING" ? ["#5ce8ff", "#4387ff", "#c4f7ff"] : native.state === "THINKING" ? ["#7b7cff", "#39d8ff", "#bda7ff"] : native.state === "SPEAKING" ? ["#54f0d0", "#59b6ff", "#c7fff2"] : ["#3a9cff", "#7356d9", "#76e6ef"]} lensRadius={88} magnification={1.12} refraction={0.62} frost={0.12} /></div>
+      <div className="relative z-10 flex min-h-0 w-full flex-col items-center justify-center px-1">
       <div className="mb-2 text-[10px] font-medium tracking-[.32em] text-cyan-100/45">YOUR AI, YOUR SPACE</div>
       <ParticleOrb state={native.state} onClick={() => callNative('orbClick')} />
       <h1 className="mt-1 text-[27px] font-medium tracking-[-.055em]">What’s on your mind?</h1>
@@ -82,6 +85,7 @@ export default function App() {
       {native.state === 'ERROR' && <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-xs text-rose-100"><CircleAlert size={14}/>{native.errorText || 'Something went wrong. Try again.'}</div>}
       <div className="mt-6 grid w-full max-w-md grid-cols-1 gap-2">
         {suggestions.map((s, i) => <button key={s.title} onClick={() => submit(s.text)} className="glass group flex items-center justify-between rounded-2xl px-4 py-3 text-left transition-colors hover:bg-white/[.07]"><span className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[.055] text-cyan-100/75">{i === 0 ? <Sparkles size={15}/> : i === 1 ? <Command size={15}/> : <AudioLines size={15}/>}</span><span><span className="block text-[12px] font-medium">{s.title}</span><span className="mt-0.5 block text-[10px] text-white/40">{s.text}</span></span></span><Plus size={15} className="text-white/35 transition-transform group-hover:rotate-90"/></button>)}
+      </div>
       </div>
     </section> : <section ref={listRef} className="scrollbar-hide min-h-0 flex-1 space-y-5 overflow-y-auto py-5">
       <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[.22em] text-white/35"><span className="h-px flex-1 bg-white/10"/><span>Conversation</span><span className="h-px flex-1 bg-white/10"/></div>

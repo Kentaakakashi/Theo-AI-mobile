@@ -110,7 +110,6 @@ fun ChatMessageBubble(
           }
         }
       } else {
-        val shape = RoundedCornerShape(topStart = 7.dp, topEnd = 22.dp, bottomStart = 22.dp, bottomEnd = 22.dp)
         Column(
           horizontalAlignment = Alignment.Start,
           modifier = Modifier.widthIn(max = bubbleWidth)
@@ -142,19 +141,13 @@ fun ChatMessageBubble(
             }
           }
 
+          // Open WebUI-inspired response canvas: assistant prose sits directly on the
+          // conversation surface. Liquid glass is reserved for user messages and actions,
+          // so every reply doesn't become another card inside a card.
           Column(
             modifier = Modifier
               .fillMaxWidth()
-              .clip(shape)
-              .liquidGlassSurface(
-                shape = shape,
-                tint = Color(0x20FFFFFF),
-                gloss = 0.07f,
-                refraction = 4.dp,
-                blurRadius = 3.dp
-              )
-              .border(0.6.dp, Color.White.copy(alpha = 0.085f), shape)
-              .padding(horizontal = 15.dp, vertical = 12.dp)
+              .padding(horizontal = 3.dp, vertical = 2.dp)
               .testTag("theo_chat_bubble")
           ) {
             MarkdownText(

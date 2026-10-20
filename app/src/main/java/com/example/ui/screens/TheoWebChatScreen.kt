@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import android.annotation.SuppressLint
+import android.os.Handler
+import android.os.Looper
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -42,17 +44,18 @@ fun TheoWebChatScreen(
       .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
       .build()
   }
+  val mainHandler = remember { Handler(Looper.getMainLooper()) }
   val bridge = remember {
     object {
-      @JavascriptInterface fun sendMessage(text: String) { onSendMessage(text) }
-      @JavascriptInterface fun setInputText(text: String) { onInputChange(text) }
-      @JavascriptInterface fun orbClick() { onOrbClick() }
-      @JavascriptInterface fun toggleSpeech() { onToggleSpeech() }
-      @JavascriptInterface fun openSettings() { onOpenSettings() }
-      @JavascriptInterface fun executeAction(action: String) { onExecuteAction(action) }
-      @JavascriptInterface fun dismissAction() { onDismissAction() }
-      @JavascriptInterface fun selectApp(packageName: String) { onSelectApp(packageName) }
-      @JavascriptInterface fun cancelAppSelection() { onCancelAppSelection() }
+      @JavascriptInterface fun sendMessage(text: String) { mainHandler.post { onSendMessage(text) } }
+      @JavascriptInterface fun setInputText(text: String) { mainHandler.post { onInputChange(text) } }
+      @JavascriptInterface fun orbClick() { mainHandler.post { onOrbClick() } }
+      @JavascriptInterface fun toggleSpeech() { mainHandler.post { onToggleSpeech() } }
+      @JavascriptInterface fun openSettings() { mainHandler.post { onOpenSettings() } }
+      @JavascriptInterface fun executeAction(action: String) { mainHandler.post { onExecuteAction(action) } }
+      @JavascriptInterface fun dismissAction() { mainHandler.post { onDismissAction() } }
+      @JavascriptInterface fun selectApp(packageName: String) { mainHandler.post { onSelectApp(packageName) } }
+      @JavascriptInterface fun cancelAppSelection() { mainHandler.post { onCancelAppSelection() } }
     }
   }
   val webView = remember {

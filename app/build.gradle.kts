@@ -85,6 +85,8 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 dependencies {
   // Kyant0 Backdrop 1.0.0: SDK 36-compatible shader refraction, blur and optical highlights (Apache-2.0).
   implementation("io.github.kyant0:backdrop:1.0.0")
+  // Upstream Compose Markdown component for formatted AI replies (MIT).
+  implementation("com.github.jeziellago:compose-markdown:0.7.3")
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
   // implementation(libs.accompanist.permissions)

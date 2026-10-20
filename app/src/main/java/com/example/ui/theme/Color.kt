@@ -4,21 +4,21 @@ import androidx.compose.ui.graphics.Color
 
 // Theo's material palette is deliberately achromatic: obsidian, smoke and neutral optical highlights.
 // Colour is reserved for meaningful status feedback, never used to tint the glass itself.
-val TheoDarkBackground = Color(0xFF060607)
-val TheoSurfaceDeep = Color(0x66131315)
-val TheoSurfaceCard = Color(0x541D1D20)
-val TheoSurfaceGlass = Color(0x24FFFFFF)
-val TheoSurfaceGlassLight = Color(0x24FFFFFF)
-val TheoSurfaceBorder = Color(0x30FFFFFF)
-val TheoSurfaceBorderSubtle = Color(0x18FFFFFF)
+val TheoDarkBackground = Color(0xFF070910)
+val TheoSurfaceDeep = Color(0x66101420)
+val TheoSurfaceCard = Color(0x54161D2B)
+val TheoSurfaceGlass = Color(0x24E5EFFF)
+val TheoSurfaceGlassLight = Color(0x28EAF3FF)
+val TheoSurfaceBorder = Color(0x35DDEAFF)
+val TheoSurfaceBorderSubtle = Color(0x1CDDEAFF)
 
 // Historical accent tokens remain for source compatibility, but now resolve to neutral silver/charcoal.
-val TheoCyan = Color(0xFFF5F5F6)
-val TheoIceBlue = Color(0xFFE2E2E4)
-val TheoDeepCyan = Color(0xFF555559)
-val TheoViolet = Color(0xFFDADADD)
-val TheoDeepViolet = Color(0xFF29292C)
-val TheoMagenta = Color(0xFFECECEE)
+val TheoCyan = Color(0xFF9BE8FF)
+val TheoIceBlue = Color(0xFFD3F0FF)
+val TheoDeepCyan = Color(0xFF294B62)
+val TheoViolet = Color(0xFFB6A8FF)
+val TheoDeepViolet = Color(0xFF332D55)
+val TheoMagenta = Color(0xFFE5BAFF)
 
 // Semantic states only: ready, warning and failure remain distinguishable.
 val TheoOnlineGreen = Color(0xFF72E7BA)
@@ -28,5 +28,5 @@ val TheoErrorRed = Color(0xFFFF8295)
 val TheoTextPrimary = Color(0xFFF5F5F7)
 val TheoTextSecondary = Color(0xFFC9C9CE)
 val TheoTextMuted = Color(0xFF9B9BA1)
-val TheoTextCyan = Color(0xFFEAEAEC)
-val TheoTextViolet = Color(0xFFDADADD)
+val TheoTextCyan = Color(0xFF9BE8FF)
+val TheoTextViolet = Color(0xFFC5B5FF)

@@ -36,9 +36,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import com.example.data.MessageEntity
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
@@ -155,11 +158,21 @@ fun ChatMessageBubble(
               .padding(horizontal = 15.dp, vertical = 12.dp)
               .testTag("theo_chat_bubble")
           ) {
-            Text(
-              text = message.text,
-              color = TheoTextPrimary,
-              fontSize = 14.sp,
-              lineHeight = 21.sp
+            MarkdownText(
+              markdown = message.text,
+              modifier = Modifier.fillMaxWidth(),
+              style = TextStyle(
+                color = TheoTextPrimary,
+                fontFamily = FontFamily.SansSerif,
+                fontSize = 14.sp,
+                lineHeight = 21.sp
+              ),
+              linkColor = TheoCyan,
+              syntaxHighlightColor = Color(0xFF182338),
+              syntaxHighlightTextColor = TheoTextPrimary,
+              headingBreakColor = Color.Transparent,
+              isTextSelectable = true,
+              enableBlockLevelAccessibility = true
             )
 
             message.actionTag?.let { actionKey ->

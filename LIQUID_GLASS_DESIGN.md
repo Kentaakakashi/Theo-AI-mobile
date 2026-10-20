@@ -1,7 +1,6 @@
 # Theo Liquid Glass UI experiment
 
-Branch: `experiment/theo-liquid-glass`  
-Base development line: `feature/screen-aware-automation`
+Active development branch: `main` (`Kentaakakashi/Theo-AI-mobile`). This note describes the current main-line design; do not move visual work to an experiment or feature branch unless the owner explicitly changes that instruction.
 
 ## Design intent
 

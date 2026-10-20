@@ -3,7 +3,7 @@ import { ArrowUp, AudioLines, Check, ChevronDown, CircleAlert, Command, Mic, Plu
 
 type Message = { id: string; text: string; isUser: boolean; modelBadge?: string; timestamp?: number; actionTag?: string | null }
 type TheoState = 'IDLE' | 'LISTENING' | 'THINKING' | 'SPEAKING' | 'OFFLINE' | 'ERROR'
-declare global { interface Window { TheoBridge?: { sendMessage: (text: string) => void; setInputText: (text: string) => void; orbClick: () => void; toggleSpeech: () => void; openSettings: () => void; executeAction: (action: string) => void; dismissAction: () => void; selectApp: (packageName: string) => void; cancelAppSelection: () => void }; theoUpdate?: (data: Partial<NativeState>) => void } }
+declare global { interface Window { TheoBridge?: { sendMessage: (...args: string[]) => void; setInputText: (...args: string[]) => void; orbClick: (...args: string[]) => void; toggleSpeech: (...args: string[]) => void; openSettings: (...args: string[]) => void; executeAction: (...args: string[]) => void; dismissAction: (...args: string[]) => void; selectApp: (...args: string[]) => void; cancelAppSelection: (...args: string[]) => void }; theoUpdate?: (data: Partial<NativeState>) => void } }
 type NativeState = { state: TheoState; model: string; input: string; streamingText: string; speechEnabled: boolean; messages: Message[]; errorText?: string; pendingAction?: string | null; pendingActionLabel?: string | null; pendingAppName?: string | null; pendingAppCandidates?: {label:string;packageName:string}[] }
 
 const initial: NativeState = { state: 'IDLE', model: 'GEMINI FAST', input: '', streamingText: '', speechEnabled: true, messages: [], pendingAction: null, pendingAppName: null, pendingAppCandidates: [] }

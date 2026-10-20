@@ -52,7 +52,7 @@ fun TheoHomeStage(
 ) {
   BoxWithConstraints(modifier = modifier.fillMaxSize()) {
     val compact = maxHeight < 660.dp
-    val orbSize = minOf(174.dp, maxWidth * 0.48f, if (compact) 148.dp else 174.dp)
+    val orbSize = minOf(158.dp, maxWidth * 0.44f, if (compact) 136.dp else 158.dp)
 
     Column(
       modifier = Modifier
@@ -61,7 +61,57 @@ fun TheoHomeStage(
         .padding(horizontal = 22.dp),
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Spacer(Modifier.height(if (compact) 6.dp else 12.dp))
+      Spacer(Modifier.height(if (compact) 4.dp else 8.dp))
+
+      // A quiet status capsule gives the empty state a deliberate starting point without
+      // turning the screen into a dashboard full of panels.
+      Row(
+        modifier = Modifier
+          .clip(RoundedCornerShape(50))
+          .liquidGlassSurface(
+            shape = RoundedCornerShape(50),
+            tint = Color.White.copy(alpha = 0.055f),
+            gloss = 0.07f,
+            refraction = 3.dp,
+            blurRadius = 2.dp
+          )
+          .padding(horizontal = 11.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Box(
+          modifier = Modifier
+            .size(6.dp)
+            .clip(RoundedCornerShape(50))
+            .liquidGlassSurface(
+              shape = RoundedCornerShape(50),
+              tint = when (uiState.assistantState) {
+                com.example.model.AssistantState.OFFLINE -> Color(0xFFFF8295)
+                com.example.model.AssistantState.THINKING -> Color(0xFFC5B4FF)
+                com.example.model.AssistantState.LISTENING,
+                com.example.model.AssistantState.SPEAKING -> TheoCyan
+                else -> Color(0xFFB6F2D2)
+              },
+              gloss = 0.04f,
+              blurRadius = 0.dp
+            )
+        )
+        Spacer(Modifier.width(7.dp))
+        Text(
+          text = when (uiState.assistantState) {
+            com.example.model.AssistantState.IDLE -> "HERE WHEN YOU NEED ME"
+            com.example.model.AssistantState.LISTENING -> "I'M LISTENING"
+            com.example.model.AssistantState.THINKING -> "ON IT"
+            com.example.model.AssistantState.SPEAKING -> "TALKING TO YOU"
+            com.example.model.AssistantState.OFFLINE -> "CHECK CONNECTION"
+          },
+          color = TheoTextSecondary,
+          fontSize = 9.sp,
+          fontWeight = FontWeight.SemiBold,
+          letterSpacing = 0.85.sp
+        )
+      }
+
+      Spacer(Modifier.height(if (compact) 2.dp else 5.dp))
 
       TheoOrb(
         state = uiState.assistantState,
@@ -70,9 +120,9 @@ fun TheoHomeStage(
         onClick = onOrbClick
       )
 
-      Spacer(Modifier.height(if (compact) 4.dp else 7.dp))
+      Spacer(Modifier.height(if (compact) 1.dp else 4.dp))
       Text(
-        text = "READY WHEN YOU ARE",
+        text = "YOUR AI, YOUR SPACE",
         color = TheoTextSecondary,
         fontSize = 10.sp,
         fontWeight = FontWeight.SemiBold,
@@ -80,17 +130,17 @@ fun TheoHomeStage(
       )
       Spacer(Modifier.height(7.dp))
       Text(
-        text = "What’s up?",
+        text = "What are we figuring out?",
         color = TheoTextPrimary,
-        fontSize = if (compact) 25.sp else 28.sp,
-        lineHeight = if (compact) 30.sp else 34.sp,
+        fontSize = if (compact) 23.sp else 26.sp,
+        lineHeight = if (compact) 28.sp else 31.sp,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = (-0.7).sp,
         textAlign = TextAlign.Center
       )
       Spacer(Modifier.height(5.dp))
       Text(
-        text = "Ask anything. Let’s figure it out.",
+        text = "Ask a question, start a task, or just talk.",
         color = TheoTextMuted,
         fontSize = 12.sp,
         lineHeight = 17.sp,
@@ -98,27 +148,27 @@ fun TheoHomeStage(
         modifier = Modifier.padding(horizontal = 14.dp)
       )
 
-      Spacer(Modifier.height(if (compact) 10.dp else 15.dp))
+      Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
 
       Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
       ) {
         Text(
-          text = "Jump right in",
+          text = "Try asking Theo",
           color = TheoTextPrimary,
           fontSize = 14.sp,
           fontWeight = FontWeight.SemiBold
         )
         Spacer(Modifier.weight(1f))
         Text(
-          text = "QUICK ACTIONS",
+          text = "A FEW STARTING POINTS",
           color = TheoTextMuted,
           fontSize = 10.sp
         )
       }
 
-      Spacer(Modifier.height(10.dp))
+      Spacer(Modifier.height(8.dp))
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -136,7 +186,7 @@ fun TheoHomeStage(
           onClick = { onSendMessage("Help me plan my day") }
         )
       }
-      Spacer(Modifier.height(8.dp))
+      Spacer(Modifier.height(7.dp))
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -155,7 +205,7 @@ fun TheoHomeStage(
         )
       }
 
-      Spacer(Modifier.height(18.dp))
+      Spacer(Modifier.height(12.dp))
     }
   }
 }
@@ -170,7 +220,7 @@ private fun QuickActionChip(
   val shape = RoundedCornerShape(18.dp)
   Row(
     modifier = modifier
-      .height(46.dp)
+      .height(52.dp)
       .clip(shape)
       .liquidGlassSurface(
         shape = shape,
@@ -186,7 +236,7 @@ private fun QuickActionChip(
   ) {
     Box(
       modifier = Modifier
-        .size(28.dp)
+        .size(30.dp)
         .clip(RoundedCornerShape(10.dp))
         .liquidGlassSurface(
           shape = RoundedCornerShape(10.dp),
@@ -203,7 +253,7 @@ private fun QuickActionChip(
     Text(
       text = title,
       color = TheoTextPrimary,
-      fontSize = 11.5.sp,
+      fontSize = 11.sp,
       fontWeight = FontWeight.Medium,
       maxLines = 1,
       overflow = TextOverflow.Ellipsis

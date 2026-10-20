@@ -5,6 +5,9 @@ import android.os.Handler
 import android.os.Looper
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
+import android.webkit.WebChromeClient
+import android.webkit.ConsoleMessage
+import android.util.Log
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,7 +76,21 @@ fun TheoWebChatScreen(
       isHorizontalScrollBarEnabled = false
       setBackgroundColor(android.graphics.Color.TRANSPARENT)
       addJavascriptInterface(bridge, "TheoBridge")
+      webChromeClient = object : WebChromeClient() {
+        override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+          Log.e("TheoWebView", "${message.message()} at ${message.sourceId()}:${message.lineNumber()}")
+          return true
+        }
+      }
       webViewClient = object : WebViewClient() {
+        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: android.webkit.WebResourceError) {
+          super.onReceivedError(view, request, error)
+          if (request.isForMainFrame) Log.e("TheoWebView", "Main page failed: ${error.errorCode} ${error.description} url=${request.url}")
+        }
+        override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: android.webkit.WebResourceResponse) {
+          super.onReceivedHttpError(view, request, response)
+          Log.e("TheoWebView", "HTTP error ${response.statusCode} url=${request.url}")
+        }
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest) =
           assetLoader.shouldInterceptRequest(request.url)
 

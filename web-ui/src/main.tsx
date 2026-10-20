@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import './index.css'
 
+declare global { interface Window { __theoShowFailure?: (label: string, detail: string) => void } }
+
 class TheoStartupBoundary extends React.Component<React.PropsWithChildren, { error: string | null }> {
   state = { error: null as string | null }
   static getDerivedStateFromError(error: unknown) {

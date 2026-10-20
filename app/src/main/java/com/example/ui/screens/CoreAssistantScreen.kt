@@ -81,9 +81,13 @@ fun CoreAssistantScreen(
 ) {
   val listState = rememberLazyListState()
 
+  val hasConversation = messages.isNotEmpty() || uiState.streamingText.isNotBlank()
+
   LaunchedEffect(messages.size, uiState.streamingText) {
-    if (messages.isNotEmpty() || uiState.streamingText.isNotBlank()) {
-      val lastMessageIndex = (2 + messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)
+    if (hasConversation) {
+      // The conversation header is the first item; the empty-state hero is removed as soon
+      // as a conversation starts, so messages never have to scroll past a giant landing panel.
+      val lastMessageIndex = (1 + messages.size - 1 + if (uiState.streamingText.isNotBlank()) 1 else 0)
         .coerceAtLeast(0)
       listState.animateScrollToItem(lastMessageIndex)
     }
@@ -109,17 +113,20 @@ fun CoreAssistantScreen(
         modifier = Modifier.weight(1f).fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(5.dp)
       ) {
-        item(key = "theo_home_stage") {
-          TheoHomeStage(
-            uiState = uiState,
-            onOrbClick = onOrbClick,
-            onSendMessage = onSendMessage,
-            onInputChange = onInputChange,
-            modifier = Modifier.fillMaxWidth().height(440.dp)
-          )
+        if (!hasConversation) {
+          item(key = "theo_home_stage") {
+            TheoHomeStage(
+              uiState = uiState,
+              onOrbClick = onOrbClick,
+              onSendMessage = onSendMessage,
+              onInputChange = onInputChange,
+              modifier = Modifier.fillMaxWidth().height(440.dp)
+            )
+          }
         }
 
-        item(key = "conversation_header") {
+        if (hasConversation) {
+          item(key = "conversation_header") {
           Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -147,6 +154,7 @@ fun CoreAssistantScreen(
               )
             }
             Text(messages.size.toString(), color = TheoTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+          }
           }
         }
 

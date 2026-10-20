@@ -41,8 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.ActivityEntity
-import com.example.ui.components.hudScanlines
-import com.example.ui.components.neonBorder
 import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
@@ -68,7 +66,6 @@ fun ActivityHistoryScreen(
     modifier = modifier
       .fillMaxSize()
       .background(Color.Transparent)
-      .hudScanlines()
       .statusBarsPadding()
 
   ) {
@@ -78,7 +75,7 @@ fun ActivityHistoryScreen(
         .padding(horizontal = 18.dp)
     ) {
       Spacer(modifier = Modifier.height(8.dp))
-      // Top HUD Title
+      // Screen header
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,

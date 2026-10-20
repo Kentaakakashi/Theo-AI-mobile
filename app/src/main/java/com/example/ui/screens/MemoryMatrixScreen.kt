@@ -58,8 +58,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.MemoryEntity
-import com.example.ui.components.hudScanlines
-import com.example.ui.components.neonBorder
 import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
@@ -108,7 +106,6 @@ fun MemoryMatrixScreen(
     modifier = modifier
       .fillMaxSize()
       .background(Color.Transparent)
-      .hudScanlines()
       .statusBarsPadding()
 
   ) {
@@ -152,7 +149,7 @@ fun MemoryMatrixScreen(
         ) {
           Icon(
             imageVector = Icons.Default.Add,
-            contentDescription = "Inscribe Memory",
+            contentDescription = "Add memory",
             tint = TheoCyan,
             modifier = Modifier.size(18.dp)
           )
@@ -178,7 +175,7 @@ fun MemoryMatrixScreen(
           )
           Spacer(modifier = Modifier.width(8.dp))
           Text(
-            text = "Zero-cloud local storage. Memory survives app restarts and bridges seamlessly into Gemini & local Qwen prompts.",
+            text = "Saved on this phone and reused in future chats, whether Theo is using Gemini or local Qwen.",
             color = TheoTextSecondary,
             fontSize = 11.sp,
             lineHeight = 15.sp
@@ -285,7 +282,7 @@ fun MemoryMatrixScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-              text = "No registers found in this filter.",
+              text = "No memories match this view.",
               color = TheoTextMuted,
               fontSize = 13.sp
             )
@@ -316,14 +313,14 @@ fun MemoryMatrixScreen(
       }
     }
 
-    // Dialog to Inscribe Memory manually
+    // Dialog to add a memory manually
     if (showAddDialog) {
       AlertDialog(
         onDismissRequest = { showAddDialog = false },
         containerColor = TheoSurfaceCard,
         title = {
           Text(
-            text = "Inscribe New Fact",
+            text = "Add a memory",
             color = TheoTextPrimary,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold
@@ -375,7 +372,7 @@ fun MemoryMatrixScreen(
             },
             colors = ButtonDefaults.buttonColors(containerColor = TheoCyan)
           ) {
-            Text("Inscribe", color = TheoDarkBackground, fontWeight = FontWeight.Bold)
+            Text("Save memory", color = TheoDarkBackground, fontWeight = FontWeight.Bold)
           }
         },
         dismissButton = {

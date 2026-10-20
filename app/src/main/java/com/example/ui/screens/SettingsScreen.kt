@@ -58,8 +58,6 @@ import com.example.model.AiModelType
 import com.example.model.AnimationIntensity
 import com.example.service.DeviceActionHandler
 import com.example.service.parseGeminiApiKeys
-import com.example.ui.components.hudScanlines
-import com.example.ui.components.neonBorder
 import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
@@ -107,7 +105,6 @@ fun SettingsScreen(
     modifier = modifier
       .fillMaxSize()
       .background(Color.Transparent)
-      .hudScanlines()
       .statusBarsPadding()
 
   ) {
@@ -137,7 +134,7 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(16.dp))
 
       // Section 1: Model Selection
-      SettingsSectionHeader(icon = Icons.Default.CloudQueue, title = "Active Neural Engine")
+      SettingsSectionHeader(icon = Icons.Default.CloudQueue, title = "AI model")
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         AiModelType.entries.forEach { model ->
           val isSelected = selectedModel == model
@@ -147,9 +144,10 @@ fun SettingsScreen(
               .clip(RoundedCornerShape(12.dp))
               .background(if (isSelected) TheoSurfaceGlass else TheoSurfaceCard)
               .liquidGlassSurface(RoundedCornerShape(12.dp), tint = if (isSelected) TheoSurfaceGlass else TheoSurfaceCard, gloss = if (isSelected) 0.14f else 0.06f)
-              .then(
-                if (isSelected) Modifier.neonBorder(RoundedCornerShape(12.dp), strokeWidth = 1.dp)
-                else Modifier.border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+              .border(
+                if (isSelected) 1.dp else 0.8.dp,
+                if (isSelected) TheoCyan.copy(alpha = 0.38f) else TheoSurfaceBorderSubtle,
+                RoundedCornerShape(12.dp)
               )
               .clickable {
                 selectedModel = model
@@ -281,7 +279,7 @@ fun SettingsScreen(
       Spacer(modifier = Modifier.height(20.dp))
 
       // Section 3: Gemini Cloud API Keys
-      SettingsSectionHeader(icon = Icons.Default.Key, title = "Gemini Cloud Credentials")
+      SettingsSectionHeader(icon = Icons.Default.Key, title = "Gemini API keys")
       val configuredApiKeys = parseGeminiApiKeys(apiKeyInput)
       var apiKeyDraft by remember { mutableStateOf("") }
       var editingApiKeyIndex by remember { mutableStateOf<Int?>(null) }
@@ -606,7 +604,7 @@ fun SettingsScreen(
               fontWeight = FontWeight.Bold
             )
             Text(
-              text = "Synthesize neural voice via Android TextToSpeech engine",
+              text = "Choose how Theo sounds using Android text-to-speech",
               color = TheoTextSecondary,
               fontSize = 11.sp
             )

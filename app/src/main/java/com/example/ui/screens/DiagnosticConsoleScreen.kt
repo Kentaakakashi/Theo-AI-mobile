@@ -43,8 +43,6 @@ import androidx.compose.ui.unit.sp
 import com.example.service.TheoDiagnosticLogger
 import com.example.service.TheoLogEntry
 import com.example.service.TheoLogLevel
-import com.example.ui.components.hudScanlines
-import com.example.ui.components.neonBorder
 import com.example.ui.components.liquidGlassSurface
 import com.example.ui.theme.TheoCyan
 import com.example.ui.theme.TheoDarkBackground
@@ -67,7 +65,6 @@ fun DiagnosticConsoleScreen(modifier: Modifier = Modifier) {
     modifier
       .fillMaxSize()
       .background(Color.Transparent)
-      .hudScanlines()
       .statusBarsPadding()
       .padding(horizontal = 18.dp, vertical = 8.dp)
   ) {

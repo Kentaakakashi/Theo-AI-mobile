@@ -1,0 +1,132 @@
+package com.example.ui.screens
+
+import android.annotation.SuppressLint
+import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebViewAssetLoader
+import com.example.data.MessageEntity
+import com.example.model.AssistantState
+import com.example.viewmodel.TheoUiState
+import org.json.JSONArray
+import org.json.JSONObject
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+fun TheoWebChatScreen(
+  uiState: TheoUiState,
+  messages: List<MessageEntity>,
+  onSendMessage: (String) -> Unit,
+  onInputChange: (String) -> Unit,
+  onOrbClick: () -> Unit,
+  onToggleSpeech: () -> Unit,
+  onOpenSettings: () -> Unit,
+  onExecuteAction: (String) -> Unit,
+  onDismissAction: () -> Unit,
+  onSelectApp: (String) -> Unit,
+  onCancelAppSelection: () -> Unit,
+  modifier: Modifier = Modifier
+) {
+  val context = LocalContext.current
+  val assetLoader = remember {
+    WebViewAssetLoader.Builder()
+      .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+      .build()
+  }
+  val bridge = remember {
+    object {
+      @JavascriptInterface fun sendMessage(text: String) { onSendMessage(text) }
+      @JavascriptInterface fun setInputText(text: String) { onInputChange(text) }
+      @JavascriptInterface fun orbClick() { onOrbClick() }
+      @JavascriptInterface fun toggleSpeech() { onToggleSpeech() }
+      @JavascriptInterface fun openSettings() { onOpenSettings() }
+      @JavascriptInterface fun executeAction(action: String) { onExecuteAction(action) }
+      @JavascriptInterface fun dismissAction() { onDismissAction() }
+      @JavascriptInterface fun selectApp(packageName: String) { onSelectApp(packageName) }
+      @JavascriptInterface fun cancelAppSelection() { onCancelAppSelection() }
+    }
+  }
+  val webView = remember {
+    WebView(context).apply {
+      settings.javaScriptEnabled = true
+      settings.domStorageEnabled = true
+      settings.allowFileAccess = false
+      settings.allowContentAccess = false
+      settings.setSupportZoom(false)
+      isVerticalScrollBarEnabled = false
+      isHorizontalScrollBarEnabled = false
+      setBackgroundColor(android.graphics.Color.TRANSPARENT)
+      addJavascriptInterface(bridge, "TheoBridge")
+      webViewClient = object : WebViewClient() {
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest) =
+          assetLoader.shouldInterceptRequest(request.url)
+      }
+      loadUrl("https://appassets.androidplatform.net/assets/theo-web/index.html")
+    }
+  }
+
+  val payload = remember(uiState, messages) {
+    val messageArray = JSONArray()
+    messages.forEach { message ->
+      messageArray.put(JSONObject().apply {
+        put("id", message.id)
+        put("text", message.text)
+        put("isUser", message.isUser)
+        put("modelBadge", message.modelBadge)
+        put("timestamp", message.timestamp)
+        put("actionTag", message.actionTag)
+      })
+    }
+    val candidates = JSONArray()
+    uiState.pendingAppSelection?.candidates?.forEach { candidate ->
+      candidates.put(JSONObject().apply {
+        put("label", candidate.label)
+        put("packageName", candidate.packageName)
+      })
+    }
+    JSONObject().apply {
+      put("state", when (uiState.assistantState) {
+        AssistantState.IDLE -> "IDLE"
+        AssistantState.LISTENING -> "LISTENING"
+        AssistantState.THINKING -> "THINKING"
+        AssistantState.SPEAKING -> "SPEAKING"
+        AssistantState.OFFLINE -> "OFFLINE"
+      })
+      put("model", uiState.activeModel.shortBadge)
+      put("input", uiState.inputText)
+      put("streamingText", uiState.streamingText)
+      put("speechEnabled", uiState.isSpeechEnabled)
+      put("messages", messageArray)
+      put("pendingAction", uiState.pendingActionTag ?: JSONObject.NULL)
+      put("pendingActionLabel", uiState.pendingScreenTargetLabel ?: JSONObject.NULL)
+      put("pendingAppName", uiState.pendingAppSelection?.requestedName ?: JSONObject.NULL)
+      put("pendingAppCandidates", candidates)
+      put("errorText", JSONObject.NULL)
+    }.toString()
+  }
+
+  LaunchedEffect(payload) {
+    val quoted = JSONObject.quote(payload)
+    webView.evaluateJavascript("window.theoUpdate && window.theoUpdate(JSON.parse($quoted));", null)
+  }
+  DisposableEffect(webView) {
+    onDispose { webView.removeJavascriptInterface("TheoBridge"); webView.destroy() }
+  }
+  AndroidView(
+    factory = { webView },
+    modifier = modifier.fillMaxSize(),
+    update = { view ->
+      val quoted = JSONObject.quote(payload)
+      view.evaluateJavascript("window.theoUpdate && window.theoUpdate(JSON.parse($quoted));", null)
+    }
+  )
+}

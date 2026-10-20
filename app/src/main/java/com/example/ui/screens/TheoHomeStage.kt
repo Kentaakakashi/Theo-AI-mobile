@@ -86,6 +86,7 @@ fun TheoHomeStage(
               shape = RoundedCornerShape(50),
               tint = when (uiState.assistantState) {
                 com.example.model.AssistantState.OFFLINE -> Color(0xFFFF8295)
+                com.example.model.AssistantState.ERROR -> Color(0xFFFF3F69)
                 com.example.model.AssistantState.THINKING -> Color(0xFFC5B4FF)
                 com.example.model.AssistantState.LISTENING,
                 com.example.model.AssistantState.SPEAKING -> TheoCyan
@@ -103,6 +104,7 @@ fun TheoHomeStage(
             com.example.model.AssistantState.THINKING -> "ON IT"
             com.example.model.AssistantState.SPEAKING -> "TALKING TO YOU"
             com.example.model.AssistantState.OFFLINE -> "CHECK CONNECTION"
+            com.example.model.AssistantState.ERROR -> "ERROR · TAP TO RECOVER"
           },
           color = TheoTextSecondary,
           fontSize = 9.sp,

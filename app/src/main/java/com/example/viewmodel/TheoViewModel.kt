@@ -435,7 +435,7 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
       dao.insertMessage(assistantMsg)
       TheoDiagnosticLogger.info("CHAT", "Assistant response stored", "badge=${result.modelBadge}, chars=${result.responseText.length}, latencyMs=${result.latencyMs}")
 
-      val isEngineError = result.modelBadge.contains("ERROR", ignoreCase = true) || result.responseText.contains("unexpected error while processing", ignoreCase = true)
+      val isEngineError = listOf("ERROR", "EMPTY", "REQUIRED", "FALLBACK").any { result.modelBadge.contains(it, ignoreCase = true) } || result.responseText.contains("unexpected error while processing", ignoreCase = true)
       _uiState.update {
         it.copy(
           assistantState = if (isEngineError) AssistantState.ERROR else AssistantState.IDLE,

@@ -56,7 +56,7 @@ fun TheoHomeStage(
 ) {
   BoxWithConstraints(modifier = modifier.fillMaxSize()) {
     val compact = maxHeight < 660.dp
-    val orbSize = minOf(184.dp, maxWidth * 0.50f, if (compact) 164.dp else 184.dp)
+    val orbSize = minOf(174.dp, maxWidth * 0.48f, if (compact) 148.dp else 174.dp)
 
     Column(
       modifier = Modifier
@@ -65,7 +65,7 @@ fun TheoHomeStage(
         .padding(horizontal = 22.dp),
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Spacer(Modifier.height(if (compact) 10.dp else 22.dp))
+      Spacer(Modifier.height(if (compact) 6.dp else 12.dp))
 
       TheoOrb(
         state = uiState.assistantState,
@@ -74,9 +74,9 @@ fun TheoHomeStage(
         onClick = onOrbClick
       )
 
-      Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
+      Spacer(Modifier.height(if (compact) 4.dp else 7.dp))
       Text(
-        text = "YOUR AI, IN MOTION",
+        text = "READY WHEN YOU ARE",
         color = TheoTextSecondary,
         fontSize = 10.sp,
         fontWeight = FontWeight.SemiBold,
@@ -84,9 +84,9 @@ fun TheoHomeStage(
       )
       Spacer(Modifier.height(7.dp))
       Text(
-        text = "What’s on your mind?",
+        text = "What’s up?",
         color = TheoTextPrimary,
-        fontSize = if (compact) 25.sp else 29.sp,
+        fontSize = if (compact) 25.sp else 28.sp,
         lineHeight = if (compact) 30.sp else 34.sp,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = (-0.7).sp,
@@ -94,7 +94,7 @@ fun TheoHomeStage(
       )
       Spacer(Modifier.height(5.dp))
       Text(
-        text = "Talk naturally. Theo can think, act, and verify the result.",
+        text = "Ask anything. Let’s figure it out.",
         color = TheoTextMuted,
         fontSize = 12.sp,
         lineHeight = 17.sp,
@@ -102,21 +102,21 @@ fun TheoHomeStage(
         modifier = Modifier.padding(horizontal = 14.dp)
       )
 
-      Spacer(Modifier.height(if (compact) 16.dp else 24.dp))
+      Spacer(Modifier.height(if (compact) 10.dp else 15.dp))
 
       Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
       ) {
         Text(
-          text = "Quick starts",
+          text = "Jump right in",
           color = TheoTextPrimary,
           fontSize = 14.sp,
           fontWeight = FontWeight.SemiBold
         )
         Spacer(Modifier.weight(1f))
         Text(
-          text = "4 ideas",
+          text = "QUICK ACTIONS",
           color = TheoTextMuted,
           fontSize = 10.sp
         )
@@ -174,14 +174,14 @@ private fun QuickActionChip(
   val shape = RoundedCornerShape(18.dp)
   Row(
     modifier = modifier
-      .height(48.dp)
+      .height(46.dp)
       .clip(shape)
       .liquidGlassSurface(
         shape = shape,
-        tint = Color(0x222A2A2A),
-        gloss = 0.10f,
-        refraction = 7.dp,
-        blurRadius = 5.dp,
+        tint = Color(0x1C29384B),
+        gloss = 0.075f,
+        refraction = 5.dp,
+        blurRadius = 4.dp,
         opticalGlass = true
       )
       .clickable { onClick() }
@@ -194,7 +194,7 @@ private fun QuickActionChip(
         .clip(RoundedCornerShape(10.dp))
         .liquidGlassSurface(
           shape = RoundedCornerShape(10.dp),
-          tint = Color(0x26323232),
+          tint = Color(0x1F3B4B60),
           gloss = 0.08f,
           refraction = 4.dp,
           blurRadius = 3.dp
@@ -207,7 +207,7 @@ private fun QuickActionChip(
     Text(
       text = title,
       color = TheoTextPrimary,
-      fontSize = 12.sp,
+      fontSize = 11.5.sp,
       fontWeight = FontWeight.Medium,
       maxLines = 1,
       overflow = TextOverflow.Ellipsis

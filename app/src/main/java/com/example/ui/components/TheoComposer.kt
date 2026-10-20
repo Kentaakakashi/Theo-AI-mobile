@@ -56,7 +56,7 @@ fun TheoComposer(
 ) {
   val isListening = assistantState == AssistantState.LISTENING
   val canSend = inputText.isNotBlank() && assistantState != AssistantState.THINKING
-  val shape = RoundedCornerShape(29.dp)
+  val shape = RoundedCornerShape(27.dp)
 
   Row(
     modifier = modifier
@@ -66,10 +66,10 @@ fun TheoComposer(
       .clip(shape)
       .liquidGlassSurface(
         shape = shape,
-        tint = Color(0x281E1E1E),
-        gloss = 0.12f,
-        refraction = 9.dp,
-        blurRadius = 6.dp,
+        tint = Color(0x242D3B50),
+        gloss = 0.085f,
+        refraction = 6.dp,
+        blurRadius = 4.dp,
         opticalGlass = true
       )
       .padding(horizontal = 6.dp, vertical = 6.dp),
@@ -78,9 +78,9 @@ fun TheoComposer(
     IconButton(
       onClick = onMicClick,
       modifier = Modifier
-        .size(42.dp)
+        .size(40.dp)
         .clip(CircleShape)
-        .background(if (isListening) Color(0x3DC2C2C2) else Color.White.copy(alpha = 0.055f))
+        .background(if (isListening) Color(0x3356B9D8) else Color(0x163B4B60))
         .testTag("composer_mic_button")
     ) {
       Icon(

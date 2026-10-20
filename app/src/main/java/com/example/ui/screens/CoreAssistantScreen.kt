@@ -120,7 +120,7 @@ fun CoreAssistantScreen(
             onOrbClick = onOrbClick,
             onSendMessage = onSendMessage,
             onInputChange = onInputChange,
-            modifier = Modifier.fillMaxWidth().height(560.dp)
+            modifier = Modifier.fillMaxWidth().height(440.dp)
           )
         }
 

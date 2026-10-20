@@ -62,7 +62,7 @@ fun TheoHeader(
     AssistantState.SPEAKING -> "Speaking"
     AssistantState.OFFLINE -> "Offline"
   }
-  val shape = RoundedCornerShape(26.dp)
+  val shape = RoundedCornerShape(24.dp)
 
   Row(
     modifier = modifier
@@ -72,10 +72,10 @@ fun TheoHeader(
       .clip(shape)
       .liquidGlassSurface(
         shape = shape,
-        tint = Color(0x24212121),
-        gloss = 0.12f,
-        refraction = 8.dp,
-        blurRadius = 5.dp,
+        tint = Color(0x202A3A50),
+        gloss = 0.085f,
+        refraction = 6.dp,
+        blurRadius = 4.dp,
         opticalGlass = true
       )
       .padding(start = 8.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
@@ -83,16 +83,16 @@ fun TheoHeader(
   ) {
     Box(
       modifier = Modifier
-        .size(40.dp)
+        .size(38.dp)
         .clip(CircleShape)
-        .background(Color.White.copy(alpha = 0.065f)),
+        .liquidGlassSurface(CircleShape, tint = Color(0x263E607A), gloss = 0.08f, refraction = 4.dp, blurRadius = 3.dp),
       contentAlignment = Alignment.Center
     ) {
       Icon(
         imageVector = Icons.Default.GraphicEq,
         contentDescription = null,
-        tint = Color.White,
-        modifier = Modifier.size(20.dp)
+        tint = TheoCyan,
+        modifier = Modifier.size(19.dp)
       )
     }
 

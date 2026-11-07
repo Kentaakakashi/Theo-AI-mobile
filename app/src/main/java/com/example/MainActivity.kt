@@ -187,6 +187,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
             onSearchChange = { viewModel.setMemorySearchQuery(it) },
             onCategorySelect = { viewModel.setCategoryFilter(it) },
             onAddMemory = { cat, k, v -> viewModel.addMemory(cat, k, v) },
+            onUpdateMemory = { id, cat, k, v -> viewModel.updateMemory(id, cat, k, v) },
             onDeleteMemory = { viewModel.deleteMemory(it) }
           )
 
@@ -216,7 +217,8 @@ fun TheoMainContent(viewModel: TheoViewModel) {
             onConfigureScreenAutomation = { viewModel.openAccessibilitySettings() },
             onConfigureNotificationAccess = { viewModel.openNotificationAccessSettings() },
             onToggleLiveScreenSense = { viewModel.toggleLiveScreenSense() },
-            onStopScreenAutomation = { viewModel.stopScreenAutomation() }
+            onStopScreenAutomation = { viewModel.stopScreenAutomation() },
+            onOpenMemory = { viewModel.setTab(1) }
           )
         }
       }

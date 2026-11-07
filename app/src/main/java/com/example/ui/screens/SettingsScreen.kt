@@ -86,6 +86,7 @@ fun SettingsScreen(
   onConfigureNotificationAccess: () -> Unit = {},
   onToggleLiveScreenSense: () -> Unit,
   onStopScreenAutomation: () -> Unit,
+  onOpenMemory: () -> Unit,
   modifier: Modifier = Modifier
 ) {
   var selectedModel by remember(uiState.activeModel) { mutableStateOf(uiState.activeModel) }
@@ -785,6 +786,31 @@ fun SettingsScreen(
 
       // Section 6: Data & Chat History
       SettingsSectionHeader(icon = LucideR.drawable.lucide_ic_message_square, title = "Data & chat history")
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .clip(RoundedCornerShape(12.dp))
+          .background(Color.Transparent)
+          .liquidGlassSurface(RoundedCornerShape(12.dp), tint = TheoSurfaceGlass, gloss = 0.12f)
+          .border(1.dp, TheoSurfaceBorderSubtle, RoundedCornerShape(12.dp))
+          .padding(14.dp)
+      ) {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Column(modifier = Modifier.weight(1f)) {
+            Text("Saved memories", color = TheoTextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text("Review, correct, and remove facts Theo keeps on this phone.", color = TheoTextSecondary, fontSize = 11.sp)
+          }
+          Button(onClick = onOpenMemory) {
+            Text("Manage", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+          }
+        }
+      }
+
+      Spacer(modifier = Modifier.height(10.dp))
       Box(
         modifier = Modifier
           .fillMaxWidth()

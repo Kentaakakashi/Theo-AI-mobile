@@ -80,7 +80,9 @@ class FirebaseAccountRepository private constructor(
         val signedInUser = auth.signInWithCredential(firebaseCredential).await().user
             ?: error("Firebase completed sign-in but did not return a user.")
 
-        ensureUserProfile(signedInUser)
+        // Profile creation/loading is owned by the auth-state observer.
+        // Keeping Firestore work out of this method lets Google sign-in finish
+        // immediately after Firebase Auth accepts the credential.
         return signedInUser
     }
 

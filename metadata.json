@@ -1,6 +1,8 @@
 {
-  "name": "Theo",
-  "description": "Premium native Android AI assistant with glowing neural core, dual Gemini & local Qwen engine, and local memory matrix.",
+  "name": "Theo 2.0",
+  "description": "Theo 2.0 is a native Kotlin and Jetpack Compose Android personal intelligence ecosystem. The current app includes Gemini, local Qwen runtime foundations, local memory, and permission-controlled Android screen automation. Multi-agent orchestration, custom bots, durable cloud tasks, and hybrid cloud execution are staged roadmap work.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

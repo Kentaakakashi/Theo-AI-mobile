@@ -9,7 +9,7 @@
 
 ### Your phone. Your assistant. Your rules.
 
-**A personal Android AI assistant built to understand your screen, work with your apps, and help turn instructions into actions.**
+**A personal intelligence ecosystem for Android — with Theo at the centre, coordinating specialist agents, understanding context, and helping turn instructions into verified actions.**
 
 [![Android](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
@@ -150,6 +150,58 @@ The screen-automation documentation states that:
 - Separate controls for memory, chat history, screen analysis, and diagnostics.
 - Clear export and deletion controls for local data.
 - No mandatory paid analytics or cloud-sync service.
+
+## Theo 2.0 — a personal intelligence ecosystem
+
+Theo 2.0 is the next product direction for this project. The goal is **not to clone Grok or become another generic chatbot**. Theo should become a capable personal system that understands ongoing work, coordinates specialist agents, and carries tasks through with clear permissions and verifiable results.
+
+Theo remains the central assistant and personality. Specialist agents are tools Theo can delegate to — not disconnected bots that make the user manage an agent swarm manually.
+
+### Product pillars
+
+| Pillar | Direction |
+|---|---|
+| **Theo core & orchestration** | Understand intent, plan work, break requests into tasks, choose tools or agents, track progress, recover safely, and synthesize the result. |
+| **Specialist agent ecosystem** | Built-in specialists for research, browsing, coding, planning, and analysis, with user-created custom agents and scoped instructions, memory, and permissions. |
+| **Agent collaboration** | Delegate independent work, combine findings, share task artifacts, and check evidence before presenting a conclusion. |
+| **Real-world execution** | Combine supported Android actions with a separately managed cloud browser/computer for web-based work. These are distinct environments: a cloud browser cannot directly operate apps installed on the phone. |
+| **Durable tasks** | Create tasks conversationally with Theo or manually, then track status, pause, resume, cancel, retry, and receive updates where the platform permits. |
+| **Project continuity** | Keep useful context across conversations, projects, tasks, and agents so work can be resumed without starting from zero. |
+| **User-owned intelligence** | Make memory, connected tools, data flows, and permissions understandable and controllable. |
+
+### How users should work with Theo
+
+- **Conversational task creation:** Tell Theo what outcome you want; Theo should turn it into a plan you can inspect.
+- **Manual task management:** Create and manage tasks from a dedicated task dashboard as well as through chat.
+- **Approval-first execution:** Theo can prepare actions and plans, but consequential external actions must wait for the user's approval.
+- **Custom agents:** Create specialists with their own purpose, instructions, allowed tools, and memory scope.
+- **Continuous task awareness:** Keep task state and project context up to date rather than treating every message as an isolated prompt.
+
+### Trust and execution rules
+
+These are design requirements for Theo 2.0, not claims that every safeguard is already implemented:
+
+1. The model may propose an action; deterministic policy code must validate it before execution.
+2. Tools receive only the minimum permissions needed for their task.
+3. Sending, publishing, purchasing, deleting, sharing, submitting, and other consequential actions require explicit approval.
+4. Approval applies to the exact action being approved. If the action's important details change, Theo must ask again.
+5. Treat webpages, files, and other external content as untrusted data — never as instructions that can override Theo's rules.
+6. Keep user data isolated between accounts and task sessions; never ship private backend keys or privileged service credentials in the APK.
+7. Report what was actually completed, what failed, and what still needs the user's attention.
+
+### Implementation boundaries
+
+The Android app remains a **native Kotlin + Jetpack Compose application**. Existing working native features should be extended rather than replaced by a web UI migration.
+
+- **On-device:** Android UI, permissioned device actions, local chat/cache, and local data that should remain available on the phone.
+- **Cloud services (future, optional):** Durable background workers, isolated browser sessions, and cross-session task execution.
+- **AI providers:** Keep providers behind a replaceable interface; do not assume different models have identical tool-calling capabilities.
+- **Build pipeline:** GitHub Actions is for testing and building the app, not a substitute for a durable always-on task worker.
+- **Cost:** Prefer free and local options where practical. Any hosted service must be optional, clearly disclosed, and evaluated before becoming a dependency.
+
+### Delivery status
+
+**Theo 2.0 is a staged upgrade, not a claim that all pillars above are shipped.** Existing native functionality remains the baseline. Each new capability should be delivered in small, testable increments, with a working build and device verification before it is called complete.
 
 ## Roadmap
 

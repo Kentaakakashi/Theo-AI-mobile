@@ -159,6 +159,7 @@ fun TheoMainContent(viewModel: TheoViewModel) {
           center = glowB
         )
       }
+      }
       AnimatedContent(
         modifier = Modifier.fillMaxSize().padding(bottom = 108.dp),
         targetState = uiState.currentTab,
@@ -220,7 +221,6 @@ fun TheoMainContent(viewModel: TheoViewModel) {
           )
         }
       }
-    }
       TheoBottomNavigation(
         currentTab = uiState.currentTab,
         onTabSelected = { viewModel.setTab(it) },

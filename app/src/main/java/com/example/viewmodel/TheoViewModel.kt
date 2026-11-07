@@ -392,21 +392,22 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
         )
       }
 
-      // If a memory extraction occurred, insert it
+      // Correct an existing fact with the same category/key instead of accumulating duplicates.
       result.memoryExtracted?.let { (key, value) ->
-        val mem = MemoryEntity(
+        val candidate = MemoryEntity(
           id = UUID.randomUUID().toString(),
           category = "Captured",
           memoryKey = key,
           memoryValue = value,
           createdAt = System.currentTimeMillis()
         )
-        dao.insertMemory(mem)
+        val saved = dao.upsertMemory(candidate)
+        val wasCorrection = saved.id != candidate.id
         dao.insertActivity(
           ActivityEntity(
             id = UUID.randomUUID().toString(),
-            title = "Memory Encoded",
-            subtitle = "$key -> $value",
+            title = if (wasCorrection) "Memory Corrected" else "Memory Encoded",
+            subtitle = "${saved.memoryKey} -> $value",
             timestamp = System.currentTimeMillis(),
             type = "MEMORY"
           )
@@ -1591,20 +1592,52 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   fun addMemory(category: String, key: String, value: String) {
+    val cleanCategory = category.trim().ifBlank { "Personal" }
+    val cleanKey = key.trim()
+    val cleanValue = value.trim()
+    if (cleanKey.isBlank() || cleanValue.isBlank()) return
+
     viewModelScope.launch {
-      val entity = MemoryEntity(
+      val candidate = MemoryEntity(
         id = UUID.randomUUID().toString(),
-        category = category.ifBlank { "Personal" },
-        memoryKey = key.trim(),
-        memoryValue = value.trim(),
+        category = cleanCategory,
+        memoryKey = cleanKey,
+        memoryValue = cleanValue,
         createdAt = System.currentTimeMillis()
       )
-      dao.insertMemory(entity)
+      val saved = dao.upsertMemory(candidate)
+      val wasCorrection = saved.id != candidate.id
       dao.insertActivity(
         ActivityEntity(
           id = UUID.randomUUID().toString(),
-          title = "Manual Memory Inscribed",
-          subtitle = key,
+          title = if (wasCorrection) "Memory Corrected" else "Manual Memory Inscribed",
+          subtitle = "${saved.memoryKey} -> $cleanValue",
+          timestamp = System.currentTimeMillis(),
+          type = "MEMORY"
+        )
+      )
+    }
+  }
+
+  fun updateMemory(id: String, category: String, key: String, value: String) {
+    val cleanCategory = category.trim().ifBlank { "Personal" }
+    val cleanKey = key.trim()
+    val cleanValue = value.trim()
+    if (cleanKey.isBlank() || cleanValue.isBlank()) return
+
+    viewModelScope.launch {
+      val existing = dao.getMemoryById(id) ?: return@launch
+      val updated = existing.copy(
+        category = cleanCategory,
+        memoryKey = cleanKey,
+        memoryValue = cleanValue
+      )
+      dao.updateMemory(updated)
+      dao.insertActivity(
+        ActivityEntity(
+          id = UUID.randomUUID().toString(),
+          title = "Memory Edited",
+          subtitle = "${updated.memoryKey} updated",
           timestamp = System.currentTimeMillis(),
           type = "MEMORY"
         )
@@ -1615,6 +1648,15 @@ class TheoViewModel(application: Application) : AndroidViewModel(application) {
   fun deleteMemory(id: String) {
     viewModelScope.launch {
       dao.deleteMemoryById(id)
+      dao.insertActivity(
+        ActivityEntity(
+          id = UUID.randomUUID().toString(),
+          title = "Memory Deleted",
+          subtitle = "A saved memory was removed",
+          timestamp = System.currentTimeMillis(),
+          type = "MEMORY"
+        )
+      )
     }
   }
 

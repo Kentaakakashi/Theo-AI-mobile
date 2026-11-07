@@ -38,6 +38,52 @@ class ExampleRobolectricTest {
   }
 
   @Test
+  fun `memory correction updates the existing row without creating a duplicate`() = runBlocking {
+    val dao = db.theoDao()
+    dao.insertMemory(
+      MemoryEntity(
+        id = "memory-original",
+        category = "Preferences",
+        memoryKey = "Preferred Language",
+        memoryValue = "Tamil",
+        createdAt = 1000L
+      )
+    )
+
+    val corrected = dao.upsertMemory(
+      MemoryEntity(
+        id = "memory-new-id",
+        category = " preferences ",
+        memoryKey = " preferred language ",
+        memoryValue = "English",
+        createdAt = 2000L
+      )
+    )
+    val saved = dao.getAllMemories().first()
+
+    assertEquals("memory-original", corrected.id)
+    assertEquals("English", corrected.memoryValue)
+    assertEquals(1000L, corrected.createdAt)
+    assertEquals(1, saved.size)
+    assertEquals("English", saved.single().memoryValue)
+  }
+
+  @Test
+  fun `memory lookup can retrieve a row by id`() = runBlocking {
+    val dao = db.theoDao()
+    val memory = MemoryEntity(
+      id = "memory-by-id",
+      category = "Personal",
+      memoryKey = "Timezone",
+      memoryValue = "Asia/Kolkata",
+      createdAt = 1500L
+    )
+    dao.insertMemory(memory)
+
+    assertEquals(memory, dao.getMemoryById("memory-by-id"))
+  }
+
+  @Test
   fun `read string from context`() {
     val context = ApplicationProvider.getApplicationContext<Context>()
     val appName = context.getString(R.string.app_name)

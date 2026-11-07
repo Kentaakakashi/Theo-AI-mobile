@@ -78,10 +78,13 @@ fun MemoryMatrixScreen(
   onSearchChange: (String) -> Unit,
   onCategorySelect: (String) -> Unit,
   onAddMemory: (String, String, String) -> Unit,
+  onUpdateMemory: (String, String, String, String) -> Unit,
   onDeleteMemory: (String) -> Unit,
   modifier: Modifier = Modifier
 ) {
   var showAddDialog by remember { mutableStateOf(false) }
+  var editingMemoryId by remember { mutableStateOf<String?>(null) }
+  var pendingDeleteMemory by remember { mutableStateOf<MemoryEntity?>(null) }
   var newCategory by remember { mutableStateOf("Personal") }
   var newKey by remember { mutableStateOf("") }
   var newValue by remember { mutableStateOf("") }
@@ -134,7 +137,13 @@ fun MemoryMatrixScreen(
         }
 
         IconButton(
-          onClick = { showAddDialog = true },
+          onClick = {
+            editingMemoryId = null
+            newCategory = "Personal"
+            newKey = ""
+            newValue = ""
+            showAddDialog = true
+          },
           modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
@@ -298,7 +307,14 @@ fun MemoryMatrixScreen(
           items(filteredMemories, key = { it.id }) { memory ->
             MemoryCardItem(
               memory = memory,
-              onDelete = { onDeleteMemory(memory.id) }
+              onEdit = {
+                editingMemoryId = memory.id
+                newCategory = memory.category
+                newKey = memory.memoryKey
+                newValue = memory.memoryValue
+                showAddDialog = true
+              },
+              onDelete = { pendingDeleteMemory = memory }
             )
           }
           item {
@@ -311,11 +327,14 @@ fun MemoryMatrixScreen(
     // Dialog to add a memory manually
     if (showAddDialog) {
       AlertDialog(
-        onDismissRequest = { showAddDialog = false },
+        onDismissRequest = {
+          showAddDialog = false
+          editingMemoryId = null
+        },
         containerColor = TheoSurfaceCard,
         title = {
           Text(
-            text = "Add a memory",
+            text = if (editingMemoryId == null) "Add a memory" else "Edit memory",
             color = TheoTextPrimary,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold
@@ -359,19 +378,64 @@ fun MemoryMatrixScreen(
           Button(
             onClick = {
               if (newKey.isNotBlank() && newValue.isNotBlank()) {
-                onAddMemory(newCategory, newKey, newValue)
+                val editingId = editingMemoryId
+                if (editingId == null) {
+                  onAddMemory(newCategory, newKey, newValue)
+                } else {
+                  onUpdateMemory(editingId, newCategory, newKey, newValue)
+                }
                 newKey = ""
                 newValue = ""
+                editingMemoryId = null
                 showAddDialog = false
               }
             },
             colors = ButtonDefaults.buttonColors(containerColor = TheoCyan)
           ) {
-            Text("Save memory", color = TheoDarkBackground, fontWeight = FontWeight.Bold)
+            Text(
+              if (editingMemoryId == null) "Save memory" else "Update memory",
+              color = TheoDarkBackground,
+              fontWeight = FontWeight.Bold
+            )
           }
         },
         dismissButton = {
-          TextButton(onClick = { showAddDialog = false }) {
+          TextButton(onClick = {
+            showAddDialog = false
+            editingMemoryId = null
+          }) {
+            Text("Cancel", color = TheoTextMuted)
+          }
+        }
+      )
+    }
+
+    pendingDeleteMemory?.let { memory ->
+      AlertDialog(
+        onDismissRequest = { pendingDeleteMemory = null },
+        containerColor = TheoSurfaceCard,
+        title = {
+          Text("Delete saved memory?", color = TheoTextPrimary, fontWeight = FontWeight.Bold)
+        },
+        text = {
+          Text(
+            text = "${memory.memoryKey} will be removed from this phone. This cannot be undone.",
+            color = TheoTextSecondary
+          )
+        },
+        confirmButton = {
+          Button(
+            onClick = {
+              onDeleteMemory(memory.id)
+              pendingDeleteMemory = null
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = TheoErrorRed)
+          ) {
+            Text("Delete", color = Color.White, fontWeight = FontWeight.Bold)
+          }
+        },
+        dismissButton = {
+          TextButton(onClick = { pendingDeleteMemory = null }) {
             Text("Cancel", color = TheoTextMuted)
           }
         }
@@ -383,6 +447,7 @@ fun MemoryMatrixScreen(
 @Composable
 private fun MemoryCardItem(
   memory: MemoryEntity,
+  onEdit: () -> Unit,
   onDelete: () -> Unit
 ) {
   val dateStr = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(memory.createdAt))
@@ -420,16 +485,27 @@ private fun MemoryCardItem(
           )
         }
 
-        IconButton(
-          onClick = onDelete,
-          modifier = Modifier.size(24.dp)
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Text(
+            text = "EDIT",
+            color = TheoCyan,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+              .clickable(onClick = onEdit)
+              .padding(horizontal = 8.dp, vertical = 6.dp)
+          )
+          IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(24.dp)
+          ) {
           Icon(
             painter = painterResource(id = LucideR.drawable.lucide_ic_trash_2),
             contentDescription = "Delete Memory",
             tint = TheoTextMuted,
             modifier = Modifier.size(16.dp)
           )
+          }
         }
       }
 

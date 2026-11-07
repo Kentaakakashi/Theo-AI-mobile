@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function validUsername(username) {
+      return username is string
+        && username.matches('^[a-z0-9_]{3,20}$');
+    }
+
+    match /users/{userId} {
+      allow get: if owns(userId);
+      allow list: if false;
+
+      allow create: if owns(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'uid', 'username', 'displayName', 'email', 'photoUrl',
+          'createdAt', 'updatedAt', 'lastSeenAt'
+        ]);
+
+      allow update: if owns(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'username', 'displayName', 'updatedAt', 'lastSeenAt'
+        ]);
+
+      allow delete: if false;
+
+      // Require at least one subcollection/document segment so this cannot
+      // accidentally grant broad delete access to users/{userId} itself.
+      match /{collection}/{document=**} {
+        allow read, write: if owns(userId);
+      }
+    }
+
+    match /usernames/{username} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      allow create: if signedIn()
+        && owns(request.resource.data.uid)
+        && validUsername(username)
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt']);
+
+      allow update: if signedIn()
+        && owns(resource.data.uid)
+        && request.resource.data.uid == resource.data.uid
+        && validUsername(username)
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt']);
+
+      allow delete: if signedIn() && owns(resource.data.uid);
+    }
+  }
+}

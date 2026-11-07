@@ -31,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -103,7 +104,7 @@ fun AccountGateScreen(
                     },
                     color = TheoTextSecondary,
                     fontSize = 13.sp,
-                    lineHeight = 20.sp
+                    style = TextStyle(lineHeight = 20.sp)
                 )
                 Spacer(Modifier.height(24.dp))
 

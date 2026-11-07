@@ -108,15 +108,20 @@ jobs:
       - name: Run unit tests and build debug APK
         run: gradle --no-daemon testDebugUnitTest assembleDebug
 
-      - name: Verify Google Services processing completed
+      - name: Verify Google OAuth resource was generated
         run: |
-          if [ ! -f app/build/generated/res/google-services/debug/values/values.xml ]; then
-            echo "::error::Google Services Gradle task completed but its generated resource file was not found at the expected path."
-            echo "Generated Google Services files:"
-            find app/build/generated -type f | grep -i google || true
+          RESOURCE="app/build/generated/res/processDebugGoogleServices/values/values.xml"
+          if [ ! -f "$RESOURCE" ]; then
+            echo "::error::Google Services Gradle task completed but the generated resource file is missing."
+            find app/build/generated/res -type f | grep -i google || true
             exit 1
           fi
-          echo "Google Services resources generated successfully."
+          if ! grep -q 'name="default_web_client_id"' "$RESOURCE"; then
+            echo "::error::The generated Firebase resources do not contain default_web_client_id."
+            cat "$RESOURCE"
+            exit 1
+          fi
+          echo "Google OAuth client resource verified."
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

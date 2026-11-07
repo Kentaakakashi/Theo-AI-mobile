@@ -33,7 +33,7 @@ The long-term advantage should come from continuity, coordinated specialist reas
 
 ## What exists today
 
-The restored native baseline already contains these foundations. Exact availability still depends on provider configuration, Android permissions, model downloads, device support, and the current build.
+The canonical `main` branch now points to the audited native Theo 2.0 baseline. It includes the existing capabilities below; exact availability still depends on provider configuration, Android permissions, model downloads, device support, and the current build.
 
 - **Native Android UI:** Kotlin, Jetpack Compose, a native assistant screen, and native navigation.
 - **AI engine:** Gemini integration with streaming responses and model configuration.
@@ -41,6 +41,10 @@ The restored native baseline already contains these foundations. Exact availabil
 - **Conversation and local data:** Room-backed chat history, memories, and activity history.
 - **Speech:** Android text-to-speech integration.
 - **Screen-aware automation:** Android Accessibility Service integration, structured action planning, bounded execution, and result verification.
+- **Live Screen Sense:** opt-in periodic screen sampling (approximately every five seconds) while another app is foregrounded, using Gemini first and configured Groq as an alternate. It requires accessibility permission and cloud vision configuration; sampled frames are uploaded for analysis and are not saved by Theo.
+- **Persistent screen memory:** optional user-selected folder for bounded, app-specific text observations. Theo recalls recent observations for the matching app; raw screenshots are not stored.
+- **Floating Theo panel:** live task controls, pause/resume/stop, drag support, and a chat composer connected to Theo's normal conversation pipeline.
+- **Theo personality:** a consistent casual companion and tutor voice, with explicit honesty and action-verification rules.
 - **Safety checkpoints:** confirmation handling for sensitive or uncertain actions.
 - **Diagnostics:** a local diagnostic console and persistent diagnostic entries.
 - **Build pipeline:** GitHub Actions builds a debug APK and uploads it as a workflow artifact.
@@ -168,7 +172,7 @@ Theo is an Android Gradle project.
    ```bash
    git clone https://github.com/Kentaakakashi/Theo-AI-mobile.git
    cd Theo-AI-mobile
-   git checkout feature/liquid-glass-ui
+   git checkout main
    ```
 2. Open the project in Android Studio and let Gradle sync.
 3. Review `.env.example` and configure providers locally as needed.
@@ -180,7 +184,7 @@ Theo is an Android Gradle project.
 
 ### GitHub Actions
 
-Pushes to branches trigger the Android build workflow. A successful run uploads the debug APK as the `theo-debug-apk` artifact. Download it from the run's **Artifacts** section. Debug signing keys are generated for CI builds; they are not suitable as a stable release signing identity.
+Pushes to branches trigger the Android build workflow. `main` is the canonical primary branch for Theo 2.0. A successful run uploads the debug APK as the `theo-debug-apk` artifact. Download it from the run's **Artifacts** section. Debug signing keys are generated for CI builds; they are not suitable as a stable release signing identity.
 
 ### Definition of done
 

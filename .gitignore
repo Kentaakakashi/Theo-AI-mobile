@@ -16,3 +16,6 @@
 local.properties
 .env
 debug.keystore
+
+# Firebase Android configuration is injected at build time.
+/app/google-services.json

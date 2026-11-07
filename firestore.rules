@@ -20,6 +20,7 @@ service cloud.firestore {
 
       allow create: if owns(userId)
         && request.resource.data.uid == userId
+        && request.resource.data.username == null
         && request.resource.data.keys().hasOnly([
           'uid', 'username', 'displayName', 'email', 'photoUrl',
           'createdAt', 'updatedAt', 'lastSeenAt'
@@ -29,7 +30,26 @@ service cloud.firestore {
         && request.resource.data.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'username', 'displayName', 'updatedAt', 'lastSeenAt'
-        ]);
+        ])
+        && (
+          request.resource.data.username == resource.data.username
+          || (
+            validUsername(request.resource.data.username)
+            && existsAfter(
+              /databases/$(database)/documents/usernames/$(request.resource.data.username)
+            )
+            && getAfter(
+              /databases/$(database)/documents/usernames/$(request.resource.data.username)
+            ).data.uid == userId
+          )
+        )
+        && (
+          resource.data.username == null
+          || resource.data.username == request.resource.data.username
+          || !existsAfter(
+            /databases/$(database)/documents/usernames/$(resource.data.username)
+          )
+        );
 
       allow delete: if false;
 
@@ -44,18 +64,30 @@ service cloud.firestore {
       allow get: if signedIn();
       allow list: if false;
 
+      // Reservation creation must be paired with the owner's profile update
+      // in the same Firestore transaction.
       allow create: if signedIn()
+        && validUsername(username)
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
         && owns(request.resource.data.uid)
-        && validUsername(username)
-        && request.resource.data.keys().hasOnly(['uid', 'createdAt']);
+        && existsAfter(
+          /databases/$(database)/documents/users/$(request.resource.data.uid)
+        )
+        && getAfter(
+          /databases/$(database)/documents/users/$(request.resource.data.uid)
+        ).data.username == username;
 
-      allow update: if signedIn()
+      // Username reservations are immutable; changing a username creates a
+      // new reservation and deletes the previous one transactionally.
+      allow update: if false;
+
+      // Releasing a reservation must be paired with the owner's profile
+      // changing away from that username in the same transaction.
+      allow delete: if signedIn()
         && owns(resource.data.uid)
-        && request.resource.data.uid == resource.data.uid
-        && validUsername(username)
-        && request.resource.data.keys().hasOnly(['uid', 'createdAt']);
-
-      allow delete: if signedIn() && owns(resource.data.uid);
+        && getAfter(
+          /databases/$(database)/documents/users/$(resource.data.uid)
+        ).data.username != username;
     }
   }
 }

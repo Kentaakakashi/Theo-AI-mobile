@@ -8,6 +8,8 @@ import com.example.data.firebase.AccountProfile
 import com.example.data.firebase.FirebaseAccountRepository
 import com.example.data.firebase.UsernameAlreadyTakenException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -52,8 +54,17 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
                             displayName = user.displayName.orEmpty()
                         )
                         try {
-                            val profile = repository.ensureUserProfile(user)
+                            val profile = withTimeout(15_000) { repository.ensureUserProfile(user) }
                             _uiState.value = profile.toUiState()
+                        } catch (error: TimeoutCancellationException) {
+                            _uiState.value = AccountUiState(
+                                isConfigured = true,
+                                isLoading = false,
+                                userId = user.uid,
+                                email = user.email,
+                                displayName = user.displayName.orEmpty(),
+                                error = "Theo couldn't reach Firebase in time. Check your connection and tap retry."
+                            )
                         } catch (error: Exception) {
                             if (error is CancellationException) throw error
                             _uiState.value = AccountUiState(

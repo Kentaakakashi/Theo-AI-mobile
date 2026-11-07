@@ -2,8 +2,11 @@
 
 **Status:** Preliminary inspection complete; detailed audit remains open.  
 **Repository:** `Kentaakakashi/Theo-AI-mobile`  
-**Working branch:** `feature/liquid-glass-ui`  
-**Native baseline:** `33526b640479c7e62a30000358e05b4491e2ef13`
+**Canonical working branch:** `main`  
+**Promoted Theo 2.0 source snapshot:** `af14169288b0d8b0db48509ee007184d096208d1`  
+**Initial native restoration baseline:** `33526b640479c7e62a30000358e05b4491e2ef13`
+
+On 2026-11-07, the native Theo 2.0 source tree was promoted to `main`. The current native tree was checked for the existing live screen-sense, persistent screen-memory, floating-panel chat, and personality implementations before promotion. The React/WebView migration remains isolated on `theo-react-migration-backup-2026-11-07` as a recovery reference.
 
 This checklist is the execution record for M0. Do not mark an item complete based only on a successful APK build.
 

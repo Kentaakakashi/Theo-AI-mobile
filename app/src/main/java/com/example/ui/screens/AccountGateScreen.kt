@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -140,7 +141,7 @@ fun AccountGateScreen(
                     ) {
                         if (state.isBusy) {
                             CircularProgressIndicator(
-                                modifier = Modifier.height(19.dp),
+                                modifier = Modifier.size(19.dp),
                                 color = androidx.compose.ui.graphics.Color(0xFF151922),
                                 strokeWidth = 2.dp
                             )
@@ -208,7 +209,7 @@ fun AccountGateScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = TheoCyan)
                     ) {
                         if (state.isBusy) CircularProgressIndicator(
-                            modifier = Modifier.height(18.dp),
+                            modifier = Modifier.size(18.dp),
                             color = TheoDarkBackground,
                             strokeWidth = 2.dp
                         ) else Text("Create Theo identity", fontWeight = FontWeight.Bold)
@@ -259,7 +260,7 @@ private fun RowStatus(label: String, loading: Boolean) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (loading) CircularProgressIndicator(
-            modifier = Modifier.height(20.dp),
+            modifier = Modifier.size(20.dp),
             color = TheoCyan,
             strokeWidth = 2.dp
         )

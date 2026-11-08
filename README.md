@@ -276,6 +276,7 @@ Release builds may require signing configuration. Never commit signing keys or c
 | [`LIQUID_GLASS_DESIGN.md`](LIQUID_GLASS_DESIGN.md) | Visual direction, rendering choices, and device-validation checklist. |
 | [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Third-party components and license notices. |
 | [`docs/milestones/M1_MEMORY_RELIABILITY.md`](docs/milestones/M1_MEMORY_RELIABILITY.md) | First additive implementation slice for reliable local memory management. |
+| [`docs/FIREBASE_SETUP.md`](docs/FIREBASE_SETUP.md) | Firebase Auth, Firestore account setup, security rules, and safe CI configuration. |
 | [`.env.example`](.env.example) | Example configuration; never place real secrets in Git. |
 
 ## References & acknowledgements

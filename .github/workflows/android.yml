@@ -20,6 +20,52 @@ jobs:
       - name: Check out Theo
         uses: actions/checkout@v4
 
+      - name: Restore and validate Firebase Android configuration
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON is required for Firebase account builds."
+            exit 1
+          fi
+
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          config = json.loads(Path("app/google-services.json").read_text())
+          expected_package = "com.aistudio.theoai.qxntp"
+          matching = [
+              client for client in config.get("client", [])
+              if client.get("client_info", {})
+                    .get("android_client_info", {})
+                    .get("package_name") == expected_package
+          ]
+
+          if not matching:
+              raise SystemExit(
+                  f"google-services.json does not contain Android package {expected_package}"
+              )
+
+          oauth_clients = matching[0].get("oauth_client", [])
+          web_clients = [
+              item.get("client_id") for item in oauth_clients
+              if item.get("client_type") == 3 and item.get("client_id")
+          ]
+          if not web_clients:
+              raise SystemExit(
+                  "No OAuth Web client found. Enable Google sign-in, add the app SHA fingerprints, "
+                  "then download a fresh google-services.json."
+              )
+
+          if not config.get("project_info", {}).get("project_id"):
+              raise SystemExit("google-services.json is missing project_info.project_id")
+
+          print("Firebase config validated: expected Android package and OAuth Web client found.")
+          PY
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -41,21 +87,41 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
-      - name: Create temporary debug signing keystore
+      - name: Restore and validate stable debug signing keystore
+        env:
+          THEO_DEBUG_KEYSTORE_BASE64: ${{ secrets.THEO_DEBUG_KEYSTORE_BASE64 }}
         run: |
-          keytool -genkeypair -v \
-            -keystore debug.keystore \
+          if [ -z "$THEO_DEBUG_KEYSTORE_BASE64" ]; then
+            echo "::error::THEO_DEBUG_KEYSTORE_BASE64 is required so the Firebase SHA fingerprints stay stable."
+            exit 1
+          fi
+
+          printf '%s' "$THEO_DEBUG_KEYSTORE_BASE64" | base64 --decode > debug.keystore
+          keytool -list -keystore debug.keystore \
             -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Android Debug,O=Android,C=US"
+            -alias androiddebugkey >/dev/null
+          echo "Stable debug signing keystore restored and validated."
+          keytool -list -v -keystore debug.keystore \
+            -storepass android \
+            -alias androiddebugkey | grep -E 'SHA1:|SHA256:'
 
       - name: Run unit tests and build debug APK
         run: gradle --no-daemon testDebugUnitTest assembleDebug
 
+      - name: Verify Google OAuth resource was generated
+        run: |
+          RESOURCE="app/build/generated/res/processDebugGoogleServices/values/values.xml"
+          if [ ! -f "$RESOURCE" ]; then
+            echo "::error::Google Services Gradle task completed but the generated resource file is missing."
+            find app/build/generated/res -type f | grep -i google || true
+            exit 1
+          fi
+          if ! grep -q 'name="default_web_client_id"' "$RESOURCE"; then
+            echo "::error::The generated Firebase resources do not contain default_web_client_id."
+            cat "$RESOURCE"
+            exit 1
+          fi
+          echo "Google OAuth client resource verified."
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

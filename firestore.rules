@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function validUsername(username) {
+      return username is string
+        && username.matches('^[a-z0-9_]{3,20}$');
+    }
+
+    match /users/{userId} {
+      allow get: if owns(userId);
+      allow list: if false;
+
+      allow create: if owns(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.username == null
+        && request.resource.data.keys().hasOnly([
+          'uid', 'username', 'displayName', 'email', 'photoUrl',
+          'createdAt', 'updatedAt', 'lastSeenAt'
+        ]);
+
+      allow update: if owns(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'username', 'displayName', 'updatedAt', 'lastSeenAt'
+        ])
+        && (
+          request.resource.data.username == resource.data.username
+          || (
+            validUsername(request.resource.data.username)
+            && existsAfter(
+              /databases/$(database)/documents/usernames/$(request.resource.data.username)
+            )
+            && getAfter(
+              /databases/$(database)/documents/usernames/$(request.resource.data.username)
+            ).data.uid == userId
+          )
+        )
+        && (
+          resource.data.username == null
+          || resource.data.username == request.resource.data.username
+          || !existsAfter(
+            /databases/$(database)/documents/usernames/$(resource.data.username)
+          )
+        );
+
+      allow delete: if false;
+
+      // Require at least one subcollection/document segment so this cannot
+      // accidentally grant broad delete access to users/{userId} itself.
+      match /{collection}/{document=**} {
+        allow read, write: if owns(userId);
+      }
+    }
+
+    match /usernames/{username} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      // Reservation creation must be paired with the owner's profile update
+      // in the same Firestore transaction.
+      allow create: if signedIn()
+        && validUsername(username)
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && owns(request.resource.data.uid)
+        && existsAfter(
+          /databases/$(database)/documents/users/$(request.resource.data.uid)
+        )
+        && getAfter(
+          /databases/$(database)/documents/users/$(request.resource.data.uid)
+        ).data.username == username;
+
+      // Username reservations are immutable; changing a username creates a
+      // new reservation and deletes the previous one transactionally.
+      allow update: if false;
+
+      // Releasing a reservation must be paired with the owner's profile
+      // changing away from that username in the same transaction.
+      allow delete: if signedIn()
+        && owns(resource.data.uid)
+        && getAfter(
+          /databases/$(database)/documents/users/$(resource.data.uid)
+        ).data.username != username;
+    }
+  }
+}

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.example.service.TheoDiagnosticLogger
 import com.example.ui.components.LocalTheoGlassBackdrop
 import com.example.ui.components.TheoBottomNavigation
+import com.example.ui.screens.AccountGateScreen
 import com.example.ui.screens.ActivityHistoryScreen
 import com.example.ui.screens.CoreAssistantScreen
 import com.example.ui.screens.DiagnosticConsoleScreen
@@ -39,6 +40,7 @@ import com.example.ui.screens.MemoryMatrixScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.TheoDarkBackground
 import com.example.ui.theme.TheoTheme
+import com.example.viewmodel.AccountViewModel
 import com.example.viewmodel.TheoViewModel
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -46,6 +48,7 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 class MainActivity : ComponentActivity() {
 
   private val viewModel: TheoViewModel by viewModels()
+  private val accountViewModel: AccountViewModel by viewModels()
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -59,7 +62,18 @@ class MainActivity : ComponentActivity() {
     }
     setContent {
       TheoTheme {
-        TheoMainContent(viewModel = viewModel)
+        val accountState by accountViewModel.uiState.collectAsState()
+        if (!accountState.isConfigured || accountState.isReady) {
+          TheoMainContent(viewModel = viewModel)
+        } else {
+          AccountGateScreen(
+            state = accountState,
+            onGoogleSignIn = { accountViewModel.signIn(this@MainActivity) },
+            onSaveProfile = { username, displayName ->
+              accountViewModel.saveProfile(username, displayName)
+            }
+          )
+        }
       }
     }
   }

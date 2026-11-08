@@ -87,7 +87,12 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isBusy = true, error = null)
             try {
-                backend.signInWithGoogle(activity)
+                withTimeout(90_000) { backend.signInWithGoogle(activity) }
+            } catch (error: TimeoutCancellationException) {
+                _uiState.value = _uiState.value.copy(
+                    isBusy = false,
+                    error = "Google sign-in timed out. Tap Continue with Google to try again."
+                )
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 _uiState.value = _uiState.value.copy(
